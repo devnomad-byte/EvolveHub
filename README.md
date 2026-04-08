@@ -37,7 +37,7 @@
 
 <p>
   <a href="README_zh.md">
-    <img src="https://img.shields.io/badge/%F0%9F%87%A8%F0%9F%87%B3-%E4%B8%AD%E6%96%87%E6%96%87%E6%A1%A3-45B7D1?style=flat-square" alt="Chinese"/>
+    <img src="https://img.shields.io/badge/📚_中文文档-Click-45B7D1?style=flat-square" alt="中文文档"/>
   </a>
 </p>
 

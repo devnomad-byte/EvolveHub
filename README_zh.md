@@ -37,7 +37,7 @@
 
 <p>
   <a href="README.md">
-    <img src="https://img.shields.io/badge/%F0%9F%87%BA%F0%9F%87%B8-English_Documentation-45B7D1?style=flat-square" alt="English"/>
+    <img src="https://img.shields.io/badge/📖_English_Docs-Click-45B7D1?style=flat-square" alt="English Docs"/>
   </a>
 </p>
 
