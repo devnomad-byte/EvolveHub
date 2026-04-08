@@ -1,25 +1,135 @@
-# Compiled class file
+# ================================
+# EvolveHub .gitignore
+# Java 21 + Spring Boot Enterprise Project
+# ================================
+
+# ===== Java =====
 *.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
-*.nar
 *.ear
+*.nar
 *.zip
 *.tar.gz
 *.rar
-*.idea
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# ===== Build Tools =====
+## Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+## Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ===== IDE =====
+## IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+## Eclipse
+.project
+.classpath
+.settings/
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+## VS Code
+.vscode/
+*.code-workspace
+
+## NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+
+# ===== Spring Boot =====
+## Logs
+logs/
+*.log
+log/
+
+## Config (sensitive)
+application-local.yml
+application-local.properties
+application-prod.yml
+application-prod.properties
+*.secret.yml
+*.secret.properties
+
+# ===== Operating System =====
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+## Linux
+*~
+
+# ===== Docker =====
+.docker/
+docker-compose.override.yml
+
+# ===== Security =====
+## Secrets & Keys
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+secrets/
+.env
+.env.*
+!.env.example
+
+# ===== Test & Coverage =====
+coverage/
+.nyc_output/
+*.lcov
+jacoco.exec
+*.exec
+
+# ===== Documentation =====
+## Generated docs
+site/
+
+# ===== Misc =====
+## Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache
+
+## Package locks (keep one)
+# package-lock.json
+# pnpm-lock.yaml
