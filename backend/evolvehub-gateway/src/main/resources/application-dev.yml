@@ -1,0 +1,19 @@
+# ==============================================================
+# EvolveHub Gateway - Development Profile
+# ==============================================================
+server:
+  port: 8080
+
+spring:
+  # ----- Redis (shared token store with auth) -----
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+
+# ----- Logging -----
+logging:
+  level:
+    org.evolve: DEBUG

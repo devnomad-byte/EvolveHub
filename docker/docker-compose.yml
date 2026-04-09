@@ -1,4 +1,10 @@
-version: '3.8'
+# ==============================================================
+# EvolveHub - Docker Compose
+# ==============================================================
+# Usage:
+#   cp ../.env.example ../.env   (fill in values)
+#   docker compose up -d
+# ==============================================================
 
 services:
   # ========== PostgreSQL ==========
@@ -7,9 +13,9 @@ services:
     container_name: evolvehub-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -19,6 +25,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - evolvehub-net
 
   # ========== Redis ==========
   redis:
@@ -26,7 +34,7 @@ services:
     container_name: evolvehub-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redisdata:/data
@@ -36,6 +44,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - evolvehub-net
 
   # ========== Nginx ==========
   nginx:
@@ -47,9 +57,17 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - evolvehub-net
 
 volumes:
   pgdata:
   redisdata:
+
+networks:
+  evolvehub-net:
+    driver: bridge

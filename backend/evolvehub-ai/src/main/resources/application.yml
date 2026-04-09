@@ -1,24 +1,11 @@
-server:
-  port: 8082
-
+# ==============================================================
+# EvolveHub AI Platform - Base Configuration
+# ==============================================================
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
     name: evolvehub-ai
-
-  # ----- DataSource -----
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/evolve_ai
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
-
-  # ----- Redis -----
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: 1
 
 # ----- MyBatis-Plus -----
 mybatis-plus:

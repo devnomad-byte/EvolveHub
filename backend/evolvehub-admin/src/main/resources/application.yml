@@ -1,16 +1,11 @@
-server:
-  port: 8083
-
+# ==============================================================
+# EvolveHub Admin Service - Base Configuration
+# ==============================================================
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
     name: evolvehub-admin
-
-  # ----- DataSource -----
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/evolve_admin
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
 
 # ----- MyBatis-Plus -----
 mybatis-plus:

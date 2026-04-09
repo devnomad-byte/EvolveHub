@@ -6,8 +6,8 @@
 
     <parent>
         <groupId>org.evolve</groupId>
-        <artifactId>evolve</artifactId>
-        <version>1.0</version>
+        <artifactId>evolvehub-parent</artifactId>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>evolvehub-auth</artifactId>

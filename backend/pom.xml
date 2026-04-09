@@ -2,19 +2,63 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <!-- ===== Spring Boot Parent ===== -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.9</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
-    <groupId>org.evolve</groupId>
-    <artifactId>evolve</artifactId>
-    <version>1.0</version>
-    <packaging>pom</packaging>
-    <name>evolve</name>
-    <description>evolve</description>
 
+    <!-- ===== Project Coordinates ===== -->
+    <groupId>org.evolve</groupId>
+    <artifactId>evolvehub-parent</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+
+    <name>EvolveHub</name>
+    <description>EvolveHub - AI-Powered Intelligent Platform with RBAC, Knowledge Base, and MCP Services</description>
+    <url>https://github.com/devnomad/EvolveHub</url>
+    <inceptionYear>2026</inceptionYear>
+
+    <!-- ===== Open Source License ===== -->
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <!-- ===== Developers ===== -->
+    <developers>
+        <developer>
+            <id>devnomad</id>
+            <name>devnomad</name>
+            <url>https://github.com/devnomad</url>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <!-- ===== SCM ===== -->
+    <scm>
+        <url>https://github.com/devnomad/EvolveHub</url>
+        <connection>scm:git:https://github.com/devnomad/EvolveHub.git</connection>
+        <developerConnection>scm:git:git@github.com:devnomad/EvolveHub.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <!-- ===== Issue Management ===== -->
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/devnomad/EvolveHub/issues</url>
+    </issueManagement>
+
+    <!-- ===== Modules ===== -->
     <modules>
         <module>evolvehub-common</module>
         <module>evolvehub-gateway</module>
@@ -23,16 +67,24 @@
         <module>evolvehub-admin</module>
     </modules>
 
+    <!-- ===== Unified Properties ===== -->
     <properties>
+        <!-- Project version: change this one place for all modules -->
+        <revision>1.0.0-SNAPSHOT</revision>
+
+        <!-- Java -->
         <java.version>21</java.version>
-        <!-- agentscope-->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Third-party dependency versions -->
         <agentscope.version>1.0.7</agentscope.version>
-        <!-- MyBatis Plus -->
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
-        <!-- hutool -->
         <hutool.version>5.8.40</hutool.version>
-        <!-- sa token -->
         <satoken.version>1.38.0</satoken.version>
+
+        <!-- Maven plugin versions -->
+        <flatten-maven-plugin.version>1.6.0</flatten-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -84,11 +136,65 @@
     </dependencyManagement>
 
     <build>
+        <!-- ===== Global plugins (all modules inherit) ===== -->
+        <plugins>
+            <!-- flatten-maven-plugin: resolves ${revision} for install/deploy -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
         <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <encoding>${project.build.sourceEncoding}</encoding>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
