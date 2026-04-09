@@ -1,0 +1,42 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: evolvehub-auth
+
+  # ----- DataSource -----
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/evolve_auth
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  # ----- Redis -----
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+
+# ----- Sa-Token -----
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  active-timeout: -1
+  is-concurrent: true
+  token-style: uuid
+
+# ----- MyBatis-Plus -----
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# ----- Actuator -----
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
