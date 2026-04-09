@@ -11,83 +11,18 @@
     </parent>
 
     <artifactId>evolvehub-ai</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
-    <name>evolvehub-ai</name>
-    <description>AI platform: conversation, agent, memory, knowledge retrieval, MCP tools</description>
+    <name>evolvehub-ai-parent</name>
+    <description>AI platform parent module: aggregate AI runtime and domain submodules</description>
 
-    <dependencies>
-        <!-- Web -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
-
-        <!-- AgentScope -->
-        <dependency>
-            <groupId>io.agentscope</groupId>
-            <artifactId>agentscope</artifactId>
-        </dependency>
-
-        <!-- Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
-        <!-- MyBatis Plus + PostgreSQL -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Hutool -->
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-        </dependency>
-
-        <!-- Common -->
-        <dependency>
-            <groupId>org.evolve</groupId>
-            <artifactId>evolvehub-common</artifactId>
-        </dependency>
-
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-
+    <modules>
+        <module>evolvehub-ai-api</module>
+        <module>evolvehub-ai-conversation</module>
+        <module>evolvehub-ai-agentcore</module>
+        <module>evolvehub-ai-knowledge</module>
+        <module>evolvehub-ai-memory</module>
+        <module>evolvehub-ai-toolmcp</module>
+        <module>evolvehub-ai-stats</module>
+    </modules>
 </project>

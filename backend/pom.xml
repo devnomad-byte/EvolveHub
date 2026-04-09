@@ -132,6 +132,48 @@
                 <artifactId>evolvehub-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-ai-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-ai-conversation</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-ai-agentcore</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-ai-knowledge</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-ai-memory</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-ai-toolmcp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-ai-stats</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
