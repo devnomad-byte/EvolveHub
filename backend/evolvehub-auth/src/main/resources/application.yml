@@ -1,0 +1,30 @@
+# ==============================================================
+# EvolveHub Auth Service - Base Configuration
+# ==============================================================
+# Active profile: override via SPRING_PROFILES_ACTIVE env or --spring.profiles.active
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  application:
+    name: evolvehub-auth
+
+# ----- Sa-Token -----
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  active-timeout: -1
+  is-concurrent: true
+  token-style: uuid
+
+# ----- MyBatis-Plus -----
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# ----- Actuator -----
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

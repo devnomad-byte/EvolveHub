@@ -1,0 +1,27 @@
+# ==============================================================
+# EvolveHub AI Platform - Development Profile
+# ==============================================================
+server:
+  port: 8082
+
+spring:
+  # ----- DataSource (local PostgreSQL) -----
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/evolve_ai
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  # ----- Redis (local, database 1 to isolate from auth) -----
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 1
+
+# ----- Logging (development: show SQL) -----
+logging:
+  level:
+    org.evolve: DEBUG
+    com.baomidou.mybatisplus: DEBUG

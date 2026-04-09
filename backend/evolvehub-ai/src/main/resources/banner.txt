@@ -1,0 +1,10 @@
+
+    ______            __           __  __      __
+   / ____/   ______  / /   _____  / / / /_  __/ /_
+  / __/ | | / / __ \/ / | / / _ \/ /_/ / / / / __ \
+ / /___ | |/ / /_/ / /| |/ /  __/ __  / /_/ / /_/ /
+/_____/ |___/\____/_/ |___/\___/_/ /_/\__,_/_.___/
+
+  :: ${spring.application.name} :: v${application.version:1.0.0-SNAPSHOT}
+  :: Spring Boot ${spring-boot.version} :: Java ${java.version}
+

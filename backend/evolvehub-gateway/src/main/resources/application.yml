@@ -1,0 +1,23 @@
+# ==============================================================
+# EvolveHub Gateway - Base Configuration
+# ==============================================================
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  application:
+    name: evolvehub-gateway
+
+# ----- Sa-Token (gateway-level validation) -----
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  active-timeout: -1
+  is-concurrent: true
+  token-style: uuid
+
+# ----- Actuator -----
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

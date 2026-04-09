@@ -1,0 +1,37 @@
+:root {
+  --primary: #4ECDC4;
+  --primary-dark: #3db8b0;
+  --primary-light: #7eddd6;
+  --accent: #FF6B6B;
+  --accent-dark: #e55a5a;
+  --secondary: #45B7D1;
+  --success: #6DB33F;
+  --warning: #f5a623;
+  --error: #e74c3c;
+  --bg-dark: #1a1a2e;
+  --bg-darker: #16213e;
+  --bg-card: #1f2937;
+  --bg-hover: #2d3748;
+  --text-primary: #ffffff;
+  --text-secondary: #a0aec0;
+  --text-muted: #718096;
+  --border-color: #2d3748;
+  --border-light: #4a5568;
+  --gradient-primary: linear-gradient(135deg, #4ECDC4 0%, #45B7D1 100%);
+  --gradient-accent: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+  --gradient-dark: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(78, 205, 196, 0.3);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+  --sidebar-width: 260px;
+  --header-height: 64px;
+}
