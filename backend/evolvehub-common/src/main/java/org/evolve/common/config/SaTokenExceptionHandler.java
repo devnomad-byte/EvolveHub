@@ -1,4 +1,4 @@
-package org.evolve.auth.config;
+package org.evolve.common.config;
 
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.NotPermissionException;
@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * <p>
  * 拦截 Sa-Token 抛出的 NotLoginException / NotPermissionException / NotRoleException，
  * 返回标准 JSON 响应。优先级高于全局兜底处理器。
+ * 放置在 common 模块中，各业务模块自动生效。
  * </p>
  *
  * @author zhao
