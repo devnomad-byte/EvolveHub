@@ -14,7 +14,7 @@ import org.evolve.common.base.BaseEntity;
  **/
 @Getter
 @Setter
-@TableName("t_dept")
+@TableName("eh_dept")
 public class DeptEntity extends BaseEntity {
 
     /**

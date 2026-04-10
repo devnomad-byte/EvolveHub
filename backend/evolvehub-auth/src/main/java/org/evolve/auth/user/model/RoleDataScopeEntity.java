@@ -14,7 +14,7 @@ import org.evolve.common.base.BaseEntity;
  **/
 @Getter
 @Setter
-@TableName("t_role_data_scope")
+@TableName("eh_role_data_scope")
 public class RoleDataScopeEntity extends BaseEntity {
 
     /**

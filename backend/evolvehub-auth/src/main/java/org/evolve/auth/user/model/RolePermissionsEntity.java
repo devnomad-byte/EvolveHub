@@ -14,7 +14,7 @@ import org.evolve.common.base.BaseEntity;
  **/
 @Getter
 @Setter
-@TableName("t_role_permission")
+@TableName("eh_role_permission")
 public class RolePermissionsEntity extends BaseEntity {
 
     /**
