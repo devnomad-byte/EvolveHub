@@ -41,6 +41,9 @@ public enum ResultCode {
     DATA_NOT_EXIST(2001, "数据不存在"),
     DATA_ALREADY_EXIST(2002, "数据已存在"),
     DATA_SCOPE_DENIED(2003, "数据权限不足"),
+
+    // ========== 业务逻辑 2xxx ==========
+    BUSINESS_ERROR(2000, "业务逻辑错误"),
     ;
 
     private final int code;

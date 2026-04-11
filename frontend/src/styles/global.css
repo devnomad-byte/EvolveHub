@@ -108,3 +108,89 @@ input:focus, textarea:focus {
 input::placeholder, textarea::placeholder {
   color: var(--text-disabled);
 }
+
+/* ============================================
+   Appearance Settings - Wallpapers
+   ============================================ */
+
+/* 默认管理员背景（无壁纸） */
+.admin-bg:not(.wallpaper-1):not(.wallpaper-2):not(.wallpaper-3):not(.wallpaper-4):not(.wallpaper-5):not(.wallpaper-6) {
+  background: linear-gradient(135deg, #0a0a2e 0%, #1a1a3e 50%, #0d1b2a 100%);
+}
+
+/* 壁纸样式 - 应用到管理员背景 */
+.admin-bg.wallpaper-1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.admin-bg.wallpaper-2 {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.admin-bg.wallpaper-3 {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.admin-bg.wallpaper-4 {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.admin-bg.wallpaper-5 {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.admin-bg.wallpaper-6 {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+}
+
+/* ============================================
+   Appearance Settings - Themes
+   ============================================ */
+
+/* 深色主题 (默认) */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] #app {
+  background: var(--bg-dark-1);
+  color: var(--text-primary);
+}
+
+/* 浅色主题 */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="light"] body,
+[data-theme="light"] #app {
+  background: #f5f5f7;
+  color: #1d1d1f;
+}
+
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .glass-light {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1d1d1f;
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus {
+  border-color: #0A84FF;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #86868b;
+}

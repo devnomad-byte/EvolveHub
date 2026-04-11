@@ -44,4 +44,14 @@ public abstract class BaseManager<Request, Response> {
         check(request);
         return process(request);
     }
+
+    /**
+     * 执行业务流程（无参版本）
+     * <p>当 Request 类型为 Void 时使用，内部传 null 调用有参版本。</p>
+     *
+     * @return 业务处理结果
+     */
+    public Response execute() {
+        return execute(null);
+    }
 }

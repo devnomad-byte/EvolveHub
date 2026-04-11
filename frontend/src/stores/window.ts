@@ -9,6 +9,9 @@ export const useWindowStore = defineStore('window', () => {
   const windows = ref<Record<string, WindowState>>({})
   const activeWindowId = ref<string | null>(null)
 
+  // 设置应用的指定标签页（跨组件通信用）
+  const pendingSettingsTab = ref<string | null>(null)
+
   const windowList = computed(() => Object.values(windows.value))
 
   const openWindows = computed(() =>
@@ -113,6 +116,7 @@ export const useWindowStore = defineStore('window', () => {
     activeWindowId,
     openWindows,
     allWindows,
+    pendingSettingsTab,
     openApp,
     closeWindow,
     minimizeWindow,

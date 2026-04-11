@@ -40,6 +40,11 @@ public record CurrentUserResponse(
         Long deptId,
 
         /**
+         * 所属部门名称
+         */
+        String deptName,
+
+        /**
          * 角色码列表
          */
         List<String> roles,

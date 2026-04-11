@@ -66,6 +66,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWindowStore } from '../../stores/window'
 import { useDesktopStore } from '../../stores/desktop'
+import { useAppearanceStore } from '../../composables/useAppearance'
 import { appDefinitions } from '../../types/apps'
 import type { AppId } from '../../types'
 import MenuBar from './MenuBar.vue'
@@ -77,6 +78,7 @@ import UserDesktop from './UserDesktop.vue'
 
 const winStore = useWindowStore()
 const desktop = useDesktopStore()
+const appearance = useAppearanceStore()
 
 const isAdmin = computed(() => desktop.currentUser.role !== 'USER')
 
@@ -131,6 +133,9 @@ function handleAbout() {
 }
 
 onMounted(() => {
+  // 初始化外观设置
+  appearance.applySettings()
+
   window.addEventListener('contextmenu', handleContextMenu)
   window.addEventListener('click', closeContextMenu)
 })

@@ -6,6 +6,14 @@ export interface LoginRequest {
   password: string
 }
 
+// 初始化管理员请求
+export interface InitAdminRequest {
+  username: string
+  password: string
+  nickname: string
+  initSecretKey?: string
+}
+
 // 登录响应
 export interface LoginResponse {
   token: string
@@ -24,6 +32,7 @@ export interface CurrentUserResponse {
   email: string
   avatar: string
   deptId: number
+  deptName: string
   roles: string[]
   permissions: string[]
 }
@@ -41,6 +50,13 @@ export const authApi = {
    */
   login: (data: LoginRequest) => {
     return http.post<LoginResponse>('/auth/login', data)
+  },
+
+  /**
+   * 初始化超级管理员（仅在系统未初始化时可用）
+   */
+  initAdmin: (data: InitAdminRequest) => {
+    return http.post<LoginResponse>('/auth/init-admin', data)
   },
 
   /**
@@ -62,5 +78,12 @@ export const authApi = {
    */
   changePassword: (data: ChangePasswordRequest) => {
     return http.put('/auth/password', data)
+  },
+
+  /**
+   * 更新头像
+   */
+  updateAvatar: (avatar: string) => {
+    return http.put('/auth/avatar', { avatar })
   }
 }

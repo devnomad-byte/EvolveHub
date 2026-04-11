@@ -8,6 +8,16 @@ spring:
   application:
     name: evolvehub-auth
 
+server:
+  servlet:
+    context-path: /api/auth
+
+# 应用配置
+app:
+  init:
+    # 系统初始化密钥（可选），设置后调用 /init-admin 接口时需要提供此密钥
+    secret-key: ${INIT_SECRET_KEY:}
+
 # ----- Sa-Token -----
 sa-token:
   token-name: Authorization

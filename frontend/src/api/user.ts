@@ -58,34 +58,34 @@ export const userApi = {
    * 创建用户（仅超级管理员）
    */
   create: (data: CreateUserRequest) => {
-    return http.post<UserInfo>('/admin/users', data)
+    return http.post<UserInfo>('/auth/admin/users', data)
   },
 
   /**
    * 用户列表（超级管理员和普通管理员）
    */
   list: () => {
-    return http.get<UserInfo[]>('/admin/users')
+    return http.get<UserInfo[]>('/auth/admin/users')
   },
 
   /**
    * 修改用户（超级管理员和普通管理员）
    */
   update: (data: UpdateUserRequest) => {
-    return http.put<UserInfo>('/admin/users', data)
+    return http.put<UserInfo>('/auth/admin/users', data)
   },
 
   /**
    * 删除用户（仅超级管理员）
    */
   delete: (userId: number) => {
-    return http.delete(`/admin/users/${userId}`)
+    return http.delete(`/auth/admin/users/${userId}`)
   },
 
   /**
    * 重置密码（仅超级管理员）
    */
   resetPassword: (data: ResetPasswordRequest) => {
-    return http.put('/admin/users/password/reset', data)
+    return http.put('/auth/admin/users/password/reset', data)
   }
 }
