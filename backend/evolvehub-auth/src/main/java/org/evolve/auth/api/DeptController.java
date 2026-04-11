@@ -1,6 +1,7 @@
 package org.evolve.auth.api;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.evolve.auth.request.DeptCreateRequest;
@@ -41,8 +42,8 @@ public class DeptController {
      * @param request 创建请求
      * @return 部门信息
      */
-    @PostMapping("/api/admin/dept")
-    @SaCheckRole({"SUPER_ADMIN", "ADMIN"})
+    @PostMapping("/admin/dept")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     public Result<DeptResponse> createDept(@RequestBody @Valid DeptCreateRequest request) {
         return Result.ok(deptCreateManager.execute(request));
     }
@@ -52,8 +53,8 @@ public class DeptController {
      *
      * @return 部门树
      */
-    @GetMapping("/api/admin/dept/tree")
-    @SaCheckRole({"SUPER_ADMIN", "ADMIN"})
+    @GetMapping("/admin/dept/tree")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     public Result<List<DeptResponse>> getDeptTree() {
         return Result.ok(deptTreeManager.execute());
     }
@@ -64,8 +65,8 @@ public class DeptController {
      * @param request 修改请求
      * @return 部门信息
      */
-    @PutMapping("/api/admin/dept")
-    @SaCheckRole({"SUPER_ADMIN", "ADMIN"})
+    @PutMapping("/admin/dept")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     public Result<DeptResponse> updateDept(@RequestBody @Valid DeptUpdateRequest request) {
         return Result.ok(deptUpdateManager.execute(request));
     }
@@ -76,7 +77,7 @@ public class DeptController {
      * @param id 部门 ID
      * @return 空
      */
-    @DeleteMapping("/api/admin/dept/{id}")
+    @DeleteMapping("/admin/dept/{id}")
     @SaCheckRole("SUPER_ADMIN")
     public Result<Void> deleteDept(@PathVariable Long id) {
         deptDeleteManager.execute(id);

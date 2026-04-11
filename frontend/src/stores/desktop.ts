@@ -8,6 +8,7 @@ export interface LoginUser {
   displayName: string
   role: UserRole
   deptName: string
+  email: string
   avatar: string
 }
 

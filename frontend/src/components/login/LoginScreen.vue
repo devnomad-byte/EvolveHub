@@ -173,28 +173,30 @@ async function handleLogin() {
   errorMessage.value = ''
 
   try {
+    // 开发环境：直接发送明文密码
+    // 生产环境：使用 HTTPS 加密传输
     const response = await authApi.login({
       username: loginForm.value.username,
       password: loginForm.value.password
     })
 
     localStorage.setItem('token', response.token)
-    localStorage.setItem('userInfo', JSON.stringify({
-      id: response.id,
-      username: response.username,
-      nickname: response.nickname,
-      roles: response.roles,
-      permissions: response.permissions
-    }))
 
-    desktop.setUserInfo({
-      id: response.id,
-      username: response.username,
-      displayName: response.nickname,
-      role: response.roles[0] || 'USER',
-      deptName: '',
-      avatar: '👤'
-    })
+    // 登录成功后，调用 /me 获取完整用户信息
+    const userInfo = await authApi.getCurrentUser()
+
+    const userData = {
+      id: userInfo.id,
+      username: userInfo.username,
+      displayName: userInfo.nickname || response.nickname || response.username,
+      role: userInfo.roles[0] || response.roles[0] || 'USER',
+      deptName: userInfo.deptName || '',
+      email: userInfo.email || '',
+      avatar: userInfo.avatar || '👤'
+    }
+
+    localStorage.setItem('userInfo', JSON.stringify(userData))
+    desktop.setUserInfo(userData)
 
     isLoggingIn.value = true
     setTimeout(() => {
@@ -517,6 +519,7 @@ onUnmounted(() => {
   border: 2px solid #e5e5e7;
   border-radius: 12px;
   font-size: 15px;
+  color: #1d1d1f;
   transition: all 0.2s;
   outline: none;
   background: rgba(255, 255, 255, 0.5);
@@ -526,6 +529,19 @@ onUnmounted(() => {
   border-color: #667eea;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.login-input::placeholder {
+  color: #86868b;
+}
+
+/* 修复自动填充时的文字颜色 */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1d1d1f;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.5) inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .login-input.shake {

@@ -77,7 +77,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
             SELECT DISTINCT r.role_code
             FROM eh_user_role ur
             JOIN eh_role r ON ur.role_id = r.id AND r.deleted = 0 AND r.status = 1
-            WHERE ur.user_id = #{userId} AND ur.deleted = 0
+            WHERE ur.user_id = #{userId}
         """)
         List<String> selectRoleCodesByUserId(long userId);
 
@@ -88,9 +88,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
         @Select("""
             SELECT DISTINCT p.perm_code
             FROM eh_user_role ur
-            JOIN eh_role_permission rp ON ur.role_id = rp.role_id AND rp.deleted = 0
+            JOIN eh_role_permission rp ON ur.role_id = rp.role_id
             JOIN eh_permission p ON rp.permission_id = p.id AND p.deleted = 0 AND p.status = 1
-            WHERE ur.user_id = #{userId} AND ur.deleted = 0
+            WHERE ur.user_id = #{userId}
         """)
         List<String> selectPermCodesByUserId(long userId);
     }

@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 菜单管理接口
  *
- * @author zhao
+ * @author zhao devnomad-byte
  */
 @RestController
 public class MenuController {
@@ -25,7 +25,7 @@ public class MenuController {
      *
      * @return 菜单树
      */
-    @GetMapping("/api/admin/system/menus")
+    @GetMapping("/admin/system/menus")
     public Result<List<MenuTreeResponse>> getMenus() {
         // 检查是否登录
         StpUtil.checkLogin();
@@ -52,7 +52,7 @@ public class MenuController {
      *
      * @return 空列表（用户界面无需菜单，由前端路由控制）
      */
-    @GetMapping("/api/app/menus")
+    @GetMapping("/app/menus")
     public Result<List<MenuTreeResponse>> getAppMenus() {
         // 检查是否登录
         StpUtil.checkLogin();

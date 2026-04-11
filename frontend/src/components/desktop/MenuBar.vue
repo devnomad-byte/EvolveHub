@@ -20,11 +20,14 @@
         <span v-if="unreadCount > 0" class="bell-dot"></span>
       </div>
       <div class="menubar-user" @click="showUserMenu = !showUserMenu">
-        <div class="user-avatar">{{ desktop.currentUser.displayName.charAt(0) }}</div>
+        <div class="user-avatar">
+          <img v-if="userAvatarUrl" :src="userAvatarUrl" alt="头像" class="user-avatar-img" />
+          <span v-else>{{ userAvatarChar }}</span>
+        </div>
         <div v-if="showUserMenu" class="user-dropdown">
-          <div class="dropdown-item">{{ desktop.currentUser.displayName }} ({{ desktop.currentUser.role }})</div>
+          <div class="dropdown-item">{{ userDisplayText }}</div>
           <div class="dropdown-item" @click="winStore.openApp('settings')">个人设置</div>
-          <div class="dropdown-item" @click="winStore.openApp('settings')">修改密码</div>
+          <div class="dropdown-item" @click="openPasswordTab">修改密码</div>
           <div class="dropdown-divider"></div>
           <div class="dropdown-item logout" @click="handleLogout">退出登录</div>
         </div>
@@ -46,6 +49,32 @@ const menuItems = ['文件', '编辑', '显示', '帮助']
 
 const unreadCount = computed(() => desktop.notifications.filter(n => !n.read).length)
 
+// 安全的用户信息计算属性
+const userAvatarChar = computed(() => {
+  if (!desktop.currentUser?.displayName) return 'U'
+  return desktop.currentUser.displayName.charAt(0) || 'U'
+})
+
+const userAvatarUrl = computed(() => {
+  const avatar = desktop.currentUser?.avatar
+  if (!avatar || avatar === '👤') return ''
+  return avatar
+})
+
+const userDisplayText = computed(() => {
+  if (!desktop.currentUser?.displayName) return '用户'
+  const roleMap: Record<string, string> = {
+    'SUPER_ADMIN': '超级管理员',
+    'ADMIN': '管理员',
+    'DEPT_HEAD': '部门负责人',
+    'LEADER': '领导',
+    'USER': '普通用户'
+  }
+  const roleName = roleMap[desktop.currentUser.role] || desktop.currentUser.role || '用户'
+  const dept = desktop.currentUser.deptName
+  return dept ? `${desktop.currentUser.displayName} · ${dept} · ${roleName}` : `${desktop.currentUser.displayName} · ${roleName}`
+})
+
 const now = ref(new Date())
 let timer = 0
 
@@ -57,6 +86,12 @@ const timeStr = computed(() => {
 function handleLogout() {
   showUserMenu.value = false
   desktop.logout()
+}
+
+function openPasswordTab() {
+  showUserMenu.value = false
+  winStore.pendingSettingsTab = 'password'
+  winStore.openApp('settings')
 }
 
 onMounted(() => {
@@ -196,6 +231,13 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 600;
   color: #fff;
+  overflow: hidden;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-dropdown {

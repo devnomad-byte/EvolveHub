@@ -35,27 +35,27 @@ export const deptApi = {
    * 创建部门（超级管理员和普通管理员）
    */
   create: (data: CreateDeptRequest) => {
-    return http.post<DeptInfo>('/admin/dept', data)
+    return http.post<DeptInfo>('/auth/admin/dept', data)
   },
 
   /**
    * 部门树（超级管理员和普通管理员）
    */
   tree: () => {
-    return http.get<DeptInfo[]>('/admin/dept/tree')
+    return http.get<DeptInfo[]>('/auth/admin/dept/tree')
   },
 
   /**
    * 修改部门（超级管理员和普通管理员）
    */
   update: (data: UpdateDeptRequest) => {
-    return http.put<DeptInfo>('/admin/dept', data)
+    return http.put<DeptInfo>('/auth/admin/dept', data)
   },
 
   /**
    * 删除部门（仅超级管理员）
    */
   delete: (id: number) => {
-    return http.delete(`/admin/dept/${id}`)
+    return http.delete(`/auth/admin/dept/${id}`)
   }
 }

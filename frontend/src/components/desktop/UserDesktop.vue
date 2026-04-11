@@ -32,7 +32,7 @@
       </div>
       <div class="topbar-right">
         <Bell :size="18" class="topbar-icon" @click="desktop.toggleNotifications" />
-        <div class="topbar-avatar">{{ desktop.currentUser.displayName.charAt(0) }}</div>
+        <div class="topbar-avatar">{{ safeUserInfo.displayName.charAt(0) }}</div>
         <LogOut :size="16" class="topbar-icon topbar-logout" @click="handleLogout" />
       </div>
     </div>
@@ -178,10 +178,10 @@
           <!-- Personal Profile -->
           <div v-if="activePanel === 'profile'" class="user-profile">
             <div class="profile-avatar-section">
-              <div class="profile-avatar">{{ desktop.currentUser.avatar }}</div>
-              <div class="profile-name">{{ desktop.currentUser.displayName }}</div>
-              <div class="profile-role">{{ desktop.currentUser.role === 'SUPER_ADMIN' ? '超级管理员' : '普通用户' }}</div>
-              <div class="profile-dept">{{ desktop.currentUser.deptName }}</div>
+              <div class="profile-avatar">{{ safeUserInfo.avatar }}</div>
+              <div class="profile-name">{{ safeUserInfo.displayName }}</div>
+              <div class="profile-role">{{ safeUserInfo.role === 'SUPER_ADMIN' ? '超级管理员' : '普通用户' }}</div>
+              <div class="profile-dept">{{ safeUserInfo.deptName }}</div>
             </div>
             <div class="profile-section">
               <h4>角色设定</h4>
@@ -200,7 +200,7 @@
     </div>
 
     <!-- Desktop Pet -->
-    <DesktopPet :user-id="desktop.currentUser.id" :user-name="desktop.currentUser.displayName" />
+    <DesktopPet :user-id="safeUserInfo.id" :user-name="safeUserInfo.displayName" />
   </div>
 </template>
 
@@ -215,6 +215,21 @@ import DesktopPet from './DesktopPet.vue'
 
 const winStore = useWindowStore()
 const desktop = useDesktopStore()
+
+// 安全的用户信息访问
+const safeUserInfo = computed(() => {
+  if (!desktop.currentUser) {
+    return {
+      id: 0,
+      username: '',
+      displayName: '用户',
+      role: 'USER',
+      deptName: '',
+      avatar: '👤'
+    }
+  }
+  return desktop.currentUser
+})
 
 // Sidebar panel state
 const activePanel = ref<'chat-history' | 'profile' | null>(null)
@@ -311,7 +326,7 @@ const particlePositions = [
 ]
 
 // Greeting typing animation
-const greetingText = computed(() => `你好, ${desktop.currentUser.displayName}`)
+const greetingText = computed(() => `你好, ${safeUserInfo.value.displayName}`)
 const displayedGreeting = ref('')
 const greetingComplete = ref(false)
 let greetingTimer: number = 0
@@ -353,6 +368,10 @@ function handleLogout() {
 }
 
 onMounted(() => {
+  // 初始化外观设置（自动应用）
+  const { applySettings } = useAppearanceStore()
+  applySettings()
+
   startGreetingAnimation()
 
   // GSAP entrance animation
@@ -382,6 +401,16 @@ onUnmounted(() => {
   inset: 0;
   overflow: hidden;
   z-index: 0;
+}
+
+/* 当有壁纸时，降低aurora效果的透明度 */
+body.wallpaper-1 .aurora-bg,
+body.wallpaper-2 .aurora-bg,
+body.wallpaper-3 .aurora-bg,
+body.wallpaper-4 .aurora-bg,
+body.wallpaper-5 .aurora-bg,
+body.wallpaper-6 .aurora-bg {
+  opacity: 0.3;
 }
 
 .aurora-layer {

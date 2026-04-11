@@ -20,13 +20,13 @@ export const menuApi = {
    * 获取当前用户的菜单树
    */
   getMenus: () => {
-    return http.get<MenuInfo[]>('/admin/system/menus')
+    return http.get<MenuInfo[]>('/auth/admin/system/menus')
   },
 
   /**
    * 获取用户界面菜单
    */
   getAppMenus: () => {
-    return http.get<MenuInfo[]>('/app/menus')
+    return http.get<MenuInfo[]>('/auth/app/menus')
   }
 }
