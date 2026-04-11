@@ -17,8 +17,8 @@ public class SaTokenConfig {
         return new SaReactorFilter()
                 // Intercept all routes
                 .addInclude("/**")
-                // Exclude public endpoints (login, register, health check, etc.)
-                .addExclude("/api/auth/login", "/api/auth/register", "/actuator/**")
+                // Exclude public endpoints (login, health check, etc.)
+                .addExclude("/api/auth/login", "/actuator/**")
                 // Auth logic
                 .setAuth(obj -> {
                     SaRouter.match("/**", StpUtil::checkLogin);

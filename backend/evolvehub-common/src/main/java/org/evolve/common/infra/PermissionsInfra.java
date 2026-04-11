@@ -47,4 +47,16 @@ public class PermissionsInfra extends ServiceImpl<PermissionsInfra.PermissionsMa
     public Page<PermissionsEntity> listPage(int pageNum, int pageSize) {
         return this.page(new Page<>(pageNum, pageSize));
     }
+
+    /**
+     * 查询所有菜单（MENU 类型）
+     *
+     * @return 菜单列表
+     */
+    public List<PermissionsEntity> listMenus() {
+        return this.lambdaQuery()
+                .eq(PermissionsEntity::getPermType, "MENU")
+                .orderByAsc(PermissionsEntity::getSort)
+                .list();
+    }
 }

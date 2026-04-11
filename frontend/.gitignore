@@ -1,33 +1,4 @@
-node_modules
-.DS_Store
-dist
-dist-ssr
-dist.zip
-dist.tar
-dist.war
-.nitro
-.output
-*-dist.zip
-*-dist.tar
-*-dist.war
-coverage
-*.local
-**/.vitepress/cache
-.cache
-.turbo
-.temp
-dev-dist
-.stylelintcache
-yarn.lock
-package-lock.json
-.VSCodeCounter
-**/backend-mock/data
-
-# local env files
-.env.local
-.env.*.local
-.eslintcache
-
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -35,25 +6,19 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-vite.config.mts.*
-vite.config.mjs.*
-vite.config.js.*
-vite.config.ts.*
+
+node_modules
+dist
+dist-ssr
+*.local
 
 # Editor directories and files
+.vscode/*
+!.vscode/extensions.json
 .idea
-# .vscode
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.history
-.cursor
-
-# AI
-.agent
-.agents
-.claude
-.codex
-skills-lock.json

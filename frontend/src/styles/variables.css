@@ -1,0 +1,66 @@
+:root {
+  /* Colors */
+  --color-primary: #0A84FF;
+  --color-primary-hover: #409CFF;
+  --color-accent: #5E5CE6;
+  --color-success: #30D158;
+  --color-warning: #FF9F0A;
+  --color-danger: #FF453A;
+
+  /* Background */
+  --bg-dark-1: #1C1C1E;
+  --bg-dark-2: #2C2C2E;
+  --bg-dark-3: #3A3A3C;
+
+  /* Glass */
+  --glass-bg: rgba(30, 30, 30, 0.72);
+  --glass-bg-light: rgba(40, 40, 40, 0.85);
+  --glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --glass-blur: blur(40px) saturate(180%);
+
+  /* Text */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1A6;
+  --text-disabled: #636366;
+
+  /* Border */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.2);
+
+  /* Radius */
+  --radius-window: 12px;
+  --radius-card: 10px;
+  --radius-button: 8px;
+  --radius-icon: 22%;
+
+  /* Shadows */
+  --shadow-window: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+  --shadow-popup: 0 12px 40px rgba(0, 0, 0, 0.4);
+
+  /* Menu bar */
+  --menubar-height: 28px;
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: ease-out;
+  --ease-in: ease-in;
+
+  /* Dock */
+  --dock-icon-size: 48px;
+  --dock-icon-hover: 72px;
+
+  /* AI Space theme (user desktop) */
+  --aurora-accent-1: rgba(10, 132, 255, 0.3);
+  --aurora-accent-2: rgba(94, 92, 230, 0.25);
+  --aurora-accent-3: rgba(191, 90, 242, 0.2);
+
+  --glow-primary: rgba(10, 132, 255, 0.4);
+  --glow-accent: rgba(94, 92, 230, 0.5);
+
+  --user-glass-bg: rgba(20, 20, 40, 0.6);
+  --user-glass-border: rgba(255, 255, 255, 0.08);
+  --user-glass-hover-border: rgba(255, 255, 255, 0.2);
+
+  --orb-size: 160px;
+  --orb-glow-size: 240px;
+}
