@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.evolve.common.model.PermissionsEntity;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * 权限数据访问层
  *
