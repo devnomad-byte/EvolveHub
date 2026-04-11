@@ -85,7 +85,6 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok.version>1.18.42</lombok.version>
         <configuration.processor.version>3.5.3</configuration.processor.version>
-        <s3.version>2.42.32</s3.version>
         <!-- Spring Cloud -->
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <!-- Maven plugin versions -->
@@ -135,12 +134,6 @@
                 <groupId>cn.dev33</groupId>
                 <artifactId>sa-token-reactor-spring-boot3-starter</artifactId>
                 <version>${satoken.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>s3</artifactId>
-                <version>${s3.version}</version>
             </dependency>
 
             <!-- Spring Cloud BOM -->

@@ -20,17 +20,6 @@ spring:
       password: ${REDIS_PASSWORD:}
       database: 0
 
-# ----- S3  -----
-s3:
-  enabled: true
-  endpoint: ${S3_ENDPOINT:http://localhost:9000}
-  region: ${S3_REGION:us-east-1}
-  access-key: ${S3_ACCESS_KEY:minioadmin}
-  secret-key: ${S3_SECRET_KEY:minioadmin}
-  bucket: ${S3_BUCKET:evolvehub}
-  path-style-access-enabled: true
-  auto-create-bucket: true
-
 # ----- Logging (development: show SQL) -----
 logging:
   level:
