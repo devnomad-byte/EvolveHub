@@ -17,9 +17,10 @@
     <description>API Gateway: unified entry point, routing, CORS, rate limiting</description>
 
     <dependencies>
+        <!-- Spring Cloud Gateway (Reactive, standalone mode) -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
         </dependency>
 
         <dependency>
@@ -27,10 +28,10 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- Sa-Token for gateway-level token validation -->
+        <!-- Sa-Token Reactor adapter for WebFlux/Gateway -->
         <dependency>
             <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-spring-boot3-starter</artifactId>
+            <artifactId>sa-token-reactor-spring-boot3-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.dev33</groupId>

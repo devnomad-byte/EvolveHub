@@ -7,9 +7,9 @@ server:
 spring:
   # ----- DataSource (local PostgreSQL) -----
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/evolve_auth
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://106.15.231.177:${DB_PORT:5432}/evolve_auth
+    username: admin
+    password: a774461674
     driver-class-name: org.postgresql.Driver
 
   # ----- Redis (local) -----

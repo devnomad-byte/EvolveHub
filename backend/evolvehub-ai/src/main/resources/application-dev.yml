@@ -5,20 +5,20 @@ server:
   port: 8082
 
 spring:
-  # ----- DataSource (local PostgreSQL) -----
+  # ----- DataSource (shared PostgreSQL with auth for RBAC) -----
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/evolve_ai
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://106.15.231.177:${DB_PORT:5432}/evolve_auth
+    username: admin
+    password: a774461674
     driver-class-name: org.postgresql.Driver
 
-  # ----- Redis (local, database 1 to isolate from auth) -----
+  # ----- Redis (database 0, shared with auth for Sa-Token session) -----
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      database: 1
+      database: 0
 
 # ----- Logging (development: show SQL) -----
 logging:

@@ -5,12 +5,20 @@ server:
   port: 8083
 
 spring:
-  # ----- DataSource (local PostgreSQL) -----
+  # ----- DataSource (local PostgreSQL, 与 auth 共用同一库) -----
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/evolve_admin
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://106.15.231.177:${DB_PORT:5432}/evolve_auth
+    username: admin
+    password: a774461674
     driver-class-name: org.postgresql.Driver
+
+  # ----- Redis (shared token store with auth) -----
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
 
 # ----- Logging (development: show SQL) -----
 logging:

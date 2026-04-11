@@ -33,6 +33,12 @@ public class BaseEntity implements Serializable {
     protected Long id;
 
     /**
+     * 创建人 ID（插入时自动填充当前登录用户 ID）
+     */
+    @TableField(fill = FieldFill.INSERT)
+    protected Long createBy;
+
+    /**
      * 创建时间（插入时自动填充）
      */
     @TableField(fill = FieldFill.INSERT)

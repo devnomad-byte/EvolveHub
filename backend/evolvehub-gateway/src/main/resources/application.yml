@@ -6,6 +6,19 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
     name: evolvehub-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Global CORS configuration
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins: "*"
+                allowed-methods: "*"
+                allowed-headers: "*"
+                allow-credentials: false
+                max-age: 3600
 
 # ----- Sa-Token (gateway-level validation) -----
 sa-token:

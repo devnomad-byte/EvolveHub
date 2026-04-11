@@ -13,7 +13,38 @@ spring:
       password: ${REDIS_PASSWORD:}
       database: 0
 
+  # ----- Gateway Route Rules -----
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # Auth service: /api/auth/** -> http://localhost:8081/**
+            - id: auth-service
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - StripPrefix=2
+
+            # AI platform: /api/ai/** -> http://localhost:8082/**
+            - id: ai-service
+              uri: http://localhost:8082
+              predicates:
+                - Path=/api/ai/**
+              filters:
+                - StripPrefix=2
+
+            # Admin service: /api/admin/** -> http://localhost:8083/**
+            - id: admin-service
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/admin/**
+              filters:
+                - StripPrefix=2
+
 # ----- Logging -----
 logging:
   level:
     org.evolve: DEBUG
+    org.springframework.cloud.gateway: DEBUG

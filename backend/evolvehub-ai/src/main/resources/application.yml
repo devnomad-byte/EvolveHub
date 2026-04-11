@@ -7,6 +7,14 @@ spring:
   application:
     name: evolvehub-ai
 
+# ----- Sa-Token -----
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  active-timeout: -1
+  is-concurrent: true
+  token-style: uuid
+
 # ----- MyBatis-Plus -----
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

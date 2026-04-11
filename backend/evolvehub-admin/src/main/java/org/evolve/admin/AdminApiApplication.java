@@ -3,7 +3,7 @@ package org.evolve.admin;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "org.evolve")
 public class AdminApiApplication {
 
     public static void main(String[] args) {

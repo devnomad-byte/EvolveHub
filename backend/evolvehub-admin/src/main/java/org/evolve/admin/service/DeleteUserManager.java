@@ -1,0 +1,46 @@
+package org.evolve.admin.service;
+
+import jakarta.annotation.Resource;
+import org.evolve.common.infra.UserRolesInfra;
+import org.evolve.common.infra.UsersInfra;
+import org.evolve.common.base.BaseManager;
+import org.evolve.common.web.exception.BusinessException;
+import org.evolve.common.web.response.ResultCode;
+import org.springframework.stereotype.Service;
+
+/**
+ * 删除用户业务处理器
+ * <p>
+ * 业务规则：
+ * <ul>
+ *     <li>用户必须存在</li>
+ *     <li>删除用户时级联清理 t_user_role 关联记录</li>
+ * </ul>
+ *
+ * @author zhao
+ * @version v1.0
+ * @date 2026/4/9
+ */
+@Service
+public class DeleteUserManager extends BaseManager<Long, Void> {
+
+    @Resource
+    private UsersInfra usersInfra;
+
+    @Resource
+    private UserRolesInfra userRolesInfra;
+
+    @Override
+    protected void check(Long id) {
+        if (usersInfra.getUserById(id) == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_EXIST, "用户不存在");
+        }
+    }
+
+    @Override
+    protected Void process(Long id) {
+        userRolesInfra.removeByUserId(id);
+        usersInfra.deleteUser(id);
+        return null;
+    }
+}
