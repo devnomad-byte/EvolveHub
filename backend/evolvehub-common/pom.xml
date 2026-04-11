@@ -59,6 +59,11 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- AWS S3 support -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
 
         <!-- Lombok for boilerplate reduction -->
         <dependency>
