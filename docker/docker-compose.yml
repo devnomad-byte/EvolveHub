@@ -64,9 +64,31 @@ services:
     networks:
       - evolvehub-net
 
+  # ========== Minio ==========
+  minio:
+    container_name: evolvehub-minio
+    image: minio/minio:latest
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    restart: unless-stopped
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - miniodata:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      retries: 3
+    networks:
+      - evolvehub-net
+
 volumes:
   pgdata:
   redisdata:
+  miniodata:
 
 networks:
   evolvehub-net:
