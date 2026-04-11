@@ -27,3 +27,6 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    db:
+      enabled: false  # 禁用数据源健康检查（多数据源不支持）
