@@ -85,6 +85,19 @@ public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMa
      * @param resourceIds 已授权的资源 ID 列表
      * @return 模型配置列表
      */
+    /**
+     * 获取全局唯一的系统级向量模型
+     *
+     * @return 向量模型配置，不存在时返回 null
+     */
+    public ModelConfigEntity getSystemEmbeddingModel() {
+        return this.lambdaQuery()
+                .eq(ModelConfigEntity::getScope, "SYSTEM")
+                .eq(ModelConfigEntity::getModelType, "embedding")
+                .last("LIMIT 1")
+                .one();
+    }
+
     public List<ModelConfigEntity> listByIdsAndScope(List<Long> resourceIds) {
         if (resourceIds == null || resourceIds.isEmpty()) {
             return List.of();

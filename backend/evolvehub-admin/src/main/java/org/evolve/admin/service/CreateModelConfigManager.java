@@ -36,6 +36,11 @@ public class CreateModelConfigManager extends BaseManager<CreateModelConfigReque
 
     @Override
     protected void check(CreateModelConfigRequest request) {
+        // 向量模型走专用接口，禁止通过通用创建入口
+        if ("embedding".equalsIgnoreCase(request.modelType())) {
+            throw new BusinessException(ResultCode.EMBEDDING_MODEL_NOT_ALLOWED,
+                    "向量模型请通过 /embedding-model/set 接口配置");
+        }
         if (modelConfigInfra.getByName(request.name()) != null) {
             throw new BusinessException(ResultCode.DATA_ALREADY_EXIST, "模型名称已存在");
         }

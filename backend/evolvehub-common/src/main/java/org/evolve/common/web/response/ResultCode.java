@@ -51,6 +51,7 @@ public enum ResultCode {
     API_KEY_ALREADY_EXIST(3003, "该用户已有 API Key"),
     RESOURCE_GRANT_ALREADY_EXIST(3004, "授权记录已存在"),
     RESOURCE_GRANT_NOT_EXIST(3005, "授权记录不存在"),
+    EMBEDDING_MODEL_NOT_ALLOWED(3006, "向量模型请通过专用接口管理"),
     ;
 
     private final int code;
