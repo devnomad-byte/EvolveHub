@@ -45,7 +45,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
 
         // 获取当前线程的数据权限上下文
         DataScopeContext context = DataScopeContextHolder.get();
-        if (context == null || context.scopeType() == null || context.scopeType() == 1) {
+        if (context == null || context.getScopeType() == null || context.getScopeType() == 1) {
             // 无上下文或全部数据权限，不做过滤
             return;
         }
@@ -75,7 +75,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
             log.error("数据权限拦截器修改SQL失败", e);
         }
 
-        log.debug("数据权限过滤 scopeType={}, SQL: {}", context.scopeType(), newSql);
+        log.debug("数据权限过滤 scopeType={}, SQL: {}", context.getScopeType(), newSql);
     }
 
     /**
@@ -90,10 +90,10 @@ public class DataScopeInterceptor implements InnerInterceptor {
         String deptColumn = buildColumn(deptAlias, "dept_id");
         String userColumn = buildColumn(userAlias, "create_by");
 
-        return switch (context.scopeType()) {
+        return switch (context.getScopeType()) {
             case 2, 3, 5 -> {
                 // 本部门及子部门 / 仅本部门 / 自定义部门
-                Set<Long> deptIds = context.visibleDeptIds();
+                Set<Long> deptIds = context.getVisibleDeptIds();
                 if (deptIds == null || deptIds.isEmpty()) {
                     // 无可见部门，返回不可能满足的条件（相当于无权限）
                     yield "1 = 0";
@@ -103,7 +103,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
             }
             case 4 -> {
                 // 仅本人数据
-                yield userColumn + " = " + context.userId();
+                yield userColumn + " = " + context.getUserId();
             }
             default -> null;
         };

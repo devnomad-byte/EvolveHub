@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
 
-@SpringBootApplication(scanBasePackages = "org.evolve")
+@SpringBootApplication
 @Import(S3Config.class)
 public class AiPlatformApiApplication {
 
