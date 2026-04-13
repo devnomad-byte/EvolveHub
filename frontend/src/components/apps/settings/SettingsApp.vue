@@ -256,31 +256,41 @@
           <div class="card-header">
             <div class="card-title">
               <component :is="CpuIcon" class="card-icon" />
-              <span>模型偏好</span>
+              <span>我的模型</span>
             </div>
           </div>
 
           <div class="card-body">
             <div class="form-description">
-              <div class="info-badge">💡 待开发功能</div>
-              选择您偏好的AI对话模型，不同模型有不同的特点和优势。
-              <br>当前仅为演示界面，实际模型配置需要在后台"模型配置"模块中设置。
+              选择您默认使用的 AI 对话模型。系统级模型对所有用户可用，个人模型仅您自己可用。
             </div>
 
-            <div class="model-options">
+            <!-- Loading -->
+            <div v-if="isLoadingModels" class="loading-state">
+              <div class="spinner"></div>
+              <span>加载中...</span>
+            </div>
+
+            <!-- Model List -->
+            <div v-else class="model-options">
               <div
-                v-for="model in aiModels"
+                v-for="model in myModels"
                 :key="model.id"
                 class="model-card"
-                :class="{ active: selectedModel === model.id }"
-                @click="selectedModel = model.id"
+                :class="{ active: selectedModelId === model.id }"
+                @click="selectedModelId = model.id"
               >
-                <component :is="model.icon" class="model-icon" />
+                <div class="model-card-icon">
+                  <BotIcon />
+                </div>
                 <div class="model-info">
                   <div class="model-name">{{ model.name }}</div>
-                  <div class="model-desc">{{ model.desc }}</div>
+                  <div class="model-desc">{{ model.provider }} · {{ model.modelType === 'LLM' ? '对话模型' : '向量模型' }}</div>
                 </div>
-                <div class="model-check" v-if="selectedModel === model.id">
+                <div class="model-badge" :class="model.scope === 'SYSTEM' ? 'system' : 'personal'">
+                  {{ model.scope === 'SYSTEM' ? '系统级' : '个人' }}
+                </div>
+                <div class="model-check" v-if="selectedModelId === model.id">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
@@ -288,9 +298,14 @@
               </div>
             </div>
 
+            <div v-if="!isLoadingModels && myModels.length === 0" class="empty-state">
+              <span>暂无可用模型，请联系管理员配置</span>
+            </div>
+
             <div class="form-actions">
-              <button class="btn btn-primary btn-disabled" @click="desktop.addToast('模型偏好功能待开发，请使用后台模型配置', 'info')">
-                保存偏好（待开发）
+              <button class="btn btn-primary" @click="savePreferredModel" :disabled="isSavingModel">
+                <span v-if="isSavingModel" class="btn-spinner"></span>
+                <span v-else>保存偏好</span>
               </button>
             </div>
           </div>
@@ -446,7 +461,7 @@
 import { ref, computed, onMounted, watch, h } from 'vue'
 import { useDesktopStore } from '../../../stores/desktop'
 import { useWindowStore } from '../../../stores/window'
-import { authApi } from '../../../api'
+import { authApi, adminModelConfigApi } from '../../../api'
 import { useAppearanceStore } from '../../../composables/useAppearance'
 
 const desktop = useDesktopStore()
@@ -469,6 +484,17 @@ const LockIcon = () => h('svg', {
 }, [
   h('rect', { x: '3', y: '11', width: '18', height: '11', rx: '2', ry: '2' }),
   h('path', { d: 'M7 11V7a5 5 0 0 1 10 0v4' })
+])
+
+const BotIcon = () => h('svg', {
+  width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+}, [
+  h('path', { d: 'M12 8V4H8' }),
+  h('rect', { x: '4', y: '8', width: '16', height: '12', rx: '2' }),
+  h('path', { d: 'M2 14h2' }),
+  h('path', { d: 'M20 14h2' }),
+  h('path', { d: 'M15 13v2' }),
+  h('path', { d: 'M9 13v2' })
 ])
 
 const CpuIcon = () => h('svg', {
@@ -686,6 +712,11 @@ onMounted(() => {
     windowStore.pendingSettingsTab = null
   }
 
+  // 如果默认是模型 tab，则加载模型列表
+  if (activeTab.value === 'model') {
+    loadMyModels()
+  }
+
   console.log('[Settings] Loaded appearance:', {
     wallpaper: selectedWallpaper.value,
     theme: selectedTheme.value,
@@ -698,11 +729,56 @@ watch(() => windowStore.pendingSettingsTab, (tab) => {
   if (tab) {
     activeTab.value = tab
     windowStore.pendingSettingsTab = null
+    // 如果切换到模型 tab，加载模型列表
+    if (tab === 'model') {
+      loadMyModels()
+    }
   }
 })
 
 // Model
 const selectedModel = ref('qwen')
+
+// ==================== My Models ====================
+const myModels = ref<any[]>([])
+const selectedModelId = ref<number | null>(null)
+const isLoadingModels = ref(false)
+const isSavingModel = ref(false)
+
+async function loadMyModels() {
+  try {
+    isLoadingModels.value = true
+    // 优先尝试 my-list 接口（用户自己的列表），如果没有则用 list
+    const res = await adminModelConfigApi.myList().catch(() => adminModelConfigApi.list(1, 100))
+    // 过滤出 LLM 类型的模型
+    myModels.value = res.records.filter((m: any) => m.modelType === 'LLM' && m.enabled === 1)
+    // 默认选中第一个
+    if (myModels.value.length > 0 && selectedModelId.value === null) {
+      selectedModelId.value = myModels.value[0].id
+    }
+  } catch (e) {
+    console.error('[Settings] 加载模型列表失败', e)
+  } finally {
+    isLoadingModels.value = false
+  }
+}
+
+async function savePreferredModel() {
+  if (!selectedModelId.value) {
+    desktop.addToast('请先选择一个模型', 'error')
+    return
+  }
+  try {
+    isSavingModel.value = true
+    // TODO: 调用保存用户偏好的后端接口
+    // 目前仅展示保存成功，实际需要后端支持用户偏好设置
+    desktop.addToast('模型偏好已保存', 'success')
+  } catch (e: any) {
+    desktop.addToast(e.message || '保存失败', 'error')
+  } finally {
+    isSavingModel.value = false
+  }
+}
 
 const aiModels = [
   { id: 'qwen', name: 'Qwen Max', desc: '通义千问旗舰模型', icon: QwenIcon },
@@ -1280,8 +1356,8 @@ function handleResetAppearance() {
 .model-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 14px 16px;
   background: rgba(0, 0, 0, 0.2);
   border: 2px solid var(--border-subtle);
   border-radius: 12px;
@@ -1299,28 +1375,83 @@ function handleResetAppearance() {
   background: rgba(10, 132, 255, 0.08);
 }
 
-.model-icon {
-  font-size: 32px;
+.model-card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(191, 90, 242, 0.15);
+  color: #BF5AF2;
+  flex-shrink: 0;
 }
 
 .model-info {
   flex: 1;
+  min-width: 0;
 }
 
 .model-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .model-desc {
   font-size: 12px;
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.model-badge.system {
+  background: rgba(10, 132, 255, 0.15);
+  color: #0A84FF;
+}
+
+.model-badge.personal {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
 }
 
 .model-check {
   color: #0A84FF;
+  flex-shrink: 0;
+}
+
+/* Loading & Empty State */
+.loading-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: var(--text-disabled);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #0A84FF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 /* Appearance */

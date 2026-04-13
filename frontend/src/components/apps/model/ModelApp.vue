@@ -20,30 +20,129 @@
           <span class="stat-label">Embedding</span>
         </span>
       </div>
-      <button class="btn-add" @click="openCreateModal">
-        <Plus :size="14" />
-        添加模型
+      <div class="header-actions">
+        <!-- SUPER_ADMIN 视图切换 -->
+        <div v-if="isSuperAdmin" class="view-toggle">
+          <button class="toggle-btn" :class="{ active: viewMode === 'type' }" @click="viewMode = 'type'">按类型</button>
+          <button class="toggle-btn" :class="{ active: viewMode === 'user' }" @click="switchToUserView">按用户</button>
+        </div>
+        <button class="btn-add" @click="openCreateModal">
+          <Plus :size="14" />
+          添加模型
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div v-if="viewMode === 'type'" class="tab-bar">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        class="tab-btn"
+        :class="{ active: activeTab === tab.id }"
+        @click="activeTab = tab.id"
+      >
+        <component :is="tab.icon" :size="14" />
+        {{ tab.label }}
+        <span class="tab-count">{{ tab.count }}</span>
       </button>
     </div>
 
-    <!-- Main Content -->
-    <div class="model-content">
-      <!-- LLM section -->
-      <div class="model-section">
-        <div class="section-header">
-          <span class="section-title">对话模型 (LLM)</span>
+    <!-- 按用户视图 -->
+    <div v-if="viewMode === 'user'" class="user-view">
+      <!-- 左侧用户列表 -->
+      <div class="user-panel">
+        <div class="user-panel-header">按用户筛选</div>
+        <div class="user-list">
+          <!-- 系统级 -->
+          <div
+            class="user-item"
+            :class="{ active: selectedOwnerId === null }"
+            @click="selectedOwnerId = null"
+          >
+            <div class="user-avatar system">系</div>
+            <div class="user-info">
+              <div class="user-name">系统级模型</div>
+              <div class="user-count">{{ systemModels.length }} 个模型</div>
+            </div>
+          </div>
+          <!-- 各用户 -->
+          <div
+            v-for="user in userGroups"
+            :key="user.ownerId"
+            class="user-item"
+            :class="{ active: selectedOwnerId === user.ownerId }"
+            @click="selectedOwnerId = user.ownerId"
+          >
+            <div class="user-avatar">{{ user.nickname?.charAt(0) || '?' }}</div>
+            <div class="user-info">
+              <div class="user-name">{{ user.nickname || user.username }}</div>
+              <div class="user-count">{{ user.count }} 个模型</div>
+            </div>
+          </div>
         </div>
-        <div v-if="llmModels.length > 0" class="model-grid">
-          <div v-for="m in llmModels" :key="m.id" class="model-card" :class="{ 'is-preferred': m.isPreferred }">
+      </div>
+
+      <!-- 右侧模型列表 -->
+      <div class="model-content">
+        <div class="model-section">
+          <div class="section-header">
+            <span class="section-title">{{ selectedOwnerId === null ? '系统级模型' : (selectedUserNickname || '该用户') + ' 的模型' }}</span>
+            <span class="section-desc">{{ selectedOwnerModels.length }} 个模型</span>
+          </div>
+          <div v-if="selectedOwnerModels.length > 0" class="model-grid">
+            <div v-for="m in selectedOwnerModels" :key="m.id" class="model-card">
+              <div class="model-card-header">
+                <div class="model-status-dot" :class="{ on: m.enabled === 1 }"></div>
+                <span class="model-type-tag" :class="m.modelType === 'EMBEDDING' ? 'embedding' : 'llm'">
+                  {{ m.modelType === 'LLM' ? 'LLM' : 'EMBED' }}
+                </span>
+                <span v-if="m.scope === 'SYSTEM'" class="scope-badge system">系统级</span>
+                <span v-else class="scope-badge user">个人</span>
+              </div>
+              <div class="model-name">{{ m.name }}</div>
+              <div class="model-provider">{{ m.provider }}</div>
+              <div class="model-api-key">Key: {{ m.apiKey }}</div>
+              <div v-if="m.baseUrl" class="model-url">{{ m.baseUrl }}</div>
+              <div class="model-actions">
+                <button class="btn btn-outline btn-sm" @click="toggleEnabled(m)">
+                  {{ m.enabled === 1 ? '禁用' : '启用' }}
+                </button>
+                <button class="btn btn-outline btn-sm" @click="openEditModal(m)">编辑</button>
+                <button class="btn btn-outline btn-sm btn-danger" @click="handleDelete(m)">删除</button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-tip">暂无模型</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div v-if="viewMode === 'type'" class="model-content">
+      <!-- Public Models Tab -->
+      <div v-if="activeTab === 'public'" class="model-section">
+        <div class="section-header">
+          <span class="section-title">系统级模型</span>
+          <span class="section-desc">所有用户均可使用的公共模型</span>
+        </div>
+        <div v-if="publicModels.length > 0" class="model-grid">
+          <div v-for="m in publicModels" :key="m.id" class="model-card">
             <div class="model-card-header">
               <div class="model-status-dot" :class="{ on: m.enabled === 1 }"></div>
-              <span class="model-type-tag">LLM</span>
+              <span class="model-type-tag" :class="m.modelType === 'EMBEDDING' ? 'embedding' : 'llm'">
+                {{ m.modelType === 'LLM' ? 'LLM' : 'EMBED' }}
+              </span>
+              <span class="scope-badge system">系统级</span>
             </div>
             <div class="model-name">{{ m.name }}</div>
             <div class="model-provider">{{ m.provider }}</div>
             <div v-if="m.baseUrl" class="model-url">{{ m.baseUrl }}</div>
-            <div v-if="m.isPreferred" class="model-preferred">偏好 ⭐</div>
             <div class="model-actions">
+              <button class="btn btn-outline btn-sm" @click="testConnection(m)" title="测试连接">
+                <Wifi :size="12" />
+                测试
+              </button>
               <button class="btn btn-outline btn-sm" @click="toggleEnabled(m)">
                 {{ m.enabled === 1 ? '禁用' : '启用' }}
               </button>
@@ -52,24 +151,63 @@
             </div>
           </div>
         </div>
-        <div v-else class="empty-tip">暂无对话模型，点击右上角添加</div>
+        <div v-else class="empty-tip">暂无系统级模型，点击右上角添加</div>
       </div>
 
-      <!-- Embedding section -->
-      <div class="model-section">
+      <!-- Personal Models Tab -->
+      <div v-if="activeTab === 'personal'" class="model-section">
         <div class="section-header">
-          <span class="section-title">向量模型 (Embedding)</span>
+          <span class="section-title">个人模型</span>
+          <span class="section-desc">个人专属的 LLM 模型配置</span>
+        </div>
+        <div v-if="personalModels.length > 0" class="model-grid">
+          <div v-for="m in personalModels" :key="m.id" class="model-card personal">
+            <div class="model-card-header">
+              <div class="model-status-dot" :class="{ on: m.enabled === 1 }"></div>
+              <span class="model-type-tag">LLM</span>
+              <span class="scope-badge user">个人</span>
+            </div>
+            <div class="model-name">{{ m.name }}</div>
+            <div class="model-provider">{{ m.provider }}</div>
+            <div v-if="m.baseUrl" class="model-url">{{ m.baseUrl }}</div>
+            <div class="model-actions">
+              <button class="btn btn-outline btn-sm" @click="testConnection(m)" title="测试连接">
+                <Wifi :size="12" />
+                测试
+              </button>
+              <button class="btn btn-outline btn-sm" @click="toggleEnabled(m)">
+                {{ m.enabled === 1 ? '禁用' : '启用' }}
+              </button>
+              <button class="btn btn-outline btn-sm" @click="openEditModal(m)">编辑</button>
+              <button class="btn btn-outline btn-sm btn-danger" @click="handleDelete(m)">删除</button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-tip">暂无个人模型配置</div>
+      </div>
+
+      <!-- Embedding Tab -->
+      <div v-if="activeTab === 'embedding'" class="model-section">
+        <div class="section-header">
+          <span class="section-title">向量模型</span>
+          <span class="section-desc">用于知识库向量化的 Embedding 模型</span>
         </div>
         <div v-if="embedModels.length > 0" class="model-grid">
           <div v-for="m in embedModels" :key="m.id" class="model-card">
             <div class="model-card-header">
               <div class="model-status-dot" :class="{ on: m.enabled === 1 }"></div>
               <span class="model-type-tag embedding">EMBED</span>
+              <span v-if="m.scope === 'SYSTEM'" class="scope-badge system">系统级</span>
+              <span v-else class="scope-badge user">个人</span>
             </div>
             <div class="model-name">{{ m.name }}</div>
             <div class="model-provider">{{ m.provider }}</div>
             <div v-if="m.baseUrl" class="model-url">{{ m.baseUrl }}</div>
             <div class="model-actions">
+              <button class="btn btn-outline btn-sm" @click="testConnection(m)" title="测试连接">
+                <Wifi :size="12" />
+                测试
+              </button>
               <button class="btn btn-outline btn-sm" @click="toggleEnabled(m)">
                 {{ m.enabled === 1 ? '禁用' : '启用' }}
               </button>
@@ -78,7 +216,7 @@
             </div>
           </div>
         </div>
-        <div v-else class="empty-tip">暂无向量模型，点击右上角添加</div>
+        <div v-else class="empty-tip">暂无向量模型配置</div>
       </div>
     </div>
 
@@ -109,16 +247,17 @@
             <div class="form-row">
               <div class="form-field">
                 <label>提供商 <span class="required">*</span></label>
-                <input v-model="form.provider" placeholder="如：OpenAI / Anthropic / DeepSeek" />
+                <select v-model="form.provider" class="form-select" @change="onProviderChange">
+                  <option value="">请选择提供商</option>
+                  <option v-for="p in providers" :key="p.id" :value="p.name">{{ p.name }}</option>
+                </select>
               </div>
               <div class="form-field">
-                <label>状态</label>
-                <div class="toggle-wrapper">
-                  <div class="toggle" :class="{ on: form.enabled === 1 }" @click="form.enabled = form.enabled === 1 ? 0 : 1">
-                    <div class="toggle-dot"></div>
-                  </div>
-                  <span class="toggle-label">{{ form.enabled === 1 ? '启用' : '禁用' }}</span>
-                </div>
+                <label>资源范围</label>
+                <select v-model="form.scope" class="form-select" :disabled="isEditing">
+                  <option value="SYSTEM">系统级（所有用户可用）</option>
+                  <option value="USER">用户级（仅自己可用）</option>
+                </select>
               </div>
             </div>
             <div class="form-field">
@@ -127,10 +266,26 @@
             </div>
             <div class="form-field">
               <label>Base URL</label>
-              <input v-model="form.baseUrl" placeholder="https://api.openai.com/v1（可选）" />
+              <div class="input-with-hint">
+                <input v-model="form.baseUrl" placeholder="选择提供商后将自动填充（可手动修改）" />
+                <span v-if="form.baseUrl && isBaseUrlAutoFilled" class="input-hint">已自动填充</span>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>状态</label>
+              <div class="toggle-wrapper">
+                <div class="toggle" :class="{ on: form.enabled === 1 }" @click="form.enabled = form.enabled === 1 ? 0 : 1">
+                  <div class="toggle-dot"></div>
+                </div>
+                <span class="toggle-label">{{ form.enabled === 1 ? '启用' : '禁用' }}</span>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
+            <button class="btn btn-outline" @click="testConnectionFromForm" :disabled="isTesting">
+              <span v-if="isTesting" class="btn-spinner"></span>
+              <span v-else><Wifi :size="14" /> 测试连接</span>
+            </button>
             <button class="btn btn-secondary" @click="showModal = false">取消</button>
             <button class="btn btn-primary" @click="handleSubmit" :disabled="isSubmitting">
               <span v-if="isSubmitting" class="btn-spinner"></span>
@@ -144,21 +299,90 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Bot, Plus, X } from 'lucide-vue-next'
-import { adminModelConfigApi, type ModelConfigInfo, type CreateModelConfigRequest, type UpdateModelConfigRequest } from '../../../api/adminModelConfig'
+import { ref, computed, onMounted, h } from 'vue'
+import { Bot, Plus, X, Wifi } from 'lucide-vue-next'
+import { adminModelConfigApi, type ModelConfigInfo, type ModelConfigWithOwner, type CreateModelConfigRequest, type UpdateModelConfigRequest, type ModelScope } from '../../../api/adminModelConfig'
+import { adminModelProviderApi, type ModelProviderInfo } from '../../../api/adminModelProvider'
 import { useDesktopStore } from '../../../stores/desktop'
 
 const desktop = useDesktopStore()
 
 // ==================== Data ====================
 const allModels = ref<ModelConfigInfo[]>([])
+const providers = ref<ModelProviderInfo[]>([])
 const isLoading = ref(true)
+const isBaseUrlAutoFilled = ref(false)
+
+// ==================== User View State ====================
+const viewMode = ref<'type' | 'user'>('type') // 'type' = 按类型, 'user' = 按用户
+const allModelsWithOwner = ref<ModelConfigWithOwner[]>([])
+const selectedOwnerId = ref<number | null>(null)
+
+const isSuperAdmin = computed(() => desktop.currentUser?.role === 'SUPER_ADMIN')
+
+const systemModels = computed(() => allModelsWithOwner.value.filter(m => m.scope === 'SYSTEM'))
+
+const userGroups = computed(() => {
+  const map = new Map<number, { ownerId: number; nickname: string; username: string; count: number }>()
+  allModelsWithOwner.value.forEach(m => {
+    if (m.ownerId != null) {
+      if (!map.has(m.ownerId)) {
+        map.set(m.ownerId, {
+          ownerId: m.ownerId,
+          nickname: m.ownerNickname || '',
+          username: m.ownerUsername || '',
+          count: 0
+        })
+      }
+      map.get(m.ownerId)!.count++
+    }
+  })
+  return Array.from(map.values())
+})
+
+const selectedOwnerModels = computed(() => {
+  if (selectedOwnerId.value === null) {
+    return systemModels.value
+  }
+  return allModelsWithOwner.value.filter(m => m.ownerId === selectedOwnerId.value)
+})
+
+const selectedUserNickname = computed(() => {
+  if (selectedOwnerId.value === null) return null
+  const group = userGroups.value.find(g => g.ownerId === selectedOwnerId.value)
+  return group?.nickname || group?.username || null
+})
+
+async function switchToUserView() {
+  viewMode.value = 'user'
+  selectedOwnerId.value = null
+  try {
+    const res = await adminModelConfigApi.adminAll(1, 1000)
+    allModelsWithOwner.value = res.records
+  } catch (e: any) {
+    desktop.addToast('加载用户模型失败', 'error')
+  }
+}
+
+// ==================== Tab State ====================
+const activeTab = ref('public')
+
+const publicModels = computed(() => allModels.value.filter(m => m.scope === 'SYSTEM' && m.modelType === 'LLM'))
+const personalModels = computed(() => allModels.value.filter(m => m.scope === 'USER' && m.modelType === 'LLM'))
+const embedModels = computed(() => allModels.value.filter(m => m.modelType === 'EMBEDDING'))
+const llmModels = computed(() => allModels.value.filter(m => m.modelType === 'LLM'))
+
+const tabs = computed(() => [
+  { id: 'public', label: '公共模型', icon: GlobeIcon, count: publicModels.value.length },
+  { id: 'personal', label: '个人模型', icon: UserIcon, count: personalModels.value.length },
+  { id: 'embedding', label: '向量模型', icon: DatabaseIcon, count: embedModels.value.length }
+])
 
 // ==================== Modal State ====================
 const showModal = ref(false)
 const isEditing = ref(false)
 const isSubmitting = ref(false)
+const isTesting = ref(false)
 const form = ref({
   id: 0,
   name: '',
@@ -166,26 +390,70 @@ const form = ref({
   apiKey: '',
   baseUrl: '',
   enabled: 1,
-  modelType: 'LLM'
+  modelType: 'LLM' as const,
+  scope: 'SYSTEM' as ModelScope
 })
 
-// ==================== Computed ====================
-const llmModels = computed(() => allModels.value.filter(m => m.modelType === 'LLM'))
-const embedModels = computed(() => allModels.value.filter(m => m.modelType === 'EMBEDDING'))
+// ==================== Icon Components ====================
+const GlobeIcon = () => h('svg', {
+  width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2'
+}, [
+  h('circle', { cx: '12', cy: '12', r: '10' }),
+  h('line', { x1: '2', y1: '12', x2: '22', y2: '12' }),
+  h('path', { d: 'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z' })
+])
+
+const UserIcon = () => h('svg', {
+  width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2'
+}, [
+  h('path', { d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' }),
+  h('circle', { cx: '12', cy: '7', r: '4' })
+])
+
+const DatabaseIcon = () => h('svg', {
+  width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2'
+}, [
+  h('ellipse', { cx: '12', cy: '5', rx: '9', ry: '3' }),
+  h('path', { d: 'M21 12c0 1.66-4 3-9 3s-9-1.34-9-3' }),
+  h('path', { d: 'M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5' })
+])
 
 // ==================== Load Data ====================
 async function loadModels() {
   try {
+    isLoading.value = true
     const res = await adminModelConfigApi.list(1, 1000)
     allModels.value = res.records
   } catch (e: any) {
     desktop.addToast('加载模型列表失败', 'error')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function loadProviders() {
+  try {
+    const res = await adminModelProviderApi.list()
+    providers.value = res
+  } catch (e: any) {
+    console.error('[ModelApp] 加载提供商列表失败', e)
+  }
+}
+
+function onProviderChange() {
+  if (form.value.provider) {
+    const provider = providers.value.find(p => p.name === form.value.provider)
+    if (provider?.defaultBaseUrl) {
+      form.value.baseUrl = provider.defaultBaseUrl
+      isBaseUrlAutoFilled.value = true
+    }
   }
 }
 
 // ==================== Modal Actions ====================
 function openCreateModal() {
   isEditing.value = false
+  isBaseUrlAutoFilled.value = false
   form.value = {
     id: 0,
     name: '',
@@ -193,13 +461,15 @@ function openCreateModal() {
     apiKey: '',
     baseUrl: '',
     enabled: 1,
-    modelType: 'LLM'
+    modelType: 'LLM',
+    scope: 'SYSTEM'
   }
   showModal.value = true
 }
 
-function openEditModal(model: ModelConfigInfo) {
+function openEditModal(model: ModelConfigInfo | ModelConfigWithOwner) {
   isEditing.value = true
+  isBaseUrlAutoFilled.value = false
   form.value = {
     id: model.id,
     name: model.name,
@@ -207,9 +477,40 @@ function openEditModal(model: ModelConfigInfo) {
     apiKey: model.apiKey,
     baseUrl: model.baseUrl || '',
     enabled: model.enabled,
-    modelType: model.modelType
+    modelType: model.modelType,
+    scope: (model.scope as ModelScope) || 'SYSTEM'
   }
   showModal.value = true
+}
+
+async function testConnection(model?: ModelConfigInfo) {
+  const provider = model?.provider || form.value.provider
+  const apiKey = model?.apiKey || form.value.apiKey
+  const baseUrl = model?.baseUrl || form.value.baseUrl
+  const modelType = model?.modelType || form.value.modelType
+
+  if (!provider || !apiKey) {
+    desktop.addToast('请填写提供商和 API 密钥', 'error')
+    return
+  }
+
+  isTesting.value = true
+  try {
+    const res = await adminModelConfigApi.testConnection({ provider, apiKey, baseUrl, modelType })
+    if (res.success) {
+      desktop.addToast('连接测试成功！', 'success')
+    } else {
+      desktop.addToast(res.message || '连接测试失败', 'error')
+    }
+  } catch (e: any) {
+    desktop.addToast(e.message || '连接测试失败', 'error')
+  } finally {
+    isTesting.value = false
+  }
+}
+
+async function testConnectionFromForm() {
+  await testConnection()
 }
 
 async function handleSubmit() {
@@ -248,7 +549,8 @@ async function handleSubmit() {
         apiKey: form.value.apiKey,
         baseUrl: form.value.baseUrl || undefined,
         enabled: form.value.enabled,
-        modelType: form.value.modelType
+        modelType: form.value.modelType,
+        scope: form.value.scope
       }
       await adminModelConfigApi.create(req)
       desktop.addToast('模型添加成功', 'success')
@@ -262,24 +564,30 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(model: ModelConfigInfo) {
+async function handleDelete(model: ModelConfigInfo | ModelConfigWithOwner) {
   if (!confirm(`确定要删除模型「${model.name}」吗？`)) return
   try {
     await adminModelConfigApi.delete(model.id)
     desktop.addToast('模型已删除', 'success')
     await loadModels()
+    if (viewMode.value === 'user') {
+      await switchToUserView()
+    }
   } catch (e: any) {
     desktop.addToast(e.message || '删除失败', 'error')
   }
 }
 
-async function toggleEnabled(model: ModelConfigInfo) {
+async function toggleEnabled(model: ModelConfigInfo | ModelConfigWithOwner) {
   try {
     await adminModelConfigApi.update({
       id: model.id,
       enabled: model.enabled === 1 ? 0 : 1
     })
     await loadModels()
+    if (viewMode.value === 'user') {
+      await switchToUserView()
+    }
     desktop.addToast(model.enabled === 1 ? '已禁用' : '已启用', 'success')
   } catch (e: any) {
     desktop.addToast(e.message || '操作失败', 'error')
@@ -288,9 +596,7 @@ async function toggleEnabled(model: ModelConfigInfo) {
 
 // ==================== Init ====================
 onMounted(async () => {
-  isLoading.value = true
-  await loadModels()
-  isLoading.value = false
+  await Promise.all([loadModels(), loadProviders()])
 })
 </script>
 
@@ -374,6 +680,177 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(191, 90, 242, 0.4);
 }
 
+/* ========== View Toggle ========== */
+.view-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-right: 8px;
+}
+
+.toggle-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: rgba(191, 90, 242, 0.2);
+  color: #BF5AF2;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========== User View Layout ========== */
+.user-view {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.user-panel {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.user-panel-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-disabled);
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.user-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin: 0 8px;
+  border-radius: 8px;
+}
+
+.user-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.user-item.active {
+  background: rgba(191, 90, 242, 0.15);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #BF5AF2, #9B59B6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.user-avatar.system {
+  background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+  font-size: 11px;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ========== Tab Bar ========== */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, rgba(191, 90, 242, 0.2), rgba(155, 89, 182, 0.2));
+  color: #BF5AF2;
+  border: 1px solid rgba(191, 90, 242, 0.3);
+}
+
+.tab-count {
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+}
+
+.tab-btn.active .tab-count {
+  background: rgba(191, 90, 242, 0.3);
+}
+
 /* ========== Content ========== */
 .model-content {
   flex: 1;
@@ -388,7 +865,7 @@ onMounted(async () => {
 .section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
 }
 
@@ -396,6 +873,11 @@ onMounted(async () => {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.section-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .model-grid {
@@ -417,8 +899,13 @@ onMounted(async () => {
   box-shadow: 0 0 16px rgba(191, 90, 242, 0.1);
 }
 
-.model-card.is-preferred {
-  border-color: rgba(255, 214, 10, 0.4);
+.model-card.personal {
+  border-color: rgba(48, 209, 88, 0.2);
+}
+
+.model-card.personal:hover {
+  border-color: rgba(48, 209, 88, 0.4);
+  box-shadow: 0 0 16px rgba(48, 209, 88, 0.1);
 }
 
 .model-card-header {
@@ -454,6 +941,23 @@ onMounted(async () => {
   color: #0A84FF;
 }
 
+.scope-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.scope-badge.system {
+  background: rgba(10, 132, 255, 0.15);
+  color: #0A84FF;
+}
+
+.scope-badge.user {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+}
+
 .model-name {
   font-size: 15px;
   font-weight: 600;
@@ -479,10 +983,11 @@ onMounted(async () => {
   margin-bottom: 4px;
 }
 
-.model-preferred {
-  font-size: 11px;
-  color: #FFD60A;
-  margin-bottom: 8px;
+.model-api-key {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: monospace;
+  margin-bottom: 2px;
 }
 
 .model-actions {
@@ -628,6 +1133,20 @@ onMounted(async () => {
 
 .required {
   color: #FF453A;
+}
+
+.input-with-hint {
+  position: relative;
+}
+
+.input-hint {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #30D158;
+  pointer-events: none;
 }
 
 .form-field input, .form-select {
