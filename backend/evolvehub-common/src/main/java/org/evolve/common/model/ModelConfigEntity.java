@@ -47,4 +47,14 @@ public class ModelConfigEntity extends BaseEntity {
      */
     private String modelType;
 
+    /**
+     * 资源范围：SYSTEM-系统级 USER-用户级
+     */
+    private String scope;
+
+    /**
+     * 资源所有者 ID，scope=SYSTEM 时为 NULL
+     */
+    private Long ownerId;
+
 }

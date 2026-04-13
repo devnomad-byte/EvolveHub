@@ -3,6 +3,7 @@ package org.evolve.common.config;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import org.evolve.common.datascope.DataScopeInterceptor;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
  * @author zhao
  */
 @Configuration
+@MapperScan("org.evolve.common")
 public class MybatisPlusConfig {
 
     /**
