@@ -56,4 +56,39 @@ public class PermissionsEntity extends BaseEntity {
      * 状态（0-禁用 1-正常）
      */
     private Integer status;
+
+    /**
+     * CSS 渐变色（如 linear-gradient(135deg, #0A84FF, #5E5CE6)）
+     */
+    private String gradient;
+
+    /**
+     * 默认窗口宽度
+     */
+    private Integer defaultWidth;
+
+    /**
+     * 默认窗口高度
+     */
+    private Integer defaultHeight;
+
+    /**
+     * 最小窗口宽度
+     */
+    private Integer minWidth;
+
+    /**
+     * 最小窗口高度
+     */
+    private Integer minHeight;
+
+    /**
+     * Dock 栏顺序，-1 表示不显示在 Dock
+     */
+    private Integer dockOrder;
+
+    /**
+     * 桌面图标标记：0-否 1-是
+     */
+    private Integer isDesktopIcon;
 }

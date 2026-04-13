@@ -83,7 +83,15 @@ CREATE TABLE IF NOT EXISTS eh_permission (
     create_by BIGINT,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted INTEGER DEFAULT 0
+    deleted INTEGER DEFAULT 0,
+    -- 桌面图标专用字段
+    gradient TEXT,
+    default_width INTEGER DEFAULT 800,
+    default_height INTEGER DEFAULT 600,
+    min_width INTEGER DEFAULT 640,
+    min_height INTEGER DEFAULT 400,
+    dock_order INTEGER DEFAULT -1,
+    is_desktop_icon INTEGER DEFAULT 0
 );
 
 COMMENT ON TABLE eh_permission IS '权限/菜单表';
@@ -93,6 +101,13 @@ COMMENT ON COLUMN eh_permission.perm_code IS '权限编码（唯一标识）';
 COMMENT ON COLUMN eh_permission.perm_type IS '类型：MENU-菜单 BUTTON-按钮 API-接口';
 COMMENT ON COLUMN eh_permission.path IS '前端路由路径';
 COMMENT ON COLUMN eh_permission.status IS '状态（0-禁用 1-正常）';
+COMMENT ON COLUMN eh_permission.gradient IS 'CSS 渐变色（如 linear-gradient）';
+COMMENT ON COLUMN eh_permission.default_width IS '默认窗口宽度';
+COMMENT ON COLUMN eh_permission.default_height IS '默认窗口高度';
+COMMENT ON COLUMN eh_permission.min_width IS '最小窗口宽度';
+COMMENT ON COLUMN eh_permission.min_height IS '最小窗口高度';
+COMMENT ON COLUMN eh_permission.dock_order IS 'Dock 栏顺序，-1 不显示';
+COMMENT ON COLUMN eh_permission.is_desktop_icon IS '桌面图标标记：0-否 1-是';
 
 -- ----------------------------------------------------------------------------
 -- 四、部门表 (eh_dept)
@@ -185,55 +200,118 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 九、初始化菜单数据
+-- 九、初始化桌面图标数据（parent_id = 0，扁平结构）
 -- ----------------------------------------------------------------------------
--- 说明：创建后台管理界面的菜单结构
--- 菜单类型：MENU-菜单项，BUTTON-按钮（Phase 2 实现）
+-- 说明：桌面图标直接挂在根下（parent_id = 0），不构成菜单树
+-- perm_type = MENU 表示这是一个桌面图标
+-- icon 字段对应 lucide-vue-next 图标名称
 -- ----------------------------------------------------------------------------
 
--- 9.1 一级菜单（目录）
-INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time)
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
 VALUES
-    (1, 0, '系统管理', 'system', 'MENU', '/system', 'Setting', 1, 1, NOW(), NOW()),
-    (2, 0, '知识库管理', 'kb', 'MENU', '/kb', 'Files', 2, 1, NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
-
--- 9.2 二级菜单（功能）
-INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time)
-VALUES
-    -- 系统管理下的子菜单
-    (3, 1, '用户管理', 'system:user:list', 'MENU', '/system/users', 'User', 1, 1, NOW(), NOW()),
-    (4, 1, '部门管理', 'system:dept:list', 'MENU', '/system/dept', 'Dept', 2, 1, NOW(), NOW()),
-    (5, 1, '模型配置', 'system:model:list', 'MENU', '/system/models', 'Model', 3, 1, NOW(), NOW()),
-    (6, 1, '系统配置', 'system:config', 'MENU', '/system/config', 'Config', 4, 1, NOW(), NOW()),
-
-    -- 知识库管理下的子菜单
-    (7, 2, '文档管理', 'kb:doc:list', 'MENU', '/kb/docs', 'Doc', 1, 1, NOW(), NOW()),
-    (8, 2, '知识库列表', 'kb:list', 'MENU', '/kb/list', 'List', 2, 1, NOW(), NOW())
+    (9,  0, 'AI 对话',   'app:chat',      'MENU', '/app/chat',      'MessageSquare', 1,  1, NOW(), NOW(), 'linear-gradient(135deg, #0A84FF, #5E5CE6)', 900, 640, 700, 480, 0, 1),
+    (10, 0, '知识库',    'app:knowledge', 'MENU', '/app/knowledge', 'BookOpen',      2,  1, NOW(), NOW(), 'linear-gradient(135deg, #30D158, #34C759)', 880, 600, 700, 460, 1, 1),
+    (11, 0, '模型管理',  'app:model',     'MENU', '/app/model',     'Bot',           3,  1, NOW(), NOW(), 'linear-gradient(135deg, #BF5AF2, #9B59B6)', 800, 560, 640, 400, -1, 1),
+    (12, 0, '用户管理',  'app:users',     'MENU', '/app/users',     'Users',         4,  1, NOW(), NOW(), 'linear-gradient(135deg, #FF9F0A, #FF6B00)', 900, 640, 700, 480, -1, 1),
+    (13, 0, 'MCP 工具',  'app:mcp',       'MENU', '/app/mcp',       'Wrench',        5,  1, NOW(), NOW(), 'linear-gradient(135deg, #64D2FF, #5AC8FA)', 920, 600, 720, 460, 2, 1),
+    (14, 0, '记忆管理',  'app:memory',    'MENU', '/app/memory',    'Zap',           6,  1, NOW(), NOW(), 'linear-gradient(135deg, #FFD60A, #FF9F0A)', 800, 560, 640, 400, -1, 1),
+    (15, 0, '系统设置',  'app:settings',  'MENU', '/app/settings',  'Settings',      7,  1, NOW(), NOW(), 'linear-gradient(135deg, #8E8E93, #636366)', 780, 560, 640, 400, 3, 1),
+    (16, 0, '数据大屏',  'app:dashboard', 'MENU', '/app/dashboard', 'Monitor',      8,  1, NOW(), NOW(), 'linear-gradient(135deg, #0A84FF, #30D158)', 1280, 800, 1024, 600, 4, 1),
+    (17, 0, '宠物管理',  'app:pets',      'MENU', '/app/pets',      'Cat',           9,  1, NOW(), NOW(), 'linear-gradient(135deg, #FF6B9D, #BF5AF2)', 900, 640, 700, 480, -1, 1),
+    (18, 0, '部门管理',  'app:dept',     'MENU', '/app/dept',     'Building',     10,  1, NOW(), NOW(), 'linear-gradient(135deg, #64D2FF, #5AC8FA)', 800, 600, 640, 400, -1, 1),
+    (19, 0, '图标管理',  'app:desktopicon','MENU', '/app/desktopicon','Grid',         11,  1, NOW(), NOW(), 'linear-gradient(135deg, #0A84FF, #5E5CE6)', 900, 640, 700, 480, -1, 1),
+    (26, 0, '角色管理',  'app:role',      'MENU', '/app/role',      'Shield',       12,  1, NOW(), NOW(), 'linear-gradient(135deg, #BF5AF2, #9B59B6)', 800, 600, 640, 400, -1, 1),
+    (27, 0, '权限管理',  'app:permission','MENU', '/app/permission', 'Key',          13,  1, NOW(), NOW(), 'linear-gradient(135deg, #FFD60A, #FF9F0A)', 800, 600, 640, 400, -1, 1)
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 十、初始化角色菜单关联
+-- 九.2、初始化桌面图标管理接口权限（perm_type = BUTTON）
 -- ----------------------------------------------------------------------------
--- 说明：为不同角色分配可访问的菜单
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (20, 0, '桌面图标查询', 'desktop-icon:query',   'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (21, 0, '桌面图标列表', 'desktop-icon:list',     'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (22, 0, '桌面图标创建', 'desktop-icon:create',  'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (23, 0, '桌面图标更新', 'desktop-icon:update',  'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (24, 0, '桌面图标删除', 'desktop-icon:delete',  'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 十、创建序列（供 eh_role_permission.id 使用）
+-- ----------------------------------------------------------------------------
+CREATE SEQUENCE IF NOT EXISTS seq_role_permission START 1;
+
+-- ----------------------------------------------------------------------------
+-- 十一、初始化角色桌面图标关联
+-- ----------------------------------------------------------------------------
+-- 说明：根据前端 appDefinitions.roles 配置各角色可见的桌面图标
+-- SUPER_ADMIN: 全部图标
+-- ADMIN:       chat, knowledge, memory, settings, dept
+-- DEPT_HEAD:    chat, knowledge, memory, settings, dept
+-- LEADER:       chat, knowledge, memory, settings, dashboard
+-- USER:         chat, knowledge, memory, settings
 -- ----------------------------------------------------------------------------
 
--- 10.1 超级管理员（SUPER_ADMIN）- 拥有全部菜单
-INSERT INTO eh_role_permission (role_id, permission_id, create_time, update_time)
+-- 10.1 超级管理员（SUPER_ADMIN）- 全部桌面图标
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
 VALUES
-    -- 系统管理
-    (1, 1, NOW(), NOW()), (1, 3, NOW(), NOW()), (1, 4, NOW(), NOW()), (1, 5, NOW(), NOW()), (1, 6, NOW(), NOW()),
-    -- 知识库管理
-    (1, 2, NOW(), NOW()), (1, 7, NOW(), NOW()), (1, 8, NOW(), NOW())
+    (nextval('seq_role_permission'), 1, 9, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 10, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 11, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 12, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 13, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 14, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 15, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 16, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 17, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 18, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 19, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 20, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 21, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 22, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 23, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 24, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 26, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 27, NOW(), NOW())
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- 10.2 普通管理员（ADMIN）- 部分菜单（去掉模型配置和系统配置）
-INSERT INTO eh_role_permission (role_id, permission_id, create_time, update_time)
+-- 10.2 普通管理员（ADMIN）- 部分桌面图标
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
 VALUES
-    -- 系统管理（只有用户管理和部门管理）
-    (4, 1, NOW(), NOW()), (4, 3, NOW(), NOW()), (4, 4, NOW(), NOW()),
-    -- 知识库管理（全部）
-    (4, 2, NOW(), NOW()), (4, 7, NOW(), NOW()), (4, 8, NOW(), NOW())
+    (nextval('seq_role_permission'), 4, 9, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 10, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 14, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 15, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 18, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 10.3 部门负责人（DEPT_HEAD）- 部分桌面图标
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 3, 9, NOW(), NOW()),
+    (nextval('seq_role_permission'), 3, 10, NOW(), NOW()),
+    (nextval('seq_role_permission'), 3, 14, NOW(), NOW()),
+    (nextval('seq_role_permission'), 3, 15, NOW(), NOW()),
+    (nextval('seq_role_permission'), 3, 18, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 10.4 高层领导（LEADER）- 部分桌面图标
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 2, 9, NOW(), NOW()),
+    (nextval('seq_role_permission'), 2, 10, NOW(), NOW()),
+    (nextval('seq_role_permission'), 2, 14, NOW(), NOW()),
+    (nextval('seq_role_permission'), 2, 15, NOW(), NOW()),
+    (nextval('seq_role_permission'), 2, 16, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 10.5 普通员工（USER）- 最小集桌面图标
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 5, 9, NOW(), NOW()),
+    (nextval('seq_role_permission'), 5, 10, NOW(), NOW()),
+    (nextval('seq_role_permission'), 5, 14, NOW(), NOW()),
+    (nextval('seq_role_permission'), 5, 15, NOW(), NOW())
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
@@ -245,11 +323,11 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 -- ----------------------------------------------------------------------------
 
 -- 生成 BCrypt 密码哈希（密码：admin123）
--- $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi
+-- $2a$10$zv.OUJsmMI1kuebzfoQf2.j.9MNW5c0t1gmm3RW/EWk7d95nov0fu
 
 INSERT INTO eh_user (id, username, password, nickname, email, dept_id, status, create_time, update_time)
 VALUES
-    (1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '系统管理员', 'admin@evolvehub.com', 1, 1, NOW(), NOW())
+    (1, 'admin', '$2a$10$zv.OUJsmMI1kuebzfoQf2.j.9MNW5c0t1gmm3RW/EWk7d95nov0fu', '系统管理员', 'admin@evolvehub.com', 1, 1, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- 为默认管理员分配超级管理员角色
@@ -294,11 +372,15 @@ ON CONFLICT (id) DO NOTHING;
 --    - ADMIN（普通管理员）：管理用户和部门
 --    - USER（普通员工）：只能访问个人相关功能
 --
--- 4. 菜单说明：
---    - 系统管理：用户管理、部门管理、模型配置、系统配置
---    - 知识库管理：文档管理、知识库列表
---    - SUPER_ADMIN 可以看到全部菜单
---    - ADMIN 只能看到用户管理、部门管理和知识库管理菜单
+-- 4. 桌面图标说明（eh_permission id 9-18，parent_id = 0）：
+--    - AI 对话(app:chat)、知识库(app:knowledge)、模型管理(app:model)
+--    - 用户管理(app:users)、MCP 工具(app:mcp)、记忆管理(app:memory)
+--    - 系统设置(app:settings)、数据大屏(app:dashboard)、宠物管理(app:pets)
+--    - 部门管理(system:dept)
+--    - SUPER_ADMIN：全部 10 个图标
+--    - ADMIN/DEPT_HEAD：chat, knowledge, memory, settings, dept
+--    - LEADER：chat, knowledge, memory, settings, dashboard
+--    - USER：chat, knowledge, memory, settings
 --
 -- 5. 数据权限（data_scope）说明：
 --    - 1：全部数据（可看所有部门数据）

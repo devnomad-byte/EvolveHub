@@ -17,7 +17,6 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: Redis@2026
       database: 0
 
 # ----- Logging (development: show SQL) -----

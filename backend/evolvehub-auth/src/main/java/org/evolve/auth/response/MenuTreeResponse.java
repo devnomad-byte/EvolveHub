@@ -57,6 +57,36 @@ public record MenuTreeResponse(
         /**
          * 子菜单列表
          */
-        List<MenuTreeResponse> children
+        List<MenuTreeResponse> children,
+
+        /**
+         * CSS 渐变色
+         */
+        String gradient,
+
+        /**
+         * 默认窗口宽度
+         */
+        Integer defaultWidth,
+
+        /**
+         * 默认窗口高度
+         */
+        Integer defaultHeight,
+
+        /**
+         * 最小窗口宽度
+         */
+        Integer minWidth,
+
+        /**
+         * 最小窗口高度
+         */
+        Integer minHeight,
+
+        /**
+         * Dock 栏顺序，-1 不显示
+         */
+        Integer dockOrder
 ) {
 }

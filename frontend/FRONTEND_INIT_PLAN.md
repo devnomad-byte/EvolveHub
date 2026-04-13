@@ -11,7 +11,7 @@
 
 ### 1. 安装依赖 ⏳
 ```bash
-cd evolvehub-console
+cd frontend
 npm install
 ```
 

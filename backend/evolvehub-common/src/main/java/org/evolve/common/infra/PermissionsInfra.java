@@ -61,4 +61,16 @@ public class PermissionsInfra extends ServiceImpl<PermissionsInfra.PermissionsMa
                 .orderByAsc(PermissionsEntity::getSort)
                 .list();
     }
+
+    /**
+     * 查询所有桌面图标
+     *
+     * @return 桌面图标列表
+     */
+    public List<PermissionsEntity> listDesktopIcons() {
+        return this.lambdaQuery()
+                .eq(PermissionsEntity::getIsDesktopIcon, 1)
+                .orderByAsc(PermissionsEntity::getSort)
+                .list();
+    }
 }

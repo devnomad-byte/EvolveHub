@@ -101,7 +101,13 @@ public class MenuTreeManager extends BaseManager<Void, List<MenuTreeResponse>> {
                         menu.getIcon(),
                         menu.getSort(),
                         menu.getStatus(),
-                        children
+                        children,
+                        menu.getGradient(),
+                        menu.getDefaultWidth(),
+                        menu.getDefaultHeight(),
+                        menu.getMinWidth(),
+                        menu.getMinHeight(),
+                        menu.getDockOrder()
                 );
                 tree.add(menuResponse);
             }

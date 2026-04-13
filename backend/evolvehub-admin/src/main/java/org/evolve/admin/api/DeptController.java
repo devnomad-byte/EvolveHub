@@ -1,6 +1,7 @@
 package org.evolve.admin.api;
 
-import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.evolve.common.model.DeptEntity;
@@ -54,7 +55,7 @@ public class DeptController {
      * @param request 创建部门请求体
      * @return 创建成功的部门ID
      */
-    @SaCheckPermission("dept:create")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @PostMapping("/create")
     public Result<CreateDeptResponse> create(@RequestBody @Valid CreateDeptRequest request) {
         return Result.ok(createDeptManager.execute(request));
@@ -66,7 +67,7 @@ public class DeptController {
      * @param id 部门ID
      * @return 部门实体信息
      */
-    @SaCheckPermission("dept:query")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @GetMapping("/{id}")
     public Result<DeptEntity> getById(@PathVariable Long id) {
         return Result.ok(getDeptManager.execute(id));
@@ -79,7 +80,7 @@ public class DeptController {
      * @param pageSize 每页条数，默认为10
      * @return 分页部门列表
      */
-    @SaCheckPermission("dept:list")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @GetMapping("/list")
     public Result<PageResponse<DeptEntity>> list(@RequestParam(defaultValue = "1") int pageNum,
                                                   @RequestParam(defaultValue = "10") int pageSize) {
@@ -93,7 +94,7 @@ public class DeptController {
      * @param request 更新部门请求体
      * @return 更新结果
      */
-    @SaCheckPermission("dept:update")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @PutMapping("/update")
     public Result<UpdateDeptResponse> update(@RequestBody @Valid UpdateDeptRequest request) {
         return Result.ok(updateDeptManager.execute(request));
@@ -106,7 +107,7 @@ public class DeptController {
      * @param id 部门ID
      * @return 删除结果
      */
-    @SaCheckPermission("dept:delete")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         deleteDeptManager.execute(id);
