@@ -3,8 +3,8 @@ package org.evolve.auth.service;
 import jakarta.annotation.Resource;
 import org.evolve.auth.response.DeptResponse;
 import org.evolve.common.base.BaseManager;
-import org.evolve.common.infra.DeptInfra;
-import org.evolve.common.model.DeptEntity;
+import org.evolve.domain.rbac.infra.DeptInfra;
+import org.evolve.domain.rbac.model.DeptEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

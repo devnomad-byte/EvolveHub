@@ -1,10 +1,10 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.RolesInfra;
-import org.evolve.common.infra.UserRolesInfra;
-import org.evolve.common.infra.UsersInfra;
-import org.evolve.common.model.UserRolesEntity;
+import org.evolve.domain.rbac.infra.RolesInfra;
+import org.evolve.domain.rbac.infra.UserRolesInfra;
+import org.evolve.domain.rbac.infra.UsersInfra;
+import org.evolve.domain.rbac.model.UserRolesEntity;
 import org.evolve.admin.request.AssignUserRoleRequest;
 import org.evolve.admin.response.AssignUserRoleResponse;
 import org.evolve.common.base.BaseManager;

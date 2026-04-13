@@ -3,7 +3,7 @@ package org.evolve.admin.service;
 import jakarta.annotation.Resource;
 import org.evolve.admin.request.RevokeResourceGrantRequest;
 import org.evolve.common.base.BaseManager;
-import org.evolve.common.infra.ResourceGrantInfra;
+import org.evolve.domain.resource.infra.ResourceGrantInfra;
 import org.evolve.common.web.exception.BusinessException;
 import org.evolve.common.web.response.ResultCode;
 import org.springframework.stereotype.Service;

@@ -8,7 +8,7 @@ import org.evolve.admin.request.UpdateSkillConfigRequest;
 import org.evolve.admin.response.CreateSkillConfigResponse;
 import org.evolve.admin.response.UpdateSkillConfigResponse;
 import org.evolve.admin.service.*;
-import org.evolve.common.model.SkillConfigEntity;
+import org.evolve.domain.resource.model.SkillConfigEntity;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;

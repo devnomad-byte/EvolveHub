@@ -1,4 +1,4 @@
-export type AppId = 'chat' | 'knowledge' | 'model' | 'users' | 'mcp' | 'memory' | 'settings' | 'dashboard' | 'pets'
+export type AppId = 'chat' | 'knowledge' | 'model' | 'users' | 'mcp' | 'memory' | 'settings' | 'dashboard' | 'pets' | 'dept' | 'role' | 'permission'
 
 export interface WindowState {
   id: string

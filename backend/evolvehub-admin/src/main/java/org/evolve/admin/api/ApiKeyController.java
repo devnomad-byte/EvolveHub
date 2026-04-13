@@ -9,7 +9,7 @@ import org.evolve.admin.service.DisableApiKeyManager;
 import org.evolve.admin.service.GenerateApiKeyManager;
 import org.evolve.admin.service.ListApiKeyManager;
 import org.evolve.admin.service.ResetApiKeyManager;
-import org.evolve.common.model.ApiKeyEntity;
+import org.evolve.domain.resource.model.ApiKeyEntity;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;

@@ -6,7 +6,7 @@ import jakarta.validation.Valid;
 import org.evolve.admin.request.SetEmbeddingModelRequest;
 import org.evolve.admin.service.GetEmbeddingModelManager;
 import org.evolve.admin.service.SetEmbeddingModelManager;
-import org.evolve.common.model.ModelConfigEntity;
+import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.common.web.response.Result;
 import org.springframework.web.bind.annotation.*;
 

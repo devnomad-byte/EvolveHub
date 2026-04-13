@@ -1,8 +1,8 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.ModelConfigInfra;
-import org.evolve.common.model.ModelConfigEntity;
+import org.evolve.domain.resource.infra.ModelConfigInfra;
+import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.admin.request.UpdateModelConfigRequest;
 import org.evolve.admin.response.UpdateModelConfigResponse;
 import org.evolve.common.base.BaseManager;

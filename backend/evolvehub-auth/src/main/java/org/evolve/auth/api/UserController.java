@@ -18,10 +18,10 @@ import org.evolve.auth.service.UserCreateManager;
 import org.evolve.auth.service.UserDeleteManager;
 import org.evolve.auth.service.UserListManager;
 import org.evolve.auth.service.UserUpdateManager;
-import org.evolve.common.infra.DeptInfra;
-import org.evolve.common.infra.UsersInfra;
-import org.evolve.common.model.DeptEntity;
-import org.evolve.common.model.UsersEntity;
+import org.evolve.domain.rbac.infra.DeptInfra;
+import org.evolve.domain.rbac.infra.UsersInfra;
+import org.evolve.domain.rbac.model.DeptEntity;
+import org.evolve.domain.rbac.model.UsersEntity;
 import org.evolve.common.web.response.Result;
 import org.springframework.web.bind.annotation.*;
 

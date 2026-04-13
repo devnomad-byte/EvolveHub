@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.evolve</groupId>
+        <artifactId>evolvehub-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>evolvehub-domain-resource</artifactId>
+    <packaging>jar</packaging>
+
+    <name>evolvehub-domain-resource</name>
+    <description>Resource domain: ApiKey, ModelConfig, McpConfig, SkillConfig, ResourceGrant entities, data access and AI connectivity</description>
+
+    <dependencies>
+        <!-- Common (BaseEntity, etc.) -->
+        <dependency>
+            <groupId>org.evolve</groupId>
+            <artifactId>evolvehub-common</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus (common marks it optional, domain needs it explicitly) -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <!-- Web (for RestClient used by ModelConnectivityTester) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

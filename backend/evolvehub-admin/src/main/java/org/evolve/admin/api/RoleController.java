@@ -1,9 +1,11 @@
 package org.evolve.admin.api;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.evolve.common.model.RolesEntity;
+import org.evolve.domain.rbac.model.RolesEntity;
 import org.evolve.admin.request.*;
 import org.evolve.admin.response.*;
 import org.evolve.admin.service.*;
@@ -11,6 +13,8 @@ import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 角色管理控制器
@@ -57,6 +61,10 @@ public class RoleController {
     @Resource
     private AssignRoleDataScopeManager assignRoleDataScopeManager;
 
+    /** 查询角色已有权限列表业务处理器 */
+    @Resource
+    private GetRolePermissionsManager getRolePermissionsManager;
+
     /**
      * 创建角色
      * <p>包含角色名/角色编码唯一性校验、dataScope范围校验等业务逻辑。</p>
@@ -64,7 +72,7 @@ public class RoleController {
      * @param request 创建角色请求体
      * @return 创建成功的角色ID
      */
-    @SaCheckPermission("role:create")
+    @SaCheckRole("SUPER_ADMIN")
     @PostMapping("/create")
     public Result<CreateRoleResponse> create(@RequestBody @Valid CreateRoleRequest request) {
         return Result.ok(createRoleManager.execute(request));
@@ -76,7 +84,7 @@ public class RoleController {
      * @param id 角色ID
      * @return 角色实体信息
      */
-    @SaCheckPermission("role:query")
+    @SaCheckRole("SUPER_ADMIN")
     @GetMapping("/{id}")
     public Result<RolesEntity> getById(@PathVariable Long id) {
         return Result.ok(getRoleManager.execute(id));
@@ -89,7 +97,7 @@ public class RoleController {
      * @param pageSize 每页条数，默认为10
      * @return 分页角色列表
      */
-    @SaCheckPermission("role:list")
+    @SaCheckRole("SUPER_ADMIN")
     @GetMapping("/list")
     public Result<PageResponse<RolesEntity>> list(@RequestParam(defaultValue = "1") int pageNum,
                                                    @RequestParam(defaultValue = "10") int pageSize) {
@@ -103,7 +111,7 @@ public class RoleController {
      * @param request 更新角色请求体
      * @return 更新结果
      */
-    @SaCheckPermission("role:update")
+    @SaCheckRole("SUPER_ADMIN")
     @PutMapping("/update")
     public Result<UpdateRoleResponse> update(@RequestBody @Valid UpdateRoleRequest request) {
         return Result.ok(updateRoleManager.execute(request));
@@ -116,7 +124,7 @@ public class RoleController {
      * @param id 角色ID
      * @return 删除结果
      */
-    @SaCheckPermission("role:delete")
+    @SaCheckRole("SUPER_ADMIN")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         deleteRoleManager.execute(id);
@@ -130,7 +138,7 @@ public class RoleController {
      * @param request 分配权限请求体（包含角色ID和权限ID）
      * @return 分配结果
      */
-    @SaCheckPermission("role:assign-permission")
+    @SaCheckRole("SUPER_ADMIN")
     @PostMapping("/assign-permission")
     public Result<AssignRolePermissionResponse> assignPermission(@RequestBody @Valid AssignRolePermissionRequest request) {
         return Result.ok(assignRolePermissionManager.execute(request));
@@ -143,7 +151,7 @@ public class RoleController {
      * @param request 移除权限请求体（包含角色ID和权限ID）
      * @return 移除结果
      */
-    @SaCheckPermission("role:assign-permission")
+    @SaCheckRole("SUPER_ADMIN")
     @PostMapping("/remove-permission")
     public Result<RemoveRolePermissionResponse> removePermission(@RequestBody @Valid RemoveRolePermissionRequest request) {
         return Result.ok(removeRolePermissionManager.execute(request));
@@ -156,9 +164,21 @@ public class RoleController {
      * @param request 设置数据范围请求体（包含角色ID和部门ID列表）
      * @return 设置结果
      */
-    @SaCheckPermission("role:assign-data-scope")
+    @SaCheckRole("SUPER_ADMIN")
     @PostMapping("/assign-data-scope")
     public Result<AssignRoleDataScopeResponse> assignDataScope(@RequestBody @Valid AssignRoleDataScopeRequest request) {
         return Result.ok(assignRoleDataScopeManager.execute(request));
+    }
+
+    /**
+     * 查询角色已有的权限ID列表
+     *
+     * @param id 角色ID
+     * @return 该角色已分配的权限ID列表
+     */
+    @SaCheckRole("SUPER_ADMIN")
+    @GetMapping("/{id}/permissions")
+    public Result<List<Long>> getRolePermissions(@PathVariable Long id) {
+        return Result.ok(getRolePermissionsManager.execute(id));
     }
 }

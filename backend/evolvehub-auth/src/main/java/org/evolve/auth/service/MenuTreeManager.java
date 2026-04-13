@@ -4,11 +4,11 @@ import cn.dev33.satoken.stp.StpUtil;
 import jakarta.annotation.Resource;
 import org.evolve.auth.response.MenuTreeResponse;
 import org.evolve.common.base.BaseManager;
-import org.evolve.common.infra.PermissionsInfra;
-import org.evolve.common.infra.RolePermissionsInfra;
-import org.evolve.common.infra.RolesInfra;
-import org.evolve.common.infra.UserRolesInfra;
-import org.evolve.common.model.PermissionsEntity;
+import org.evolve.domain.rbac.infra.PermissionsInfra;
+import org.evolve.domain.rbac.infra.RolePermissionsInfra;
+import org.evolve.domain.rbac.infra.RolesInfra;
+import org.evolve.domain.rbac.infra.UserRolesInfra;
+import org.evolve.domain.rbac.model.PermissionsEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -101,7 +101,13 @@ public class MenuTreeManager extends BaseManager<Void, List<MenuTreeResponse>> {
                         menu.getIcon(),
                         menu.getSort(),
                         menu.getStatus(),
-                        children
+                        children,
+                        menu.getGradient(),
+                        menu.getDefaultWidth(),
+                        menu.getDefaultHeight(),
+                        menu.getMinWidth(),
+                        menu.getMinHeight(),
+                        menu.getDockOrder()
                 );
                 tree.add(menuResponse);
             }

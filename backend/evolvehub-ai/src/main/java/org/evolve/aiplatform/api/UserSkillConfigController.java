@@ -10,7 +10,7 @@ import org.evolve.aiplatform.service.CreateUserSkillConfigManager;
 import org.evolve.aiplatform.service.DeleteUserSkillConfigManager;
 import org.evolve.aiplatform.service.ListUserSkillConfigManager;
 import org.evolve.aiplatform.service.UpdateUserSkillConfigManager;
-import org.evolve.common.model.SkillConfigEntity;
+import org.evolve.domain.resource.model.SkillConfigEntity;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;

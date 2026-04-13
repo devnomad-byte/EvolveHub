@@ -62,6 +62,18 @@
             <artifactId>evolvehub-common</artifactId>
         </dependency>
 
+        <!-- Domain RBAC -->
+        <dependency>
+            <groupId>org.evolve</groupId>
+            <artifactId>evolvehub-domain-rbac</artifactId>
+        </dependency>
+
+        <!-- Domain Resource -->
+        <dependency>
+            <groupId>org.evolve</groupId>
+            <artifactId>evolvehub-domain-resource</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
