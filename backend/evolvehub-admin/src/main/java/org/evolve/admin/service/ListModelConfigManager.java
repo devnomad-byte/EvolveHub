@@ -28,7 +28,7 @@ public class ListModelConfigManager extends BaseManager<PageRequest, PageRespons
 
     @Override
     protected PageResponse<ModelConfigEntity> process(PageRequest request) {
-        Page<ModelConfigEntity> page = modelConfigInfra.listPageByScope("SYSTEM", request.pageNum(), request.pageSize());
+        Page<ModelConfigEntity> page = modelConfigInfra.listPage(request.pageNum(), request.pageSize());
         return new PageResponse<>(page.getRecords(), page.getTotal(), request.pageNum(), request.pageSize());
     }
 }

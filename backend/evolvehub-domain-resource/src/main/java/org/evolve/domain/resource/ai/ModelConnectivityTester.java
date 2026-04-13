@@ -88,7 +88,12 @@ public class ModelConnectivityTester {
      * 此端点仅返回可用模型列表，不消耗 token，是最轻量的验证方式
      */
     private TestResult testOpenAICompatible(String baseUrl, String apiKey) {
-        String url = stripTrailingSlash(baseUrl) + "/v1/models";
+        // 兼容 baseUrl 已携带 /v1 的情况，自动去除末尾的 /v1 再拼接
+        String normalized = stripTrailingSlash(baseUrl);
+        if (normalized.endsWith("/v1")) {
+            normalized = normalized.substring(0, normalized.length() - 3);
+        }
+        String url = normalized + "/v1/models";
         var response = restClient.get()
                 .uri(url)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
@@ -111,7 +116,12 @@ public class ModelConnectivityTester {
      * 发送一个 max_tokens=1 的请求来验证密钥有效性
      */
     private TestResult testAnthropic(String baseUrl, String apiKey) {
-        String url = stripTrailingSlash(baseUrl) + "/v1/messages";
+        // 兼容 baseUrl 已携带 /v1 的情况
+        String normalized = stripTrailingSlash(baseUrl);
+        if (normalized.endsWith("/v1")) {
+            normalized = normalized.substring(0, normalized.length() - 3);
+        }
+        String url = normalized + "/v1/messages";
         String body = """
                 {"model":"claude-3-haiku-20240307","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}""";
 

@@ -7,6 +7,7 @@ import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.admin.request.CreateModelConfigRequest;
 import org.evolve.admin.request.UpdateModelConfigRequest;
 import org.evolve.admin.response.CreateModelConfigResponse;
+import org.evolve.admin.response.ModelConfigWithOwnerResponse;
 import org.evolve.admin.response.UpdateModelConfigResponse;
 import org.evolve.admin.service.*;
 import org.evolve.common.web.page.PageRequest;
@@ -47,6 +48,10 @@ public class ModelConfigController {
     @Resource
     private DeleteModelConfigManager deleteModelConfigManager;
 
+    /** SUPER_ADMIN 查看全部模型（含所有者信息） */
+    @Resource
+    private ListModelConfigAdminManager listModelConfigAdminManager;
+
     /**
      * 创建模型配置
      * <p>仅允许超级管理员操作，包含模型名称唯一性校验等业务逻辑。</p>
@@ -82,6 +87,19 @@ public class ModelConfigController {
     public Result<PageResponse<ModelConfigEntity>> list(@RequestParam(defaultValue = "1") int pageNum,
                                                          @RequestParam(defaultValue = "10") int pageSize) {
         return Result.ok(listModelConfigManager.execute(new PageRequest(pageNum, pageSize)));
+    }
+
+    /**
+     * SUPER_ADMIN 查看全部模型配置（带所有者信息）
+     * <p>
+     * 按用户分组，展示每个用户的个人模型，方便管理员管理所有用户的模型配置。
+     * </p>
+     */
+    @SaCheckRole("SUPER_ADMIN")
+    @GetMapping("/admin-all")
+    public Result<PageResponse<ModelConfigWithOwnerResponse>> adminAll(@RequestParam(defaultValue = "1") int pageNum,
+                                                                      @RequestParam(defaultValue = "100") int pageSize) {
+        return Result.ok(listModelConfigAdminManager.execute(new PageRequest(pageNum, pageSize)));
     }
 
     /**
