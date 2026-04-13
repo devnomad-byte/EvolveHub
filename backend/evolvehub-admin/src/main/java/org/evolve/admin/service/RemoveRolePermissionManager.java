@@ -1,7 +1,7 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.RolePermissionsInfra;
+import org.evolve.domain.rbac.infra.RolePermissionsInfra;
 import org.evolve.admin.request.RemoveRolePermissionRequest;
 import org.evolve.admin.response.RemoveRolePermissionResponse;
 import org.evolve.common.base.BaseManager;

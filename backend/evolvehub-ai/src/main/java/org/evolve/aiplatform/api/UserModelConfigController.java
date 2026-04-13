@@ -10,7 +10,7 @@ import org.evolve.aiplatform.service.CreateUserModelConfigManager;
 import org.evolve.aiplatform.service.DeleteUserModelConfigManager;
 import org.evolve.aiplatform.service.ListUserModelConfigManager;
 import org.evolve.aiplatform.service.UpdateUserModelConfigManager;
-import org.evolve.common.model.ModelConfigEntity;
+import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;

@@ -3,9 +3,9 @@ package org.evolve.aiplatform.service;
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.annotation.Resource;
 import org.evolve.common.base.BaseManager;
-import org.evolve.common.infra.McpConfigInfra;
-import org.evolve.common.infra.ResourceGrantInfra;
-import org.evolve.common.model.McpConfigEntity;
+import org.evolve.domain.resource.infra.McpConfigInfra;
+import org.evolve.domain.resource.infra.ResourceGrantInfra;
+import org.evolve.domain.resource.model.McpConfigEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

@@ -288,9 +288,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, h, defineComponent, type PropType } from 'vue'
-import { userApi, type UserInfo } from '../../../api/user'
+import { adminUserApi, type AdminUserInfo } from '../../../api/adminUser'
 import { deptApi, type DeptInfo } from '../../../api/dept'
 import { useDesktopStore } from '../../../stores/desktop'
+
+// 类型别名，保持组件内使用 UserInfo
+type UserInfo = AdminUserInfo
 
 const desktop = useDesktopStore()
 const currentUserId = computed(() => desktop.currentUser?.id || 0)
@@ -420,7 +423,7 @@ function getDeptUserCount(deptId: number): number {
 // ==================== Load Data ====================
 async function loadUsers() {
   try {
-    users.value = await userApi.list()
+    users.value = await adminUserApi.list()
   } catch (e: any) {
     desktop.addToast(e.message || '加载用户列表失败', 'error')
   }
@@ -479,7 +482,7 @@ async function handleSubmit() {
   isSubmitting.value = true
   try {
     if (isEditing.value) {
-      await userApi.update({
+      await adminUserApi.update({
         id: form.value.id,
         nickname: form.value.nickname || undefined,
         email: form.value.email || undefined,
@@ -490,7 +493,7 @@ async function handleSubmit() {
       })
       desktop.addToast('用户更新成功', 'success')
     } else {
-      await userApi.create({
+      await adminUserApi.create({
         username: form.value.username,
         password: form.value.password,
         nickname: form.value.nickname || undefined,
@@ -513,7 +516,7 @@ async function handleSubmit() {
 async function handleDelete(u: UserInfo) {
   if (!confirm(`确定要删除用户「${u.nickname || u.username}」吗？`)) return
   try {
-    await userApi.delete(u.id)
+    await adminUserApi.delete(u.id)
     desktop.addToast('用户已删除', 'success')
     await loadUsers()
   } catch (e: any) {
@@ -531,7 +534,7 @@ async function handleResetPassword() {
   if (!resetTarget.value) return
   isSubmitting.value = true
   try {
-    await userApi.resetPassword({
+    await adminUserApi.resetPassword({
       userId: resetTarget.value.id,
       newPassword: resetPassword.value
     })

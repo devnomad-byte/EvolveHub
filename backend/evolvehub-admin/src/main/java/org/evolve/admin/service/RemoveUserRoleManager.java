@@ -1,7 +1,7 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.UserRolesInfra;
+import org.evolve.domain.rbac.infra.UserRolesInfra;
 import org.evolve.admin.request.RemoveUserRoleRequest;
 import org.evolve.admin.response.RemoveUserRoleResponse;
 import org.evolve.common.base.BaseManager;

@@ -2,7 +2,7 @@ package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
 import org.evolve.common.base.BaseManager;
-import org.evolve.common.infra.McpConfigInfra;
+import org.evolve.domain.resource.infra.McpConfigInfra;
 import org.evolve.common.web.exception.BusinessException;
 import org.evolve.common.web.response.ResultCode;
 import org.springframework.stereotype.Service;

@@ -11,10 +11,17 @@ import jakarta.validation.constraints.NotNull;
  * @param phone    手机号（全局唯一）
  * @param avatar   头像地址
  * @param deptId   所属部门ID（部门必须存在）
+ * @param roleId   角色ID
  * @param status   状态（1=正常 0=停用）
  */
 public record UpdateUserRequest(
         @NotNull(message = "用户ID不能为空") Long id,
-        String nickname, String email, String phone, String avatar,
-        Long deptId, Integer status) {
+        String nickname,
+        String email,
+        String phone,
+        String avatar,
+        Long deptId,
+        Long roleId,
+        Integer status
+) {
 }

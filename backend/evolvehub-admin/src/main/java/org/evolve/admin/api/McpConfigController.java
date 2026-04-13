@@ -8,7 +8,7 @@ import org.evolve.admin.request.UpdateMcpConfigRequest;
 import org.evolve.admin.response.CreateMcpConfigResponse;
 import org.evolve.admin.response.UpdateMcpConfigResponse;
 import org.evolve.admin.service.*;
-import org.evolve.common.model.McpConfigEntity;
+import org.evolve.domain.resource.model.McpConfigEntity;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;

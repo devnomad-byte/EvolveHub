@@ -3,7 +3,7 @@ package org.evolve.admin.api;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.evolve.common.model.ModelConfigEntity;
+import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.admin.request.CreateModelConfigRequest;
 import org.evolve.admin.request.UpdateModelConfigRequest;
 import org.evolve.admin.response.CreateModelConfigResponse;

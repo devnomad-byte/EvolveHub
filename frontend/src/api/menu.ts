@@ -12,6 +12,13 @@ export interface MenuInfo {
   sort: number
   status: number
   children?: MenuInfo[]
+  // 桌面图标专用字段
+  gradient?: string
+  defaultWidth?: number
+  defaultHeight?: number
+  minWidth?: number
+  minHeight?: number
+  dockOrder?: number
 }
 
 // 菜单管理 API

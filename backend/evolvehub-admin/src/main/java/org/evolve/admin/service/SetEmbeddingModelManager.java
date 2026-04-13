@@ -2,10 +2,10 @@ package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
 import org.evolve.admin.request.SetEmbeddingModelRequest;
-import org.evolve.common.ai.ModelConnectivityTester;
+import org.evolve.domain.resource.ai.ModelConnectivityTester;
 import org.evolve.common.base.BaseManager;
-import org.evolve.common.infra.ModelConfigInfra;
-import org.evolve.common.model.ModelConfigEntity;
+import org.evolve.domain.resource.infra.ModelConfigInfra;
+import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.common.web.exception.BusinessException;
 import org.evolve.common.web.response.ResultCode;
 import org.springframework.stereotype.Service;

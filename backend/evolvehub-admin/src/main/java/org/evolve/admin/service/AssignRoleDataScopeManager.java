@@ -1,11 +1,11 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.DeptInfra;
-import org.evolve.common.infra.RoleDataScopeInfra;
-import org.evolve.common.infra.RolesInfra;
-import org.evolve.common.model.RoleDataScopeEntity;
-import org.evolve.common.model.RolesEntity;
+import org.evolve.domain.rbac.infra.DeptInfra;
+import org.evolve.domain.rbac.infra.RoleDataScopeInfra;
+import org.evolve.domain.rbac.infra.RolesInfra;
+import org.evolve.domain.rbac.model.RoleDataScopeEntity;
+import org.evolve.domain.rbac.model.RolesEntity;
 import org.evolve.admin.request.AssignRoleDataScopeRequest;
 import org.evolve.admin.response.AssignRoleDataScopeResponse;
 import org.evolve.common.base.BaseManager;

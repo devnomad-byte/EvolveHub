@@ -10,7 +10,7 @@ import org.evolve.aiplatform.service.CreateUserMcpConfigManager;
 import org.evolve.aiplatform.service.DeleteUserMcpConfigManager;
 import org.evolve.aiplatform.service.ListUserMcpConfigManager;
 import org.evolve.aiplatform.service.UpdateUserMcpConfigManager;
-import org.evolve.common.model.McpConfigEntity;
+import org.evolve.domain.resource.model.McpConfigEntity;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;

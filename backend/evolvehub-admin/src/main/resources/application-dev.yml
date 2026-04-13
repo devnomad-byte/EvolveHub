@@ -3,13 +3,14 @@
 # ==============================================================
 server:
   port: 8083
-
+  servlet:
+    context-path: /api/admin
 spring:
   # ----- DataSource (local PostgreSQL, 与 auth 共用同一库) -----
   datasource:
-    url: jdbc:postgresql://106.15.231.177:${DB_PORT:5432}/evolve_auth
-    username: admin
-    password: a774461674
+    url: jdbc:postgresql://localhost:${DB_PORT:5432}/evolve_auth
+    username: postgres
+    password: Postgres@2026
     driver-class-name: org.postgresql.Driver
 
   # ----- Redis (shared token store with auth) -----
@@ -17,8 +18,16 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
       database: 0
+
+
+# ----- Sa-Token -----
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  active-timeout: -1
+  is-concurrent: true
+  token-style: uuid
 
 # ----- Logging (development: show SQL) -----
 logging:

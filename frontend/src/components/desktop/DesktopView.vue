@@ -63,12 +63,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useWindowStore } from '../../stores/window'
 import { useDesktopStore } from '../../stores/desktop'
 import { useAppearanceStore } from '../../composables/useAppearance'
-import { appDefinitions } from '../../types/apps'
-import type { AppId } from '../../types'
+import { menuApi } from '../../api/menu'
+import type { MenuInfo } from '../../api/menu'
 import MenuBar from './MenuBar.vue'
 import DockBar from './DockBar.vue'
 import DesktopIcon from './DesktopIcon.vue'
@@ -84,6 +84,27 @@ const isAdmin = computed(() => desktop.currentUser.role !== 'USER')
 
 const contextMenu = ref({ visible: false, x: 0, y: 0 })
 
+// 桌面图标列表（从 API 加载）
+const desktopIcons = ref<MenuInfo[]>([])
+
+// 加载桌面图标
+async function loadDesktopIcons() {
+  try {
+    // 拦截器已 unwrap，直接返回 data
+    const menus = await menuApi.getMenus()
+    // parentId === 0 的为桌面图标
+    desktopIcons.value = (menus || []).filter(menu => menu.parentId === 0 && menu.status === 1)
+  } catch (e) {
+    console.error('Failed to load desktop icons:', e)
+  }
+}
+
+// permCode 转 appId（如 'app:chat' -> 'chat'）
+function permCodeToAppId(permCode: string): string {
+  // 移除 'app:' 或 'system:' 前缀
+  return permCode.replace(/^(app|system):/, '')
+}
+
 const stars = Array.from({ length: 40 }, (_, i) => ({
   id: i,
   x: Math.random() * 100 + '%',
@@ -95,14 +116,14 @@ const stars = Array.from({ length: 40 }, (_, i) => ({
 }))
 
 const visibleIcons = computed(() => {
-  const role = desktop.currentUser.role
-  return Object.values(appDefinitions)
-    .filter(def => def.roles.includes(role))
-    .map((def, i) => ({
-      appId: def.id,
-      name: def.name,
-      icon: def.icon,
-      gradient: def.gradient,
+  return desktopIcons.value
+    .filter(icon => icon.status === 1)
+    .sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    .map((icon, i) => ({
+      appId: permCodeToAppId(icon.permCode),
+      name: icon.menuName,
+      icon: icon.icon,
+      gradient: icon.gradient || 'linear-gradient(135deg, #8E8E93, #636366)',
       col: i % 4,
       row: Math.floor(i / 4)
     }))
@@ -132,9 +153,21 @@ function handleAbout() {
   desktop.addToast('EvolveHub v1.0.0', 'info')
 }
 
+// 监听登录状态，加载桌面图标
+watch(() => desktop.isLoggedIn, (loggedIn) => {
+  if (loggedIn) {
+    loadDesktopIcons()
+  }
+}, { immediate: true })
+
 onMounted(() => {
   // 初始化外观设置
   appearance.applySettings()
+
+  // 如果已登录，加载图标
+  if (desktop.isLoggedIn) {
+    loadDesktopIcons()
+  }
 
   window.addEventListener('contextmenu', handleContextMenu)
   window.addEventListener('click', closeContextMenu)

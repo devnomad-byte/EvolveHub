@@ -29,6 +29,10 @@
         <SettingsApp v-else-if="windowState.appId === 'settings'" />
         <DashboardApp v-else-if="windowState.appId === 'dashboard'" />
         <PetGalleryApp v-else-if="windowState.appId === 'pets'" />
+        <DesktopIconApp v-else-if="windowState.appId === 'desktopicon'" />
+        <DeptApp v-else-if="windowState.appId === 'dept'" />
+        <RoleApp v-else-if="windowState.appId === 'role'" />
+        <PermissionApp v-else-if="windowState.appId === 'permission'" />
       </div>
 
       <!-- Resize handles -->
@@ -52,6 +56,10 @@ import MemoryApp from '../apps/memory/MemoryApp.vue'
 import SettingsApp from '../apps/settings/SettingsApp.vue'
 import DashboardApp from '../apps/dashboard/DashboardApp.vue'
 import PetGalleryApp from '../apps/pets/PetGalleryApp.vue'
+import DesktopIconApp from '../apps/desktopicon/DesktopIconApp.vue'
+import DeptApp from '../apps/dept/DeptApp.vue'
+import RoleApp from '../apps/role/RoleApp.vue'
+import PermissionApp from '../apps/permission/PermissionApp.vue'
 
 const props = defineProps<{
   windowState: WindowState

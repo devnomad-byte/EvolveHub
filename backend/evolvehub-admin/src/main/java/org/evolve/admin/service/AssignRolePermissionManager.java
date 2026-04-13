@@ -1,10 +1,10 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.PermissionsInfra;
-import org.evolve.common.infra.RolePermissionsInfra;
-import org.evolve.common.infra.RolesInfra;
-import org.evolve.common.model.RolePermissionsEntity;
+import org.evolve.domain.rbac.infra.PermissionsInfra;
+import org.evolve.domain.rbac.infra.RolePermissionsInfra;
+import org.evolve.domain.rbac.infra.RolesInfra;
+import org.evolve.domain.rbac.model.RolePermissionsEntity;
 import org.evolve.admin.request.AssignRolePermissionRequest;
 import org.evolve.admin.response.AssignRolePermissionResponse;
 import org.evolve.common.base.BaseManager;

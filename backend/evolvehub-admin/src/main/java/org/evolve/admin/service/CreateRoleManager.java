@@ -1,8 +1,8 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.RolesInfra;
-import org.evolve.common.model.RolesEntity;
+import org.evolve.domain.rbac.infra.RolesInfra;
+import org.evolve.domain.rbac.model.RolesEntity;
 import org.evolve.admin.request.CreateRoleRequest;
 import org.evolve.admin.response.CreateRoleResponse;
 import org.evolve.common.base.BaseManager;

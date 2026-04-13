@@ -2,8 +2,8 @@ package org.evolve.admin.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
-import org.evolve.common.infra.RolesInfra;
-import org.evolve.common.model.RolesEntity;
+import org.evolve.domain.rbac.infra.RolesInfra;
+import org.evolve.domain.rbac.model.RolesEntity;
 import org.evolve.common.base.BaseManager;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;

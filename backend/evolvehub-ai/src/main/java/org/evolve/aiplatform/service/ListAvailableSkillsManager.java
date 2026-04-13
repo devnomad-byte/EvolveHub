@@ -3,9 +3,9 @@ package org.evolve.aiplatform.service;
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.annotation.Resource;
 import org.evolve.common.base.BaseManager;
-import org.evolve.common.infra.ResourceGrantInfra;
-import org.evolve.common.infra.SkillConfigInfra;
-import org.evolve.common.model.SkillConfigEntity;
+import org.evolve.domain.resource.infra.ResourceGrantInfra;
+import org.evolve.domain.resource.infra.SkillConfigInfra;
+import org.evolve.domain.resource.model.SkillConfigEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

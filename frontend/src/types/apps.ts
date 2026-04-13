@@ -49,6 +49,18 @@ export const appDefinitions: Record<string, AppDefinition> = {
     dockOrder: -1,
     roles: ['SUPER_ADMIN']
   },
+  dept: {
+    id: 'dept',
+    name: '部门管理',
+    icon: 'Building',
+    gradient: 'linear-gradient(135deg, #64D2FF, #5AC8FA)',
+    defaultWidth: 800,
+    defaultHeight: 600,
+    minWidth: 640,
+    minHeight: 400,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN', 'ADMIN']
+  },
   mcp: {
     id: 'mcp',
     name: 'MCP 工具',
@@ -106,6 +118,42 @@ export const appDefinitions: Record<string, AppDefinition> = {
     defaultHeight: 640,
     minWidth: 700,
     minHeight: 480,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  desktopicon: {
+    id: 'desktopicon',
+    name: '图标管理',
+    icon: 'Grid',
+    gradient: 'linear-gradient(135deg, #0A84FF, #5E5CE6)',
+    defaultWidth: 900,
+    defaultHeight: 640,
+    minWidth: 700,
+    minHeight: 480,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  role: {
+    id: 'role',
+    name: '角色管理',
+    icon: 'Shield',
+    gradient: 'linear-gradient(135deg, #BF5AF2, #9B59B6)',
+    defaultWidth: 800,
+    defaultHeight: 600,
+    minWidth: 640,
+    minHeight: 400,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  permission: {
+    id: 'permission',
+    name: '权限管理',
+    icon: 'Key',
+    gradient: 'linear-gradient(135deg, #FFD60A, #FF9F0A)',
+    defaultWidth: 800,
+    defaultHeight: 600,
+    minWidth: 640,
+    minHeight: 400,
     dockOrder: -1,
     roles: ['SUPER_ADMIN']
   }

@@ -61,6 +61,8 @@
     <!-- ===== Modules ===== -->
     <modules>
         <module>evolvehub-common</module>
+        <module>evolvehub-domain-rbac</module>
+        <module>evolvehub-domain-resource</module>
         <module>evolvehub-gateway</module>
         <module>evolvehub-auth</module>
         <module>evolvehub-ai</module>
@@ -156,6 +158,16 @@
             <dependency>
                 <groupId>org.evolve</groupId>
                 <artifactId>evolvehub-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-domain-rbac</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.evolve</groupId>
+                <artifactId>evolvehub-domain-resource</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

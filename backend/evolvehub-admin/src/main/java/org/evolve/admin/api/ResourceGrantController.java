@@ -9,7 +9,7 @@ import org.evolve.admin.response.AssignResourceGrantResponse;
 import org.evolve.admin.service.AssignResourceGrantManager;
 import org.evolve.admin.service.ListResourceGrantManager;
 import org.evolve.admin.service.RevokeResourceGrantManager;
-import org.evolve.common.model.ResourceGrantEntity;
+import org.evolve.domain.resource.model.ResourceGrantEntity;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;

@@ -10,7 +10,21 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
-  MessageSquare, BookOpen, Bot, Users, Wrench, Zap, Settings, Monitor, Cat
+  MessageSquare, BookOpen, Bot, Users, Wrench, Zap, Settings, Monitor, Cat,
+  Building, FileText, Folder, Database, Cloud, Globe, Star, Heart, Flag, Tag,
+  Bookmark, Gift, Gem, Crown, Home, Search, Bell, Mail, Lock, Key, Shield,
+  Layers, Layout, Grid, List, Edit, Trash2, Copy, Download, Upload,
+  Save, Share, Link, ExternalLink, Eye, EyeOff, Clipboard, MapPin, Phone,
+  User, UserPlus, UserCheck, Code, Terminal, GitBranch, Package, Server,
+  Cpu, HardDrive, Smartphone, Tablet, Watch, Tv, Battery, BatteryCharging,
+  Plug, Power, RefreshCw, RotateCcw, Loader, AlertCircle, AlertTriangle,
+  Info, HelpCircle, CheckCircle, XCircle, PlusCircle, MinusCircle, X, Check,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft,
+  ArrowUp, ArrowDown, ArrowUpDown, Maximize2, Minimize2, Minimize, Expand,
+  Shrink, Focus, Crosshair, MousePointer, Hand, GripVertical, MoreHorizontal,
+  Menu, Circle, Navigation, Compass, Flame, Leaf, Lightbulb, Rocket, Sparkles,
+  Tent, TreeDeciduous, Umbrella, Sunrise, Sunset, Moon, Sun, Droplet, Waves,
+  Wind, Snowflake, Thermometer, Archive, Cog, Sliders
 } from 'lucide-vue-next'
 import type { AppId } from '../../types'
 
@@ -23,19 +37,28 @@ const props = defineProps<{
 
 defineEmits<{ open: [] }>()
 
+// 图标映射表
 const iconMap: Record<string, ReturnType<typeof MessageSquare>> = {
-  MessageSquare,
-  BookOpen,
-  Bot,
-  Users,
-  Wrench,
-  Zap,
-  Settings,
-  Monitor,
-  Cat
+  MessageSquare, BookOpen, Bot, Users, Wrench, Zap, Settings, Monitor, Cat,
+  Building, FileText, Folder, Database, Cloud, Globe, Star, Heart, Flag, Tag,
+  Bookmark, Gift, Gem, Crown, Home, Search, Bell, Mail, Lock, Key, Shield,
+  Layers, Layout, Grid, List, Edit, Trash2, Copy, Download, Upload,
+  Save, Share, Link, ExternalLink, Eye, EyeOff, Clipboard, MapPin, Phone,
+  User, UserPlus, UserCheck, Code, Terminal, GitBranch, Package, Server,
+  Cpu, HardDrive, Smartphone, Tablet, Watch, Tv, Battery, BatteryCharging,
+  Plug, Power, RefreshCw, RotateCcw, Loader, AlertCircle, AlertTriangle,
+  Info, HelpCircle, CheckCircle, XCircle, PlusCircle, MinusCircle, X, Check,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft,
+  ArrowUp, ArrowDown, ArrowUpDown, Maximize2, Minimize2, Minimize, Expand,
+  Shrink, Focus, Crosshair, MousePointer, Hand, GripVertical, MoreHorizontal,
+  Menu, Circle, Navigation, Compass, Flame, Leaf, Lightbulb, Rocket, Sparkles,
+  Tent, TreeDeciduous, Umbrella, Sunrise, Sunset, Moon, Sun, Droplet, Waves,
+  Wind, Snowflake, Thermometer, Archive, Cog, Sliders
 }
 
-const iconComponent = computed(() => iconMap[props.icon] || Settings)
+const iconComponent = computed(() => {
+  return iconMap[props.icon] || Settings
+})
 </script>
 
 <style scoped>

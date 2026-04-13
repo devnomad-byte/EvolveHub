@@ -1,22 +1,23 @@
 package org.evolve.admin.api;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.evolve.common.model.UsersEntity;
 import org.evolve.admin.request.AssignUserRoleRequest;
 import org.evolve.admin.request.CreateUserRequest;
 import org.evolve.admin.request.RemoveUserRoleRequest;
 import org.evolve.admin.request.UpdateUserRequest;
 import org.evolve.admin.response.AssignUserRoleResponse;
-import org.evolve.admin.response.CreateUserResponse;
 import org.evolve.admin.response.RemoveUserRoleResponse;
 import org.evolve.admin.response.UpdateUserResponse;
+import org.evolve.admin.response.UserResponse;
 import org.evolve.admin.service.*;
-import org.evolve.common.web.page.PageRequest;
-import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 用户管理控制器
@@ -66,9 +67,9 @@ public class UserController {
      * @param request 创建用户请求体
      * @return 创建成功的用户ID
      */
-    @SaCheckPermission("user:create")
+    @SaCheckRole("SUPER_ADMIN")
     @PostMapping("/create")
-    public Result<CreateUserResponse> create(@RequestBody @Valid CreateUserRequest request) {
+    public Result<UserResponse> create(@RequestBody @Valid CreateUserRequest request) {
         return Result.ok(createUserManager.execute(request));
     }
 
@@ -78,25 +79,21 @@ public class UserController {
      * @param id 用户ID
      * @return 用户实体信息
      */
-    @SaCheckPermission("user:query")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @GetMapping("/{id}")
-    public Result<UsersEntity> getById(@PathVariable Long id) {
+    public Result<UserResponse> getById(@PathVariable Long id) {
         return Result.ok(getUserManager.execute(id));
     }
 
     /**
-     * 分页查询用户列表
-     * <p>支持数据权限控制，根据当前登录用户的角色数据范围过滤可见用户。</p>
+     * 查询用户列表
      *
-     * @param pageNum  页码，默认为1
-     * @param pageSize 每页条数，默认为10
-     * @return 分页用户列表
+     * @return 用户列表
      */
-    @SaCheckPermission("user:list")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @GetMapping("/list")
-    public Result<PageResponse<UsersEntity>> list(@RequestParam(defaultValue = "1") int pageNum,
-                                                   @RequestParam(defaultValue = "10") int pageSize) {
-        return Result.ok(listUserManager.execute(new PageRequest(pageNum, pageSize)));
+    public Result<List<UserResponse>> list() {
+        return Result.ok(listUserManager.execute());
     }
 
     /**
@@ -106,9 +103,9 @@ public class UserController {
      * @param request 更新用户请求体
      * @return 更新结果
      */
-    @SaCheckPermission("user:update")
+    @SaCheckRole(value = {"SUPER_ADMIN", "ADMIN"}, mode = SaMode.OR)
     @PutMapping("/update")
-    public Result<UpdateUserResponse> update(@RequestBody @Valid UpdateUserRequest request) {
+    public Result<UserResponse> update(@RequestBody @Valid UpdateUserRequest request) {
         return Result.ok(updateUserManager.execute(request));
     }
 
@@ -119,7 +116,7 @@ public class UserController {
      * @param id 用户ID
      * @return 删除结果
      */
-    @SaCheckPermission("user:delete")
+    @SaCheckRole("SUPER_ADMIN")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         deleteUserManager.execute(id);
@@ -133,7 +130,7 @@ public class UserController {
      * @param request 分配角色请求体（包含用户ID和角色ID）
      * @return 分配结果
      */
-    @SaCheckPermission("user:assign-role")
+    @SaCheckRole("SUPER_ADMIN")
     @PostMapping("/assign-role")
     public Result<AssignUserRoleResponse> assignRole(@RequestBody @Valid AssignUserRoleRequest request) {
         return Result.ok(assignUserRoleManager.execute(request));
@@ -146,7 +143,7 @@ public class UserController {
      * @param request 移除角色请求体（包含用户ID和角色ID）
      * @return 移除结果
      */
-    @SaCheckPermission("user:assign-role")
+    @SaCheckRole("SUPER_ADMIN")
     @PostMapping("/remove-role")
     public Result<RemoveUserRoleResponse> removeRole(@RequestBody @Valid RemoveUserRoleRequest request) {
         return Result.ok(removeUserRoleManager.execute(request));
