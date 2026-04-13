@@ -1,6 +1,7 @@
 package org.evolve.admin.service;
 
 import jakarta.annotation.Resource;
+import org.evolve.common.ai.ModelConnectivityTester;
 import org.evolve.common.infra.ModelConfigInfra;
 import org.evolve.common.model.ModelConfigEntity;
 import org.evolve.admin.request.CreateModelConfigRequest;
@@ -30,10 +31,24 @@ public class CreateModelConfigManager extends BaseManager<CreateModelConfigReque
     @Resource
     private ModelConfigInfra modelConfigInfra;
 
+    @Resource
+    private ModelConnectivityTester modelConnectivityTester;
+
     @Override
     protected void check(CreateModelConfigRequest request) {
+        // 向量模型走专用接口，禁止通过通用创建入口
+        if ("embedding".equalsIgnoreCase(request.modelType())) {
+            throw new BusinessException(ResultCode.EMBEDDING_MODEL_NOT_ALLOWED,
+                    "向量模型请通过 /embedding-model/set 接口配置");
+        }
         if (modelConfigInfra.getByName(request.name()) != null) {
             throw new BusinessException(ResultCode.DATA_ALREADY_EXIST, "模型名称已存在");
+        }
+        // 验证模型连通性：baseUrl 可达 + apiKey 有效
+        ModelConnectivityTester.TestResult testResult =
+                modelConnectivityTester.test(request.provider(), request.baseUrl(), request.apiKey());
+        if (!testResult.success()) {
+            throw new BusinessException(ResultCode.MODEL_CONNECT_FAIL, testResult.message());
         }
     }
 
@@ -46,6 +61,8 @@ public class CreateModelConfigManager extends BaseManager<CreateModelConfigReque
         entity.setBaseUrl(request.baseUrl());
         entity.setEnabled(request.enabled());
         entity.setModelType(request.modelType());
+        entity.setScope("SYSTEM");
+        entity.setOwnerId(null);
         modelConfigInfra.createModelConfig(entity);
         return new CreateModelConfigResponse(entity.getId());
     }
