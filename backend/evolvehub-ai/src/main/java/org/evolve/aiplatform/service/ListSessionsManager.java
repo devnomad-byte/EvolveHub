@@ -1,0 +1,35 @@
+package org.evolve.aiplatform.service;
+
+import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.annotation.Resource;
+import org.evolve.aiplatform.bean.entity.ChatSessionEntity;
+import org.evolve.aiplatform.infra.ChatSessionInfra;
+import org.evolve.common.base.BaseManager;
+import org.evolve.common.web.page.PageRequest;
+import org.evolve.common.web.page.PageResponse;
+import org.springframework.stereotype.Service;
+
+/**
+ * 分页查询当前用户的对话会话列表
+ *
+ * @author zhao
+ */
+@Service
+public class ListSessionsManager extends BaseManager<PageRequest, PageResponse<ChatSessionEntity>> {
+
+    @Resource
+    private ChatSessionInfra chatSessionInfra;
+
+    @Override
+    protected void check(PageRequest request) {
+    }
+
+    @Override
+    protected PageResponse<ChatSessionEntity> process(PageRequest request) {
+        Long currentUserId = StpUtil.getLoginIdAsLong();
+        Page<ChatSessionEntity> page = chatSessionInfra.listPageByUserId(
+                currentUserId, request.pageNum(), request.pageSize());
+        return new PageResponse<>(page.getRecords(), page.getTotal(), request.pageNum(), request.pageSize());
+    }
+}

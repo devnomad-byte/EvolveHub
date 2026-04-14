@@ -31,6 +31,13 @@ s3:
   path-style-access-enabled: true
   auto-create-bucket: true
 
+# ----- Milvus (Zilliz Cloud) -----
+milvus:
+  uri: https://in05-310089dbc221c5a.serverless.aws-eu-central-1.cloud.zilliz.com
+  token: f21ffb509bf216f9447cb338bc5d7842e5884ef72fd1a59536337126e32be47202ce3942e1428aafe8149964370302f39fc19963
+  collection-name: eh_chat_memory
+  dimensions: 1536
+
 # ----- Logging (development: show SQL) -----
 logging:
   level:
