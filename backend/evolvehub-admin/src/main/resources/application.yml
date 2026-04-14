@@ -1,6 +1,10 @@
 # ==============================================================
 # EvolveHub Admin Service - Base Configuration
 # ==============================================================
+server:
+  servlet:
+    context-path: /api/admin
+
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}

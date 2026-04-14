@@ -1,6 +1,10 @@
 # ==============================================================
 # EvolveHub AI Platform - Base Configuration
 # ==============================================================
+server:
+  servlet:
+    context-path: /api/ai
+
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
