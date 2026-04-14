@@ -1,11 +1,23 @@
 # ==============================================================
 # EvolveHub Admin Service - Base Configuration
 # ==============================================================
+server:
+  servlet:
+    context-path: /api/admin
+
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
     name: evolvehub-admin
+
+# ----- Sa-Token -----
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  active-timeout: -1
+  is-concurrent: true
+  token-style: uuid
 
 # ----- MyBatis-Plus -----
 mybatis-plus:

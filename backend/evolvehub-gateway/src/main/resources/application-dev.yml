@@ -19,29 +19,23 @@ spring:
       server:
         webflux:
           routes:
-            # Auth service: /api/auth/** -> http://localhost:8081/**
+            # Auth service: /api/auth/** -> http://localhost:8081/api/auth/**
             - id: auth-service
               uri: http://localhost:8081
               predicates:
                 - Path=/api/auth/**
-              filters:
-                - StripPrefix=2
 
-            # AI platform: /api/ai/** -> http://localhost:8082/**
+            # AI platform: /api/ai/** -> http://localhost:8082/api/ai/**
             - id: ai-service
               uri: http://localhost:8082
               predicates:
                 - Path=/api/ai/**
-              filters:
-                - StripPrefix=2
 
-            # Admin service: /api/admin/** -> http://localhost:8083/**
+            # Admin service: /api/admin/** -> http://localhost:8083/api/admin/**
             - id: admin-service
               uri: http://localhost:8083
               predicates:
                 - Path=/api/admin/**
-              filters:
-                - StripPrefix=2
 
 # ----- Logging -----
 logging:

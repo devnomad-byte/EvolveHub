@@ -27,33 +27,12 @@ public class AdminAccessFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
 
-        // 检查是否是后台管理路径
+        // 后台管理路径：网关层仅校验登录状态，角色权限由下游 admin 服务校验
         if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
             try {
-                // 检查是否登录
                 if (!StpUtil.isLogin()) {
                     return unauthorized(exchange, "未登录，请先登录");
                 }
-
-                // 获取用户角色
-                Object loginId = StpUtil.getLoginIdDefaultNull();
-                if (loginId == null) {
-                    return unauthorized(exchange, "未登录，请先登录");
-                }
-
-                // 检查角色
-                boolean hasAdminRole = false;
-                try {
-                    hasAdminRole = StpUtil.hasRole("SUPER_ADMIN") || StpUtil.hasRole("ADMIN");
-                } catch (Exception e) {
-                    // 角色查询失败，拒绝访问
-                    return forbidden(exchange, "权限不足，请联系管理员");
-                }
-
-                if (!hasAdminRole) {
-                    return forbidden(exchange, "权限不足，请联系管理员");
-                }
-
             } catch (Exception e) {
                 return unauthorized(exchange, "认证失败，请重新登录");
             }

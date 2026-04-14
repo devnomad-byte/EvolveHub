@@ -3,8 +3,6 @@
 # ==============================================================
 server:
   port: 8083
-  servlet:
-    context-path: /api/admin
 spring:
   # ----- DataSource (local PostgreSQL, 与 auth 共用同一库) -----
   datasource:
