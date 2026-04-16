@@ -62,6 +62,20 @@ public class McpConfigInfra extends ServiceImpl<McpConfigInfra.McpConfigMapper, 
     }
 
     /**
+     * 查询用户自建的已启用 MCP 服务
+     *
+     * @param ownerId 用户 ID
+     * @return 已启用的 MCP 配置列表
+     */
+    public List<McpConfigEntity> listEnabledByOwnerId(Long ownerId) {
+        return this.lambdaQuery()
+                .eq(McpConfigEntity::getScope, "USER")
+                .eq(McpConfigEntity::getOwnerId, ownerId)
+                .eq(McpConfigEntity::getEnabled, 1)
+                .list();
+    }
+
+    /**
      * 查询用户可用的系统级 MCP 服务（通过授权 ID 列表）
      */
     public List<McpConfigEntity> listByIdsAndScope(List<Long> resourceIds) {

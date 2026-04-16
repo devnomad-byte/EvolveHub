@@ -12,19 +12,22 @@
 -- 第零部分：清空旧表（按外键依赖倒序删除）
 -- ############################################################################
 
-DROP TABLE IF EXISTS eh_resource_grant  CASCADE;
-DROP TABLE IF EXISTS eh_api_key         CASCADE;
-DROP TABLE IF EXISTS eh_mcp_config      CASCADE;
-DROP TABLE IF EXISTS eh_skill_config    CASCADE;
-DROP TABLE IF EXISTS eh_model_config    CASCADE;
-DROP TABLE IF EXISTS eh_model_provider  CASCADE;
-DROP TABLE IF EXISTS eh_role_data_scope CASCADE;
-DROP TABLE IF EXISTS eh_role_permission CASCADE;
-DROP TABLE IF EXISTS eh_user_role       CASCADE;
-DROP TABLE IF EXISTS eh_permission      CASCADE;
-DROP TABLE IF EXISTS eh_dept            CASCADE;
-DROP TABLE IF EXISTS eh_role            CASCADE;
-DROP TABLE IF EXISTS eh_user            CASCADE;
+DROP TABLE IF EXISTS eh_chat_token_usage CASCADE;
+DROP TABLE IF EXISTS eh_chat_message     CASCADE;
+DROP TABLE IF EXISTS eh_chat_session     CASCADE;
+DROP TABLE IF EXISTS eh_resource_grant   CASCADE;
+DROP TABLE IF EXISTS eh_api_key          CASCADE;
+DROP TABLE IF EXISTS eh_mcp_config       CASCADE;
+DROP TABLE IF EXISTS eh_skill_config     CASCADE;
+DROP TABLE IF EXISTS eh_model_config     CASCADE;
+DROP TABLE IF EXISTS eh_model_provider   CASCADE;
+DROP TABLE IF EXISTS eh_role_data_scope  CASCADE;
+DROP TABLE IF EXISTS eh_role_permission  CASCADE;
+DROP TABLE IF EXISTS eh_user_role        CASCADE;
+DROP TABLE IF EXISTS eh_permission       CASCADE;
+DROP TABLE IF EXISTS eh_dept             CASCADE;
+DROP TABLE IF EXISTS eh_role             CASCADE;
+DROP TABLE IF EXISTS eh_user             CASCADE;
 DROP SEQUENCE IF EXISTS seq_role_permission;
 
 -- ############################################################################
@@ -385,7 +388,115 @@ CREATE INDEX  idx_resource_grant_resource ON eh_resource_grant(resource_type, re
 CREATE UNIQUE INDEX uk_resource_grant     ON eh_resource_grant(user_id, resource_type, resource_id) WHERE deleted = 0;
 
 -- ############################################################################
--- 第三部分：序列
+-- 第三部分：对话功能表
+-- ############################################################################
+
+-- ----------------------------------------------------------------------------
+-- 十四、会话表 (eh_chat_session)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE eh_chat_session (
+    id                      BIGINT PRIMARY KEY,
+    user_id                 BIGINT NOT NULL,
+    title                   VARCHAR(200),
+    model_config_id         BIGINT NOT NULL,
+    sys_prompt              TEXT,
+    total_prompt_tokens     INTEGER DEFAULT 0,
+    total_completion_tokens INTEGER DEFAULT 0,
+    total_tokens            INTEGER DEFAULT 0,
+    message_count           INTEGER DEFAULT 0,
+    context_summary         TEXT,
+    create_by               BIGINT,
+    create_time             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted                 INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_chat_session                          IS '对话会话表';
+COMMENT ON COLUMN eh_chat_session.user_id                  IS '所属用户 ID';
+COMMENT ON COLUMN eh_chat_session.title                    IS '会话标题（首轮自动生成，可手动修改）';
+COMMENT ON COLUMN eh_chat_session.model_config_id          IS '使用的模型配置 ID（关联 eh_model_config）';
+COMMENT ON COLUMN eh_chat_session.sys_prompt               IS '自定义系统提示词（空则使用默认）';
+COMMENT ON COLUMN eh_chat_session.total_prompt_tokens      IS '累计 prompt token 数';
+COMMENT ON COLUMN eh_chat_session.total_completion_tokens  IS '累计 completion token 数';
+COMMENT ON COLUMN eh_chat_session.total_tokens             IS '累计总 token 数';
+COMMENT ON COLUMN eh_chat_session.message_count            IS '消息条数';
+COMMENT ON COLUMN eh_chat_session.context_summary          IS '短期记忆压缩摘要（滑动窗口外旧消息的 LLM 摘要）';
+
+CREATE INDEX idx_chat_session_user_id     ON eh_chat_session(user_id);
+CREATE INDEX idx_chat_session_update_time ON eh_chat_session(update_time DESC);
+
+-- ----------------------------------------------------------------------------
+-- 十五、消息表 (eh_chat_message)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE eh_chat_message (
+    id                BIGINT PRIMARY KEY,
+    session_id        BIGINT NOT NULL,
+    role              VARCHAR(20)  NOT NULL,
+    content           TEXT,
+    tool_calls        JSONB,
+    tool_call_id      VARCHAR(100),
+    model_name        VARCHAR(100),
+    prompt_tokens     INTEGER,
+    completion_tokens INTEGER,
+    total_tokens      INTEGER,
+    finish_reason     VARCHAR(20),
+    duration_ms       INTEGER,
+    create_by         BIGINT,
+    create_time       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted           INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_chat_message                    IS '对话消息表';
+COMMENT ON COLUMN eh_chat_message.session_id         IS '所属会话 ID';
+COMMENT ON COLUMN eh_chat_message.role               IS '消息角色：user / assistant / system / tool';
+COMMENT ON COLUMN eh_chat_message.content            IS '消息文本内容';
+COMMENT ON COLUMN eh_chat_message.tool_calls         IS 'assistant 发起的工具调用（JSON 数组，遵循 OpenAI 格式）';
+COMMENT ON COLUMN eh_chat_message.tool_call_id       IS 'tool 角色消息对应的工具调用 ID';
+COMMENT ON COLUMN eh_chat_message.model_name         IS '实际调用的模型名称（assistant 消息填写）';
+COMMENT ON COLUMN eh_chat_message.prompt_tokens      IS '本次请求 prompt token 数';
+COMMENT ON COLUMN eh_chat_message.completion_tokens  IS '本次请求 completion token 数';
+COMMENT ON COLUMN eh_chat_message.total_tokens       IS '本次请求总 token 数';
+COMMENT ON COLUMN eh_chat_message.finish_reason      IS '结束原因：stop / tool_calls / length';
+COMMENT ON COLUMN eh_chat_message.duration_ms        IS '模型响应耗时（毫秒）';
+
+CREATE INDEX idx_chat_message_session_id  ON eh_chat_message(session_id);
+CREATE INDEX idx_chat_message_create_time ON eh_chat_message(create_time);
+
+-- ----------------------------------------------------------------------------
+-- 十六、Token 消费日报表 (eh_chat_token_usage)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE eh_chat_token_usage (
+    id                BIGINT PRIMARY KEY,
+    user_id           BIGINT NOT NULL,
+    model_config_id   BIGINT NOT NULL,
+    usage_date        DATE   NOT NULL,
+    request_count     INTEGER DEFAULT 0,
+    prompt_tokens     INTEGER DEFAULT 0,
+    completion_tokens INTEGER DEFAULT 0,
+    total_tokens      INTEGER DEFAULT 0,
+    create_by         BIGINT,
+    create_time       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted           INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_chat_token_usage                    IS 'Token 消费日报表';
+COMMENT ON COLUMN eh_chat_token_usage.user_id            IS '用户 ID';
+COMMENT ON COLUMN eh_chat_token_usage.model_config_id    IS '模型配置 ID';
+COMMENT ON COLUMN eh_chat_token_usage.usage_date         IS '统计日期';
+COMMENT ON COLUMN eh_chat_token_usage.request_count      IS '当日请求次数';
+COMMENT ON COLUMN eh_chat_token_usage.prompt_tokens      IS '当日 prompt token 数';
+COMMENT ON COLUMN eh_chat_token_usage.completion_tokens  IS '当日 completion token 数';
+COMMENT ON COLUMN eh_chat_token_usage.total_tokens       IS '当日总 token 数';
+
+CREATE UNIQUE INDEX uk_chat_token_usage ON eh_chat_token_usage(user_id, model_config_id, usage_date) WHERE deleted = 0;
+
+-- ############################################################################
+-- 第四部分：序列
 -- ############################################################################
 
 CREATE SEQUENCE seq_role_permission START 1;

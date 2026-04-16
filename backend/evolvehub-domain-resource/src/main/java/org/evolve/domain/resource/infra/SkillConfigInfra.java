@@ -62,6 +62,20 @@ public class SkillConfigInfra extends ServiceImpl<SkillConfigInfra.SkillConfigMa
     }
 
     /**
+     * 查询用户自建的已启用技能
+     *
+     * @param ownerId 用户 ID
+     * @return 已启用的技能配置列表
+     */
+    public List<SkillConfigEntity> listEnabledByOwnerId(Long ownerId) {
+        return this.lambdaQuery()
+                .eq(SkillConfigEntity::getScope, "USER")
+                .eq(SkillConfigEntity::getOwnerId, ownerId)
+                .eq(SkillConfigEntity::getEnabled, 1)
+                .list();
+    }
+
+    /**
      * 查询用户可用的系统级技能（通过授权 ID 列表）
      */
     public List<SkillConfigEntity> listByIdsAndScope(List<Long> resourceIds) {

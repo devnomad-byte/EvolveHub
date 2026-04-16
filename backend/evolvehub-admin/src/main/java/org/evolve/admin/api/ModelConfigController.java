@@ -3,6 +3,8 @@ package org.evolve.admin.api;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.evolve.admin.request.TestConnectionRequest;
+import org.evolve.domain.resource.ai.ModelConnectivityTester;
 import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.admin.request.CreateModelConfigRequest;
 import org.evolve.admin.request.UpdateModelConfigRequest;
@@ -51,6 +53,10 @@ public class ModelConfigController {
     /** SUPER_ADMIN 查看全部模型（含所有者信息） */
     @Resource
     private ListModelConfigAdminManager listModelConfigAdminManager;
+
+    /** 模型连通性测试工具 */
+    @Resource
+    private ModelConnectivityTester modelConnectivityTester;
 
     /**
      * 创建模型配置
@@ -127,5 +133,22 @@ public class ModelConfigController {
     public Result<Void> delete(@PathVariable Long id) {
         deleteModelConfigManager.execute(id);
         return Result.ok();
+    }
+
+    /**
+     * 测试模型连通性
+     * <p>直接用表单参数测试模型API是否可达，创建前和创建后均可调用。</p>
+     *
+     * @param request 包含 provider、baseUrl、apiKey
+     * @return 测试结果
+     */
+    @PostMapping("/test-connection")
+    public Result<String> testConnection(@RequestBody @Valid TestConnectionRequest request) {
+        ModelConnectivityTester.TestResult result = modelConnectivityTester.test(
+                request.getProvider(), request.getBaseUrl(), request.getApiKey());
+        if (result.success()) {
+            return Result.ok("连通性测试通过");
+        }
+        return Result.fail("连通性测试失败: " + result.message());
     }
 }

@@ -44,6 +44,13 @@
             <artifactId>agentscope</artifactId>
         </dependency>
 
+        <!-- Milvus SDK (AgentScope MilvusStore 依赖) -->
+        <dependency>
+            <groupId>io.milvus</groupId>
+            <artifactId>milvus-sdk-java</artifactId>
+            <version>2.5.8</version>
+        </dependency>
+
         <!-- Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
