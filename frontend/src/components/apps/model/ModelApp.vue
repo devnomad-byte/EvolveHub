@@ -98,6 +98,7 @@
                   {{ m.modelType === 'LLM' ? 'LLM' : 'EMBED' }}
                 </span>
                 <span v-if="m.scope === 'SYSTEM'" class="scope-badge system">系统级</span>
+                <span v-else-if="m.scope === 'DEPT'" class="scope-badge dept">部门级</span>
                 <span v-else class="scope-badge user">个人</span>
               </div>
               <div class="model-name">{{ m.name }}</div>
@@ -152,6 +153,40 @@
           </div>
         </div>
         <div v-else class="empty-tip">暂无系统级模型，点击右上角添加</div>
+      </div>
+
+      <!-- Dept Models Tab -->
+      <div v-if="activeTab === 'dept'" class="model-section">
+        <div class="section-header">
+          <span class="section-title">部门模型</span>
+          <span class="section-desc">按部门分配的模型配置</span>
+        </div>
+        <div v-if="deptModels.length > 0" class="model-grid">
+          <div v-for="m in deptModels" :key="m.id" class="model-card dept">
+            <div class="model-card-header">
+              <div class="model-status-dot" :class="{ on: m.enabled === 1 }"></div>
+              <span class="model-type-tag" :class="m.modelType === 'EMBEDDING' ? 'embedding' : 'llm'">
+                {{ m.modelType === 'LLM' ? 'LLM' : 'EMBED' }}
+              </span>
+              <span class="scope-badge dept">部门级</span>
+            </div>
+            <div class="model-name">{{ m.name }}</div>
+            <div class="model-provider">{{ m.provider }}</div>
+            <div v-if="m.baseUrl" class="model-url">{{ m.baseUrl }}</div>
+            <div class="model-actions">
+              <button class="btn btn-outline btn-sm" @click="testConnection(m)" title="测试连接">
+                <Wifi :size="12" />
+                测试
+              </button>
+              <button class="btn btn-outline btn-sm" @click="toggleEnabled(m)">
+                {{ m.enabled === 1 ? '禁用' : '启用' }}
+              </button>
+              <button class="btn btn-outline btn-sm" @click="openEditModal(m)">编辑</button>
+              <button class="btn btn-outline btn-sm btn-danger" @click="handleDelete(m)">删除</button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-tip">暂无部门级模型</div>
       </div>
 
       <!-- Personal Models Tab -->
@@ -256,8 +291,47 @@
                 <label>资源范围</label>
                 <select v-model="form.scope" class="form-select" :disabled="isEditing">
                   <option value="SYSTEM">系统级（所有用户可用）</option>
+                  <option value="DEPT">部门级（指定部门可用）</option>
                   <option value="USER">用户级（仅自己可用）</option>
                 </select>
+              </div>
+            </div>
+            <div v-if="form.scope === 'DEPT'" class="form-field">
+              <label>所属部门 <span class="required">*</span></label>
+              <select v-model="form.deptId" class="form-select">
+                <option :value="null">请选择部门</option>
+                <option v-for="d in flatDepts" :key="d.id" :value="d.id">
+                  {{ '&nbsp;&nbsp;'.repeat(d._level || 0) }}{{ d.deptName }}
+                </option>
+              </select>
+            </div>
+            <div v-if="form.scope === 'USER'" class="form-field">
+              <label>授权用户 <span class="required">*</span></label>
+              <div class="user-picker">
+                <input
+                  v-model="userSearchQuery"
+                  class="user-search"
+                  placeholder="搜索用户名或昵称..."
+                />
+                <div v-if="selectedUserIds.size > 0" class="selected-users">
+                  <span class="selected-count">已选 {{ selectedUserIds.size }} 人</span>
+                </div>
+                <div class="user-picker-list">
+                  <div
+                    v-for="u in filteredUsers"
+                    :key="u.id"
+                    class="user-picker-item"
+                    :class="{ selected: selectedUserIds.has(u.id) }"
+                    @click="toggleUserSelection(u.id)"
+                  >
+                    <div class="user-check">{{ selectedUserIds.has(u.id) ? '✓' : '' }}</div>
+                    <div class="user-avatar-sm">{{ (u.nickname || u.username || '?').charAt(0) }}</div>
+                    <div class="user-detail">
+                      <span class="user-nick">{{ u.nickname || u.username }}</span>
+                      <span v-if="u.deptName" class="user-dept-sm">{{ u.deptName }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="form-field">
@@ -303,13 +377,19 @@ import { ref, computed, onMounted, h } from 'vue'
 import { Bot, Plus, X, Wifi } from 'lucide-vue-next'
 import { adminModelConfigApi, type ModelConfigInfo, type ModelConfigWithOwner, type CreateModelConfigRequest, type UpdateModelConfigRequest, type ModelScope } from '../../../api/adminModelConfig'
 import { adminModelProviderApi, type ModelProviderInfo } from '../../../api/adminModelProvider'
+import { deptApi, type DeptInfo } from '../../../api/dept'
+import { adminUserApi, type UserInfo } from '../../../api/adminUser'
+import { resourceGrantApi } from '../../../api/resourceGrant'
 import { useDesktopStore } from '../../../stores/desktop'
+import { useConfirm } from '@/composables/useConfirm'
 
 const desktop = useDesktopStore()
+const { confirm } = useConfirm()
 
 // ==================== Data ====================
 const allModels = ref<ModelConfigInfo[]>([])
 const providers = ref<ModelProviderInfo[]>([])
+const deptTree = ref<DeptInfo[]>([])
 const isLoading = ref(true)
 const isBaseUrlAutoFilled = ref(false)
 
@@ -318,7 +398,7 @@ const viewMode = ref<'type' | 'user'>('type') // 'type' = 按类型, 'user' = �
 const allModelsWithOwner = ref<ModelConfigWithOwner[]>([])
 const selectedOwnerId = ref<number | null>(null)
 
-const isSuperAdmin = computed(() => desktop.currentUser?.role === 'SUPER_ADMIN')
+const isSuperAdmin = computed(() => desktop.isSuperAdmin)
 
 const systemModels = computed(() => allModelsWithOwner.value.filter(m => m.scope === 'SYSTEM'))
 
@@ -353,6 +433,18 @@ const selectedUserNickname = computed(() => {
   return group?.nickname || group?.username || null
 })
 
+const flatDepts = computed(() => {
+  const result: (DeptInfo & { _level?: number })[] = []
+  function flatten(list: DeptInfo[], level: number) {
+    for (const d of list) {
+      result.push({ ...d, _level: level })
+      if (d.children?.length) flatten(d.children, level + 1)
+    }
+  }
+  flatten(deptTree.value, 0)
+  return result
+})
+
 async function switchToUserView() {
   viewMode.value = 'user'
   selectedOwnerId.value = null
@@ -368,12 +460,14 @@ async function switchToUserView() {
 const activeTab = ref('public')
 
 const publicModels = computed(() => allModels.value.filter(m => m.scope === 'SYSTEM' && m.modelType === 'LLM'))
+const deptModels = computed(() => allModels.value.filter(m => m.scope === 'DEPT' && m.modelType === 'LLM'))
 const personalModels = computed(() => allModels.value.filter(m => m.scope === 'USER' && m.modelType === 'LLM'))
 const embedModels = computed(() => allModels.value.filter(m => m.modelType === 'EMBEDDING'))
 const llmModels = computed(() => allModels.value.filter(m => m.modelType === 'LLM'))
 
 const tabs = computed(() => [
   { id: 'public', label: '公共模型', icon: GlobeIcon, count: publicModels.value.length },
+  { id: 'dept', label: '部门模型', icon: BuildingIcon, count: deptModels.value.length },
   { id: 'personal', label: '个人模型', icon: UserIcon, count: personalModels.value.length },
   { id: 'embedding', label: '向量模型', icon: DatabaseIcon, count: embedModels.value.length }
 ])
@@ -391,8 +485,52 @@ const form = ref({
   baseUrl: '',
   enabled: 1,
   modelType: 'LLM' as const,
-  scope: 'SYSTEM' as ModelScope
+  scope: 'SYSTEM' as ModelScope,
+  deptId: null as number | null
 })
+
+// ==================== User Picker State (USER scope) ====================
+const allUsers = ref<UserInfo[]>([])
+const selectedUserIds = ref<Set<number>>(new Set())
+const userSearchQuery = ref('')
+const loadingGrants = ref(false)
+
+const filteredUsers = computed(() => {
+  const q = userSearchQuery.value.trim().toLowerCase()
+  if (!q) return allUsers.value
+  return allUsers.value.filter(u =>
+    (u.nickname || '').toLowerCase().includes(q) ||
+    (u.username || '').toLowerCase().includes(q)
+  )
+})
+
+async function loadUsers() {
+  try {
+    allUsers.value = await adminUserApi.list()
+  } catch (e: any) {
+    console.error('[ModelApp] 加载用户列表失败', e)
+  }
+}
+
+async function loadExistingGrants(resourceId: number) {
+  loadingGrants.value = true
+  try {
+    const grants = await resourceGrantApi.listByResource('MODEL', resourceId)
+    selectedUserIds.value = new Set(grants.map(g => g.userId))
+  } catch (e: any) {
+    selectedUserIds.value = new Set()
+  } finally {
+    loadingGrants.value = false
+  }
+}
+
+function toggleUserSelection(userId: number) {
+  if (selectedUserIds.value.has(userId)) {
+    selectedUserIds.value.delete(userId)
+  } else {
+    selectedUserIds.value.add(userId)
+  }
+}
 
 // ==================== Icon Components ====================
 const GlobeIcon = () => h('svg', {
@@ -408,6 +546,22 @@ const UserIcon = () => h('svg', {
 }, [
   h('path', { d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' }),
   h('circle', { cx: '12', cy: '7', r: '4' })
+])
+
+const BuildingIcon = () => h('svg', {
+  width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2'
+}, [
+  h('rect', { x: '4', y: '2', width: '16', height: '20', rx: '2', ry: '2' }),
+  h('path', { d: 'M9 22v-4h6v4' }),
+  h('path', { d: 'M8 6h.01' }),
+  h('path', { d: 'M16 6h.01' }),
+  h('path', { d: 'M12 6h.01' }),
+  h('path', { d: 'M12 10h.01' }),
+  h('path', { d: 'M12 14h.01' }),
+  h('path', { d: 'M16 10h.01' }),
+  h('path', { d: 'M16 14h.01' }),
+  h('path', { d: 'M8 10h.01' }),
+  h('path', { d: 'M8 14h.01' })
 ])
 
 const DatabaseIcon = () => h('svg', {
@@ -440,6 +594,14 @@ async function loadProviders() {
   }
 }
 
+async function loadDepts() {
+  try {
+    deptTree.value = await deptApi.tree()
+  } catch (e: any) {
+    console.error('[ModelApp] 加载部门树失败', e)
+  }
+}
+
 function onProviderChange() {
   if (form.value.provider) {
     const provider = providers.value.find(p => p.name === form.value.provider)
@@ -454,6 +616,8 @@ function onProviderChange() {
 function openCreateModal() {
   isEditing.value = false
   isBaseUrlAutoFilled.value = false
+  selectedUserIds.value = new Set()
+  userSearchQuery.value = ''
   form.value = {
     id: 0,
     name: '',
@@ -462,7 +626,8 @@ function openCreateModal() {
     baseUrl: '',
     enabled: 1,
     modelType: 'LLM',
-    scope: 'SYSTEM'
+    scope: 'SYSTEM',
+    deptId: null
   }
   showModal.value = true
 }
@@ -470,6 +635,8 @@ function openCreateModal() {
 function openEditModal(model: ModelConfigInfo | ModelConfigWithOwner) {
   isEditing.value = true
   isBaseUrlAutoFilled.value = false
+  selectedUserIds.value = new Set()
+  userSearchQuery.value = ''
   form.value = {
     id: model.id,
     name: model.name,
@@ -478,7 +645,11 @@ function openEditModal(model: ModelConfigInfo | ModelConfigWithOwner) {
     baseUrl: model.baseUrl || '',
     enabled: model.enabled,
     modelType: model.modelType,
-    scope: (model.scope as ModelScope) || 'SYSTEM'
+    scope: (model.scope as ModelScope) || 'SYSTEM',
+    deptId: (model as ModelConfigInfo).deptId || null
+  }
+  if (model.scope === 'USER' && model.id) {
+    loadExistingGrants(model.id)
   }
   showModal.value = true
 }
@@ -527,9 +698,19 @@ async function handleSubmit() {
     desktop.addToast('请输入API密钥', 'error')
     return
   }
+  if (form.value.scope === 'DEPT' && !form.value.deptId) {
+    desktop.addToast('请选择所属部门', 'error')
+    return
+  }
+  if (form.value.scope === 'USER' && selectedUserIds.value.size === 0) {
+    desktop.addToast('请选择至少一个授权用户', 'error')
+    return
+  }
 
   isSubmitting.value = true
   try {
+    let modelId: number = form.value.id
+
     if (isEditing.value) {
       const req: UpdateModelConfigRequest = {
         id: form.value.id,
@@ -541,6 +722,10 @@ async function handleSubmit() {
         modelType: form.value.modelType
       }
       await adminModelConfigApi.update(req)
+      // Sync grants for USER scope
+      if (form.value.scope === 'USER') {
+        await syncGrants(modelId)
+      }
       desktop.addToast('模型更新成功', 'success')
     } else {
       const req: CreateModelConfigRequest = {
@@ -550,9 +735,17 @@ async function handleSubmit() {
         baseUrl: form.value.baseUrl || undefined,
         enabled: form.value.enabled,
         modelType: form.value.modelType,
-        scope: form.value.scope
+        scope: form.value.scope,
+        deptId: form.value.scope === 'DEPT' ? form.value.deptId : undefined
       }
-      await adminModelConfigApi.create(req)
+      const result = await adminModelConfigApi.create(req)
+      modelId = result.id || result
+      // Assign grants for USER scope
+      if (form.value.scope === 'USER' && modelId) {
+        for (const userId of selectedUserIds.value) {
+          await resourceGrantApi.assign(userId, 'MODEL', modelId)
+        }
+      }
       desktop.addToast('模型添加成功', 'success')
     }
     showModal.value = false
@@ -564,8 +757,25 @@ async function handleSubmit() {
   }
 }
 
+async function syncGrants(modelId: number) {
+  const grants = await resourceGrantApi.listByResource('MODEL', modelId)
+  const existingIds = new Set(grants.map(g => g.userId))
+  // Add new grants
+  for (const userId of selectedUserIds.value) {
+    if (!existingIds.has(userId)) {
+      await resourceGrantApi.assign(userId, 'MODEL', modelId)
+    }
+  }
+  // Remove old grants
+  for (const grant of grants) {
+    if (!selectedUserIds.value.has(grant.userId)) {
+      await resourceGrantApi.revoke(grant.userId, 'MODEL', modelId)
+    }
+  }
+}
+
 async function handleDelete(model: ModelConfigInfo | ModelConfigWithOwner) {
-  if (!confirm(`确定要删除模型「${model.name}」吗？`)) return
+  if (!await confirm('删除模型', `确定要删除模型「${model.name}」吗？此操作不可恢复。`)) return
   try {
     await adminModelConfigApi.delete(model.id)
     desktop.addToast('模型已删除', 'success')
@@ -596,7 +806,7 @@ async function toggleEnabled(model: ModelConfigInfo | ModelConfigWithOwner) {
 
 // ==================== Init ====================
 onMounted(async () => {
-  await Promise.all([loadModels(), loadProviders()])
+  await Promise.all([loadModels(), loadProviders(), loadDepts(), loadUsers()])
 })
 </script>
 
@@ -908,6 +1118,15 @@ onMounted(async () => {
   box-shadow: 0 0 16px rgba(48, 209, 88, 0.1);
 }
 
+.model-card.dept {
+  border-color: rgba(255, 159, 10, 0.2);
+}
+
+.model-card.dept:hover {
+  border-color: rgba(255, 159, 10, 0.4);
+  box-shadow: 0 0 16px rgba(255, 159, 10, 0.1);
+}
+
 .model-card-header {
   display: flex;
   align-items: center;
@@ -956,6 +1175,11 @@ onMounted(async () => {
 .scope-badge.user {
   background: rgba(48, 209, 88, 0.15);
   color: #30D158;
+}
+
+.scope-badge.dept {
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
 }
 
 .model-name {
@@ -1256,5 +1480,118 @@ onMounted(async () => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ========== User Picker ========== */
+.user-picker {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.user-search {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.user-search::placeholder {
+  color: var(--text-disabled);
+}
+
+.selected-users {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.selected-count {
+  font-size: 11px;
+  color: #BF5AF2;
+  font-weight: 500;
+}
+
+.user-picker-list {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.user-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.user-picker-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.user-picker-item.selected {
+  background: rgba(191, 90, 242, 0.1);
+}
+
+.user-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: transparent;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.user-picker-item.selected .user-check {
+  background: #BF5AF2;
+  border-color: #BF5AF2;
+  color: #fff;
+}
+
+.user-avatar-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #BF5AF2, #9B59B6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.user-detail {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-nick {
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-dept-sm {
+  font-size: 10px;
+  color: var(--text-disabled);
+  flex-shrink: 0;
 }
 </style>

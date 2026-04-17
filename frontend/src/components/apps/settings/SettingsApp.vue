@@ -586,7 +586,7 @@ const deptName = computed(() => desktop.currentUser?.deptName || '未设置')
 const email = computed(() => desktop.currentUser?.email || '')
 
 const roleBadge = computed(() => {
-  const role = desktop.currentUser?.role || 'USER'
+  const roles = desktop.currentUser?.roles || ['USER']
   const roleMap: Record<string, string> = {
     'SUPER_ADMIN': '超级管理员',
     'ADMIN': '管理员',
@@ -594,7 +594,7 @@ const roleBadge = computed(() => {
     'LEADER': '领导',
     'USER': '普通用户'
   }
-  return roleMap[role] || role
+  return roles.map(r => roleMap[r] || r).join('、')
 })
 
 const userAvatar = computed(() => {

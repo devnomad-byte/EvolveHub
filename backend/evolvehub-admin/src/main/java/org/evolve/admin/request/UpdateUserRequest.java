@@ -2,6 +2,8 @@ package org.evolve.admin.request;
 
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
 /**
  * 更新用户请求
  *
@@ -11,7 +13,7 @@ import jakarta.validation.constraints.NotNull;
  * @param phone    手机号（全局唯一）
  * @param avatar   头像地址
  * @param deptId   所属部门ID（部门必须存在）
- * @param roleId   角色ID
+ * @param roleIds  角色ID列表（传入则替换所有角色）
  * @param status   状态（1=正常 0=停用）
  */
 public record UpdateUserRequest(
@@ -21,7 +23,7 @@ public record UpdateUserRequest(
         String phone,
         String avatar,
         Long deptId,
-        Long roleId,
+        List<Long> roleIds,
         Integer status
 ) {
 }

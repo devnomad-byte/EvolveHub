@@ -70,7 +70,8 @@ const userDisplayText = computed(() => {
     'LEADER': '领导',
     'USER': '普通用户'
   }
-  const roleName = roleMap[desktop.currentUser.role] || desktop.currentUser.role || '用户'
+  const roles = desktop.currentUser.roles || ['USER']
+  const roleName = roles.map(r => roleMap[r] || r).join('、')
   const dept = desktop.currentUser.deptName
   return dept ? `${desktop.currentUser.displayName} · ${dept} · ${roleName}` : `${desktop.currentUser.displayName} · ${roleName}`
 })

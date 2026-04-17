@@ -24,7 +24,7 @@
         <KnowledgeApp v-else-if="windowState.appId === 'knowledge'" />
         <ModelApp v-else-if="windowState.appId === 'model'" />
         <UsersApp v-else-if="windowState.appId === 'users'" />
-        <McpApp v-else-if="windowState.appId === 'mcp'" />
+        <ExtApp v-else-if="windowState.appId === 'mcp'" />
         <MemoryApp v-else-if="windowState.appId === 'memory'" />
         <SettingsApp v-else-if="windowState.appId === 'settings'" />
         <DashboardApp v-else-if="windowState.appId === 'dashboard'" />
@@ -33,6 +33,10 @@
         <DeptApp v-else-if="windowState.appId === 'dept'" />
         <RoleApp v-else-if="windowState.appId === 'role'" />
         <PermissionApp v-else-if="windowState.appId === 'permission'" />
+        <SkillEditorApp v-else-if="windowState.appId === 'skill-editor'" />
+        <McpEditorApp v-else-if="windowState.appId === 'mcp-editor'" />
+        <McpCreateApp v-else-if="windowState.appId === 'mcp-create'" />
+        <SkillEditApp v-else-if="windowState.appId === 'skill-edit'" />
       </div>
 
       <!-- Resize handles -->
@@ -44,14 +48,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useWindowStore } from '../../stores/window'
 import type { WindowState } from '../../types'
 import ChatApp from '../apps/chat/ChatApp.vue'
 import KnowledgeApp from '../apps/knowledge/KnowledgeApp.vue'
 import ModelApp from '../apps/model/ModelApp.vue'
 import UsersApp from '../apps/users/UsersApp.vue'
-import McpApp from '../apps/mcp/McpApp.vue'
+import ExtApp from '../apps/ext/ExtApp.vue'
+import SkillEditorApp from '../apps/ext/SkillEditorApp.vue'
+import McpEditorApp from '../apps/ext/McpEditorApp.vue'
+import McpCreateApp from '../apps/ext/McpCreateApp.vue'
+import SkillEditApp from '../apps/ext/SkillEditApp.vue'
 import MemoryApp from '../apps/memory/MemoryApp.vue'
 import SettingsApp from '../apps/settings/SettingsApp.vue'
 import DashboardApp from '../apps/dashboard/DashboardApp.vue'

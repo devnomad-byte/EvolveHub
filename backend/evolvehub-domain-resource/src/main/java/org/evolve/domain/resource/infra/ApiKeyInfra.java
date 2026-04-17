@@ -19,7 +19,7 @@ import java.util.UUID;
 public class ApiKeyInfra extends ServiceImpl<ApiKeyInfra.ApiKeyMapper, ApiKeyEntity> {
 
     @Mapper
-    interface ApiKeyMapper extends BaseMapper<ApiKeyEntity> {}
+    public interface ApiKeyMapper extends BaseMapper<ApiKeyEntity> {}
 
     /**
      * 根据密钥值查询

@@ -67,7 +67,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
     }
 
     @Mapper
-    interface SaTokenRoleMapper {
+    public interface SaTokenRoleMapper {
 
         /**
          * 查询用户的角色码列表

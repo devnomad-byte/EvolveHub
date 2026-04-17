@@ -63,7 +63,7 @@ export const appDefinitions: Record<string, AppDefinition> = {
   },
   mcp: {
     id: 'mcp',
-    name: 'MCP 工具',
+    name: '技能管理',
     icon: 'Wrench',
     gradient: 'linear-gradient(135deg, #64D2FF, #5AC8FA)',
     defaultWidth: 920,
@@ -156,7 +156,55 @@ export const appDefinitions: Record<string, AppDefinition> = {
     minHeight: 400,
     dockOrder: -1,
     roles: ['SUPER_ADMIN']
+  },
+  'skill-editor': {
+    id: 'skill-editor',
+    name: '编辑技能',
+    icon: 'FileText',
+    gradient: 'linear-gradient(135deg, #30D158, #34C759)',
+    defaultWidth: 920,
+    defaultHeight: 700,
+    minWidth: 720,
+    minHeight: 500,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'mcp-editor': {
+    id: 'mcp-editor',
+    name: '编辑 MCP',
+    icon: 'Server',
+    gradient: 'linear-gradient(135deg, #64D2FF, #5AC8FA)',
+    defaultWidth: 600,
+    defaultHeight: 520,
+    minWidth: 480,
+    minHeight: 400,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'mcp-create': {
+    id: 'mcp-create',
+    name: '创建 MCP',
+    icon: 'Server',
+    gradient: 'linear-gradient(135deg, #64D2FF, #5AC8FA)',
+    defaultWidth: 600,
+    defaultHeight: 520,
+    minWidth: 480,
+    minHeight: 400,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'skill-edit': {
+    id: 'skill-edit',
+    name: '编辑技能',
+    icon: 'Sparkles',
+    gradient: 'linear-gradient(135deg, #30D158, #34C759)',
+    defaultWidth: 500,
+    defaultHeight: 480,
+    minWidth: 400,
+    minHeight: 380,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
   }
 }
 
-export const dockApps = ['chat', 'knowledge', 'mcp', 'settings', 'dashboard']
+export const dockApps: AppDefinition['id'][] = ['chat', 'knowledge', 'mcp', 'settings', 'dashboard']

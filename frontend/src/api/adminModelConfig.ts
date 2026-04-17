@@ -2,8 +2,8 @@ import { http } from '@/utils/request'
 
 /** 模型类型 */
 export type ModelType = 'LLM' | 'EMBEDDING'
-/** 资源范围：SYSTEM-系统级 USER-用户级 */
-export type ModelScope = 'SYSTEM' | 'USER'
+/** 资源范围：SYSTEM-系统级 DEPT-部门级 USER-用户级 */
+export type ModelScope = 'SYSTEM' | 'DEPT' | 'USER'
 
 export interface ModelConfigInfo {
   id: number
@@ -13,9 +13,11 @@ export interface ModelConfigInfo {
   baseUrl?: string
   enabled: number
   modelType: ModelType
-  /** 资源范围：SYSTEM-系统级 USER-用户级 */
+  /** 资源范围：SYSTEM-系统级 DEPT-部门级 USER-用户级 */
   scope?: ModelScope
-  /** 资源所有者 ID，scope=SYSTEM 时为 NULL */
+  /** 部门 ID，scope=DEPT 时必填 */
+  deptId?: number | null
+  /** 创建者 ID */
   ownerId?: number | null
   createBy?: number
   createTime: string
@@ -47,6 +49,7 @@ export interface CreateModelConfigRequest {
   enabled: number
   modelType?: ModelType
   scope?: ModelScope
+  deptId?: number | null
 }
 
 export interface UpdateModelConfigRequest {

@@ -10,7 +10,7 @@ import org.evolve.common.web.page.PageResponse;
 import org.springframework.stereotype.Service;
 
 /**
- * 分页查询系统级 MCP 配置列表业务处理器
+ * 分页查询 MCP 配置列表业务处理器
  *
  * @author zhao
  */
@@ -26,7 +26,8 @@ public class ListMcpConfigManager extends BaseManager<PageRequest, PageResponse<
 
     @Override
     protected PageResponse<McpConfigEntity> process(PageRequest request) {
-        Page<McpConfigEntity> page = mcpConfigInfra.listPageByScope("SYSTEM", request.pageNum(), request.pageSize());
+        // 默认查询所有启用的 MCP（不分 scope）
+        Page<McpConfigEntity> page = mcpConfigInfra.listPage(request.pageNum(), request.pageSize());
         return new PageResponse<>(page.getRecords(), page.getTotal(), request.pageNum(), request.pageSize());
     }
 }

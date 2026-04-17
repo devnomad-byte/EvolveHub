@@ -224,9 +224,11 @@ import { ref, computed, onMounted } from 'vue'
 import { Menu, MousePointerClick, Globe } from 'lucide-vue-next'
 import { adminPermissionApi, type PermissionInfo, type CreatePermissionRequest, type UpdatePermissionRequest } from '../../../api/adminPermission'
 import { useDesktopStore } from '../../../stores/desktop'
+import { useConfirm } from '@/composables/useConfirm'
 import PermissionTreeNode from './PermissionTreeNode.vue'
 
 const desktop = useDesktopStore()
+const { confirm } = useConfirm()
 
 // ==================== Data ====================
 const allPerms = ref<PermissionInfo[]>([])
@@ -264,7 +266,7 @@ const permTree = computed(() => {
   // Second pass: build tree
   for (const p of allPerms.value) {
     const node = map.get(p.id)!
-    if (p.parentId === 0) {
+    if (Number(p.parentId) === 0) {
       roots.push(node)
     } else {
       const parent = map.get(p.parentId)
@@ -306,7 +308,7 @@ function getDepth(_permId: number): number {
 }
 
 function getParentName(parentId: number): string {
-  if (parentId === 0) return '无（顶级）'
+  if (Number(parentId) === 0) return '无（顶级）'
   const p = allPerms.value.find(p => p.id === parentId)
   return p ? p.permName : '未知'
 }
@@ -425,7 +427,7 @@ async function handleSubmit() {
 
 async function handleDelete() {
   if (!selectedPerm.value) return
-  if (!confirm(`确定要删除权限「${selectedPerm.value.permName}」吗？`)) return
+  if (!await confirm('删除权限', `确定要删除权限「${selectedPerm.value.permName}」吗？此操作不可恢复。`)) return
   try {
     await adminPermissionApi.delete(selectedPerm.value.id)
     desktop.addToast('权限已删除', 'success')

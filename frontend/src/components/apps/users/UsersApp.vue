@@ -114,9 +114,11 @@
               <div class="card-info">
                 <div class="card-name">
                   <span class="name-text">{{ u.nickname || u.username }}</span>
-                  <span class="role-badge" :class="roleColor(u.roles?.[0]?.roleCode || 'USER')">
-                    {{ roleLabel(u.roles?.[0]?.roleCode || 'USER') }}
-                  </span>
+                  <template v-for="r in u.roles" :key="r.id">
+                    <span class="role-badge" :class="roleColor(r.roleCode)">
+                      {{ roleLabel(r.roleCode) }}
+                    </span>
+                  </template>
                 </div>
                 <div class="card-meta">
                   <span class="meta-item">
@@ -218,9 +220,12 @@
               </div>
               <div class="form-field">
                 <label>角色</label>
-                <select v-model="form.roleId" class="form-select">
-                  <option v-for="r in roleOptions" :key="r.id" :value="r.id">{{ r.roleName }}</option>
-                </select>
+                <div class="role-checkbox-list">
+                  <label v-for="r in roleOptions" :key="r.id" class="role-checkbox-item">
+                    <input type="checkbox" :value="r.id" v-model="form.roleIds" />
+                    <span class="role-checkbox-label">{{ r.roleName }}</span>
+                  </label>
+                </div>
               </div>
             </div>
             <div class="form-row" v-if="isEditing">
@@ -287,15 +292,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h, defineComponent, type PropType } from 'vue'
-import { adminUserApi, type AdminUserInfo } from '../../../api/adminUser'
+import { ref, computed, onMounted, h, defineComponent } from 'vue'
+import { adminUserApi, type UserInfo as AdminUserInfo } from '../../../api/adminUser'
 import { deptApi, type DeptInfo } from '../../../api/dept'
 import { useDesktopStore } from '../../../stores/desktop'
+import { useConfirm } from '@/composables/useConfirm'
 
 // 类型别名，保持组件内使用 UserInfo
 type UserInfo = AdminUserInfo
 
 const desktop = useDesktopStore()
+const { confirm } = useConfirm()
 const currentUserId = computed(() => desktop.currentUser?.id || 0)
 
 // ==================== Data ====================
@@ -318,7 +325,7 @@ const form = ref({
   email: '',
   phone: '',
   deptId: 0,
-  roleId: 1,
+  roleIds: [5] as number[],
   status: 1
 })
 
@@ -416,9 +423,7 @@ function avatarColor(code: string) {
   return map[code] || 'grad-blue'
 }
 
-function getDeptUserCount(deptId: number): number {
-  return users.value.filter(u => u.deptId === deptId).length
-}
+// getDeptUserCount was here but never used
 
 // ==================== Load Data ====================
 async function loadUsers() {
@@ -442,7 +447,7 @@ function openCreateModal() {
   isEditing.value = false
   form.value = {
     id: 0, username: '', password: '', confirmPassword: '',
-    nickname: '', email: '', phone: '', deptId: 0, roleId: 5, status: 1
+    nickname: '', email: '', phone: '', deptId: 0, roleIds: [5], status: 1
   }
   showModal.value = true
 }
@@ -457,7 +462,7 @@ function openEditModal(u: UserInfo) {
     email: u.email || '',
     phone: u.phone || '',
     deptId: u.deptId || 0,
-    roleId: u.roles?.[0]?.id || 5,
+    roleIds: u.roles?.map(r => r.id) || [5],
     status: u.status
   }
   showModal.value = true
@@ -488,7 +493,7 @@ async function handleSubmit() {
         email: form.value.email || undefined,
         phone: form.value.phone || undefined,
         deptId: form.value.deptId || undefined,
-        roleId: form.value.roleId || undefined,
+        roleIds: form.value.roleIds,
         status: form.value.status
       })
       desktop.addToast('用户更新成功', 'success')
@@ -500,7 +505,7 @@ async function handleSubmit() {
         email: form.value.email || undefined,
         phone: form.value.phone || undefined,
         deptId: form.value.deptId,
-        roleId: form.value.roleId
+        roleIds: form.value.roleIds
       })
       desktop.addToast('用户创建成功', 'success')
     }
@@ -514,7 +519,7 @@ async function handleSubmit() {
 }
 
 async function handleDelete(u: UserInfo) {
-  if (!confirm(`确定要删除用户「${u.nickname || u.username}」吗？`)) return
+  if (!await confirm('删除用户', `确定要删除用户「${u.nickname || u.username}」吗？此操作不可恢复。`)) return
   try {
     await adminUserApi.delete(u.id)
     desktop.addToast('用户已删除', 'success')
@@ -1272,6 +1277,48 @@ const DeptNode = defineComponent({
 }
 
 /* ========== Toggle ========== */
+
+/* ========== Role Checkbox List ========== */
+.role-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.role-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.role-checkbox-item:hover {
+  border-color: rgba(255, 159, 10, 0.3);
+  background: rgba(255, 159, 10, 0.05);
+}
+
+.role-checkbox-item input[type="checkbox"] {
+  display: none;
+}
+
+.role-checkbox-item:has(input:checked) {
+  border-color: #FF9F0A;
+  background: rgba(255, 159, 10, 0.1);
+  color: #FF9F0A;
+}
+
+.role-checkbox-label {
+  line-height: 1;
+}
 .toggle-wrapper {
   display: flex;
   align-items: center;

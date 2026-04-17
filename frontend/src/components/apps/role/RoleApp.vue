@@ -161,21 +161,32 @@
               <div class="spinner-sm"></div>
               <span>加载权限中...</span>
             </div>
-            <div v-else class="perm-list">
-              <label
-                v-for="perm in allPermissions"
-                :key="perm.id"
-                class="perm-item"
-                :class="{ assigned: assignedPermIds.has(perm.id) }"
-              >
-                <input
-                  type="checkbox"
-                  :checked="assignedPermIds.has(perm.id)"
-                  @change="onPermChange(perm.id, ($event.target as HTMLInputElement).checked)"
-                />
-                <span class="perm-name">{{ perm.permName }}</span>
-                <span class="perm-code">{{ perm.permCode }}</span>
-              </label>
+            <div v-else class="perm-groups">
+              <div v-for="group in permGroups" :key="group.type" class="perm-group">
+                <div class="perm-group-header" @click="togglePermGroup(group.type)">
+                  <span class="perm-group-toggle">{{ expandedPermGroups.has(group.type) ? '▾' : '▸' }}</span>
+                  <span class="perm-group-type" :class="group.type.toLowerCase()">{{ group.label }}</span>
+                  <span class="perm-group-count">{{ group.count }} 项</span>
+                  <span class="perm-group-checked">{{ group.checkedCount }} 已选</span>
+                </div>
+                <div v-if="expandedPermGroups.has(group.type)" class="perm-group-list">
+                  <label
+                    v-for="perm in group.perms"
+                    :key="perm.id"
+                    class="perm-item"
+                    :class="{ assigned: assignedPermIds.has(perm.id) }"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="assignedPermIds.has(perm.id)"
+                      @change="onPermChange(perm.id, ($event.target as HTMLInputElement).checked)"
+                    />
+                    <span class="perm-name">{{ perm.permName }}</span>
+                    <span class="perm-code">{{ perm.permCode }}</span>
+                  </label>
+                  <div v-if="group.perms.length === 0" class="perm-group-empty">暂无</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -257,8 +268,10 @@ import { Shield } from 'lucide-vue-next'
 import { adminRoleApi, type RoleInfo } from '../../../api/adminRole'
 import { adminPermissionApi, type PermissionInfo } from '../../../api/adminPermission'
 import { useDesktopStore } from '../../../stores/desktop'
+import { useConfirm } from '@/composables/useConfirm'
 
 const desktop = useDesktopStore()
+const { confirm } = useConfirm()
 
 // ==================== Data ====================
 const roles = ref<RoleInfo[]>([])
@@ -268,6 +281,7 @@ const permLoading = ref(false)
 const searchQuery = ref('')
 const selectedRole = ref<RoleInfo | null>(null)
 const assignedPermIds = ref<Set<number>>(new Set())
+const expandedPermGroups = ref<Set<string>>(new Set(['MENU', 'BUTTON', 'API']))
 
 // ==================== Modal State ====================
 const showModal = ref(false)
@@ -292,6 +306,19 @@ const filteredRoles = computed(() => {
   return roles.value.filter(r => r.roleName.toLowerCase().includes(q) || r.roleCode.toLowerCase().includes(q))
 })
 
+const permGroups = computed(() => {
+  const types = [
+    { type: 'MENU', label: '菜单权限' },
+    { type: 'BUTTON', label: '按钮权限' },
+    { type: 'API', label: '接口权限' }
+  ]
+  return types.map(({ type, label }) => {
+    const perms = allPermissions.value.filter(p => p.permType === type)
+    const checkedCount = perms.filter(p => assignedPermIds.value.has(p.id)).length
+    return { type, label, perms, count: perms.length, checkedCount }
+  })
+})
+
 // ==================== Helpers ====================
 const dataScopeLabel = (scope: number) => {
   const map: Record<number, string> = {
@@ -303,6 +330,16 @@ const dataScopeLabel = (scope: number) => {
 function formatTime(time: string) {
   if (!time) return '-'
   return time.replace('T', ' ').slice(0, 19)
+}
+
+function togglePermGroup(type: string) {
+  if (expandedPermGroups.value.has(type)) {
+    expandedPermGroups.value.delete(type)
+  } else {
+    expandedPermGroups.value.add(type)
+  }
+  // trigger reactivity
+  expandedPermGroups.value = new Set(expandedPermGroups.value)
 }
 
 // ==================== Load Data ====================
@@ -443,7 +480,7 @@ async function handleSubmit() {
 }
 
 async function handleDelete(role: RoleInfo) {
-  if (!confirm(`确定要删除角色「${role.roleName}」吗？`)) return
+  if (!await confirm('删除角色', `确定要删除角色「${role.roleName}」吗？此操作不可恢复。`)) return
   try {
     await adminRoleApi.delete(role.id)
     desktop.addToast('角色已删除', 'success')
@@ -850,6 +887,90 @@ onMounted(async () => {
 .perm-count {
   font-size: 11px;
   color: var(--text-secondary);
+}
+
+/* ========== Permission Groups ========== */
+.perm-groups {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perm-group {
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+
+.perm-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.perm-group-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.perm-group-toggle {
+  font-size: 11px;
+  color: var(--text-disabled);
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.perm-group-type {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.perm-group-type.menu {
+  color: #0A84FF;
+  background: rgba(10, 132, 255, 0.12);
+}
+
+.perm-group-type.button {
+  color: #FF9F0A;
+  background: rgba(255, 159, 10, 0.12);
+}
+
+.perm-group-type.api {
+  color: #30D158;
+  background: rgba(48, 209, 88, 0.12);
+}
+
+.perm-group-count {
+  font-size: 10px;
+  color: var(--text-disabled);
+}
+
+.perm-group-checked {
+  font-size: 10px;
+  color: #BF5AF2;
+  margin-left: auto;
+}
+
+.perm-group-list {
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.perm-group-empty {
+  font-size: 11px;
+  color: var(--text-disabled);
+  padding: 4px 8px;
 }
 
 .perm-loading {

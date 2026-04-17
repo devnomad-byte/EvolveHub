@@ -19,5 +19,7 @@ public record CreateModelConfigRequest(
         @NotBlank(message = "API密钥不能为空") String apiKey,
         String baseUrl,
         @NotNull(message = "启用状态不能为空") Integer enabled,
-        String modelType) {
+        String modelType,
+        String scope,
+        Long deptId) {
 }

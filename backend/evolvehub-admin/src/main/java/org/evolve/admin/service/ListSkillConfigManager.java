@@ -10,7 +10,7 @@ import org.evolve.common.web.page.PageResponse;
 import org.springframework.stereotype.Service;
 
 /**
- * 分页查询系统级技能配置列表业务处理器
+ * 分页查询技能配置列表业务处理器
  *
  * @author zhao
  */
@@ -26,7 +26,8 @@ public class ListSkillConfigManager extends BaseManager<PageRequest, PageRespons
 
     @Override
     protected PageResponse<SkillConfigEntity> process(PageRequest request) {
-        Page<SkillConfigEntity> page = skillConfigInfra.listPageByScope("SYSTEM", request.pageNum(), request.pageSize());
+        // 默认查询所有启用的 Skills（不分 scope）
+        Page<SkillConfigEntity> page = skillConfigInfra.listPage(request.pageNum(), request.pageSize());
         return new PageResponse<>(page.getRecords(), page.getTotal(), request.pageNum(), request.pageSize());
     }
 }

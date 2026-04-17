@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChevronRight, ChevronDown, Menu, MousePointerClick, Globe } from 'lucide-vue-next'
+import { Menu, MousePointerClick, Globe } from 'lucide-vue-next'
 import type { PermissionInfo } from '../../../api/adminPermission'
 
 const props = defineProps<{

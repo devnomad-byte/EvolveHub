@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { UserRole, AppNotification } from '../types'
 
 export interface LoginUser {
   id: number
   username: string
   displayName: string
-  role: UserRole
+  roles: string[]
   deptName: string
   email: string
   avatar: string
@@ -69,12 +69,26 @@ export const useDesktopStore = defineStore('desktop', () => {
     showNotifications.value = !showNotifications.value
   }
 
+  // 是否为管理员模式（任意非 USER 角色）
+  const isAdmin = computed(() => {
+    const roles = currentUser.value?.roles
+    if (!roles || roles.length === 0) return false
+    return roles.some(r => r !== 'USER')
+  })
+
+  // 是否为超级管理员
+  const isSuperAdmin = computed(() => {
+    return currentUser.value?.roles?.includes('SUPER_ADMIN') ?? false
+  })
+
   // 初始化时恢复会话
   restoreSession()
 
   return {
     isLoggedIn,
     currentUser,
+    isAdmin,
+    isSuperAdmin,
     showNotifications,
     notifications,
     toasts,

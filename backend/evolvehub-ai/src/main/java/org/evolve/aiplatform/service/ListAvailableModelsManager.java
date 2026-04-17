@@ -3,16 +3,22 @@ package org.evolve.aiplatform.service;
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.annotation.Resource;
 import org.evolve.common.base.BaseManager;
+import org.evolve.domain.rbac.infra.DeptInfra;
+import org.evolve.domain.rbac.infra.UsersInfra;
+import org.evolve.domain.rbac.model.UsersEntity;
 import org.evolve.domain.resource.infra.ModelConfigInfra;
 import org.evolve.domain.resource.infra.ResourceGrantInfra;
 import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 查询当前用户可用的模型列表（自己的 USER 模型 + 被授权的 SYSTEM 模型）
+ * 查询当前用户可用的模型列表
+ * <p>
+ * 可见性规则同 ListAvailableMcpsManager：
+ * SYSTEM 全部 + DEPT 祖先链 + GRANT 授权
+ * </p>
  *
  * @author zhao
  */
@@ -25,6 +31,12 @@ public class ListAvailableModelsManager extends BaseManager<Void, List<ModelConf
     @Resource
     private ResourceGrantInfra resourceGrantInfra;
 
+    @Resource
+    private UsersInfra usersInfra;
+
+    @Resource
+    private DeptInfra deptInfra;
+
     @Override
     protected void check(Void request) {
     }
@@ -32,15 +44,13 @@ public class ListAvailableModelsManager extends BaseManager<Void, List<ModelConf
     @Override
     protected List<ModelConfigEntity> process(Void request) {
         Long currentUserId = StpUtil.getLoginIdAsLong();
-        // 自己创建的用户级模型
-        List<ModelConfigEntity> userModels = modelConfigInfra.listPageByOwnerId(currentUserId, 1, 1000).getRecords();
-        // 被授权的系统级模型
-        List<Long> grantedIds = resourceGrantInfra.listGrantedResourceIds(currentUserId, "MODEL");
-        List<ModelConfigEntity> systemModels = modelConfigInfra.listByIdsAndScope(grantedIds);
-        // 合并
-        List<ModelConfigEntity> result = new ArrayList<>(userModels.size() + systemModels.size());
-        result.addAll(userModels);
-        result.addAll(systemModels);
-        return result;
+        UsersEntity user = usersInfra.getUserById(currentUserId);
+        Long deptId = user != null ? user.getDeptId() : null;
+
+        List<Long> ancestorDeptIds = deptInfra.getAncestorDeptIds(deptId);
+        List<Long> grantResourceIds = resourceGrantInfra.listVisibleGrantedResourceIds(
+                currentUserId, deptId, "MODEL");
+
+        return modelConfigInfra.listVisibleModels(ancestorDeptIds, grantResourceIds);
     }
 }

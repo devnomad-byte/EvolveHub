@@ -58,7 +58,9 @@ const hoveredApp = ref<string | null>(null)
 const visibleDockApps = computed(() =>
   dockApps.filter(id => {
     const def = appDefinitions[id]
-    return def && def.roles.includes(desktop.currentUser.role)
+    if (!def || !desktop.currentUser) return false
+    const userRoles = desktop.currentUser.roles || ['USER']
+    return userRoles.some(r => def.roles.includes(r))
   })
 )
 
@@ -80,14 +82,14 @@ function getDef(id: string) {
   return appDefinitions[id]
 }
 
-function isAppOpen(appId: string) {
+function isAppOpen(appId: AppId) {
   return Object.values(winStore.windows).some(w => w.appId === appId && w.isOpen)
 }
 
-function isNeighbor(appId: string) {
+function isNeighbor(appId: AppId) {
   if (!hoveredApp.value) return false
   const idx = visibleDockApps.value.indexOf(appId)
-  const hIdx = visibleDockApps.value.indexOf(hoveredApp.value)
+  const hIdx = visibleDockApps.value.indexOf(hoveredApp.value as AppId)
   return Math.abs(idx - hIdx) === 1
 }
 </script>

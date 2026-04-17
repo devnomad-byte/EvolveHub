@@ -19,7 +19,7 @@ import java.util.List;
 public class RolePermissionsInfra extends ServiceImpl<RolePermissionsInfra.RolePermissionsMapper, RolePermissionsEntity> {
 
     @Mapper
-    interface RolePermissionsMapper extends BaseMapper<RolePermissionsEntity> {}
+    public interface RolePermissionsMapper extends BaseMapper<RolePermissionsEntity> {}
 
     public RolePermissionsEntity getByRoleIdAndPermissionId(Long roleId, Long permissionId) {
         return this.lambdaQuery()

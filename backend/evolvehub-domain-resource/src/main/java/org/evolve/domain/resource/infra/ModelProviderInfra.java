@@ -19,7 +19,7 @@ import java.util.List;
 public class ModelProviderInfra extends ServiceImpl<ModelProviderInfra.ModelProviderMapper, ModelProviderEntity> {
 
     @Mapper
-    interface ModelProviderMapper extends BaseMapper<ModelProviderEntity> {}
+    public interface ModelProviderMapper extends BaseMapper<ModelProviderEntity> {}
 
     public ModelProviderEntity getById(Long id) {
         return this.getById(id);

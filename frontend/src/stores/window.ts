@@ -12,6 +12,12 @@ export const useWindowStore = defineStore('window', () => {
   // 设置应用的指定标签页（跨组件通信用）
   const pendingSettingsTab = ref<string | null>(null)
 
+  // 传递给 skill-editor 窗口的参数
+  const pendingSkillToEdit = ref<{ skillId: number | null, skillName: string } | null>(null)
+
+  // 传递给 mcp-editor 窗口的参数
+  const pendingMcpToEdit = ref<{ mcpId: number | null, mcpName: string } | null>(null)
+
   const windowList = computed(() => Object.values(windows.value))
 
   const openWindows = computed(() =>
@@ -70,6 +76,11 @@ export const useWindowStore = defineStore('window', () => {
     }
   }
 
+  function closeByAppId(appId: AppId) {
+    const w = windowList.value.find(w => w.appId === appId && w.isOpen)
+    if (w) closeWindow(w.id)
+  }
+
   function minimizeWindow(id: string) {
     const w = windows.value[id]
     if (w) w.isMinimized = true
@@ -117,8 +128,11 @@ export const useWindowStore = defineStore('window', () => {
     openWindows,
     allWindows,
     pendingSettingsTab,
+    pendingSkillToEdit,
+    pendingMcpToEdit,
     openApp,
     closeWindow,
+    closeByAppId,
     minimizeWindow,
     maximizeWindow,
     focusWindow,

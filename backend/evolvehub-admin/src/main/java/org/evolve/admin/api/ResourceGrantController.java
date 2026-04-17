@@ -10,6 +10,7 @@ import org.evolve.admin.service.AssignResourceGrantManager;
 import org.evolve.admin.service.ListResourceGrantManager;
 import org.evolve.admin.service.RevokeResourceGrantManager;
 import org.evolve.domain.resource.model.ResourceGrantEntity;
+import org.evolve.domain.resource.infra.ResourceGrantInfra;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
 import org.evolve.common.web.response.Result;
@@ -38,6 +39,9 @@ public class ResourceGrantController {
 
     @Resource
     private ListResourceGrantManager listResourceGrantManager;
+
+    @Resource
+    private ResourceGrantInfra resourceGrantInfra;
 
     /**
      * 将系统资源授权给用户
@@ -76,5 +80,20 @@ public class ResourceGrantController {
     public Result<PageResponse<ResourceGrantEntity>> list(@RequestParam(defaultValue = "1") int pageNum,
                                                           @RequestParam(defaultValue = "10") int pageSize) {
         return Result.ok(listResourceGrantManager.execute(new PageRequest(pageNum, pageSize)));
+    }
+
+    /**
+     * 按资源查询授权列表
+     *
+     * @param resourceType 资源类型（MCP / SKILL / MODEL）
+     * @param resourceId   资源 ID
+     * @return 该资源的所有授权记录
+     */
+    @SaCheckRole("SUPER_ADMIN")
+    @GetMapping("/list-by-resource")
+    public Result<java.util.List<ResourceGrantEntity>> listByResource(
+            @RequestParam String resourceType,
+            @RequestParam Long resourceId) {
+        return Result.ok(resourceGrantInfra.listByResource(resourceType, resourceId));
     }
 }

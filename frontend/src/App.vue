@@ -3,22 +3,18 @@
     <LoginScreen v-if="!desktop.isLoggedIn" />
     <DesktopView v-else />
     <ToastContainer />
+    <ConfirmDialog />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { useDesktopStore } from './stores/desktop'
 import LoginScreen from './components/login/LoginScreen.vue'
 import DesktopView from './components/desktop/DesktopView.vue'
 import ToastContainer from './components/feedback/ToastContainer.vue'
+import ConfirmDialog from './components/common/ConfirmDialog.vue'
 
 const desktop = useDesktopStore()
-
-onMounted(() => {
-  // 尝试从 localStorage 恢复会话
-  desktop.restoreSession?.()
-})
 </script>
 
 <style>

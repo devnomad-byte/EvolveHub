@@ -10,16 +10,20 @@ export default defineConfig({
       '@': resolve(__dirname, 'src')
     }
   },
+  build: {
+    // Vite 8 Oxc minifier breaks Monaco workers; use esbuild until upstream fix
+    minify: 'esbuild'
+  },
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    port: 5178,
     proxy: {
       // 认证服务 -> 8081
       '/api/auth': {
         target: 'http://localhost:8081',
         changeOrigin: true
       },
-      // 后台管理服务 -> 8083
+      // 后台管理服务 -> 8083 (包含 mcp-config, skill-config, user, model 等)
       '/api/admin': {
         target: 'http://localhost:8083',
         changeOrigin: true

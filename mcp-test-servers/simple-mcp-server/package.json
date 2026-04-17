@@ -1,0 +1,16 @@
+{
+  "name": "simple-test-mcp-server",
+  "version": "1.0.0",
+  "description": "Simple MCP Test Server for EvolveHub",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["mcp", "test"],
+  "author": "EvolveHub",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  }
+}

@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChevronRight, ChevronDown, Building } from 'lucide-vue-next'
+import { Building } from 'lucide-vue-next'
 import type { DeptInfo } from '../../../api/dept'
 
 const props = defineProps<{

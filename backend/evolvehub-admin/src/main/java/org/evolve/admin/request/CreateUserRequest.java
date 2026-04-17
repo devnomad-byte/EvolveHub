@@ -3,6 +3,8 @@ package org.evolve.admin.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
 /**
  * 创建用户请求
  *
@@ -12,7 +14,7 @@ import jakarta.validation.constraints.NotNull;
  * @param email    邮箱（全局唯一，可选）
  * @param phone    手机号（全局唯一，可选）
  * @param deptId   所属部门ID（部门必须存在）
- * @param roleId   角色ID（必须）
+ * @param roleIds  角色ID列表（至少一个）
  * @param status   状态（0-禁用 1-正常，默认1）
  */
 public record CreateUserRequest(
@@ -22,7 +24,7 @@ public record CreateUserRequest(
         String email,
         String phone,
         @NotNull(message = "部门ID不能为空") Long deptId,
-        @NotNull(message = "角色ID不能为空") Long roleId,
+        @NotNull(message = "角色列表不能为空") List<Long> roleIds,
         Integer status
 ) {
 }
