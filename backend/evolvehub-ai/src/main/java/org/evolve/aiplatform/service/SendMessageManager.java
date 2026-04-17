@@ -13,12 +13,11 @@ import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import jakarta.annotation.Resource;
-import org.evolve.aiplatform.bean.entity.ChatMessageEntity;
-import org.evolve.aiplatform.bean.entity.ChatSessionEntity;
-import org.evolve.aiplatform.bean.entity.ChatTokenUsageEntity;
-import org.evolve.aiplatform.infra.ChatMessageInfra;
-import org.evolve.aiplatform.infra.ChatSessionInfra;
-import org.evolve.aiplatform.infra.ChatTokenUsageInfra;
+import org.evolve.domain.resource.model.ChatMessageEntity;
+import org.evolve.domain.resource.model.ChatSessionEntity;
+import org.evolve.domain.resource.infra.ChatMessageInfra;
+import org.evolve.domain.resource.infra.ChatSessionInfra;
+import org.evolve.domain.resource.infra.ChatTokenUsageInfra;
 import org.evolve.aiplatform.request.SendMessageRequest;
 import org.evolve.aiplatform.service.agent.ChatAgentFactory;
 import org.evolve.common.web.exception.BusinessException;
@@ -119,10 +118,13 @@ public class SendMessageManager {
     private ChatMessageInfra chatMessageInfra;
 
     @Resource
+    private ModelConfigInfra modelConfigInfra;
+
+    @Resource
     private ChatTokenUsageInfra chatTokenUsageInfra;
 
     @Resource
-    private ModelConfigInfra modelConfigInfra;
+    private org.evolve.domain.rbac.infra.UsersInfra usersInfra;  // ⭐ 新增：获取用户部门信息
 
     @Resource
     private ChatAgentFactory chatAgentFactory;
@@ -170,6 +172,13 @@ public class SendMessageManager {
             session.setUserId(currentUserId);
             session.setModelConfigId(request.modelConfigId());
             session.setSysPrompt(request.sysPrompt());
+
+            // ⭐ 新增：设置部门ID，从当前用户信息中获取
+            var currentUser = usersInfra.getUserById(currentUserId);
+            if (currentUser != null && currentUser.getDeptId() != null) {
+                session.setDeptId(currentUser.getDeptId());
+            }
+
             session.setTotalPromptTokens(0);
             session.setTotalCompletionTokens(0);
             session.setTotalTokens(0);
@@ -268,6 +277,12 @@ public class SendMessageManager {
 
                             // 10. 更新会话统计（token 由 Agent 内部管理，此处暂记 0）
                             chatSessionInfra.incrementTokenUsage(session.getId(), 0, 0, 0, 2);
+
+                            // 10.5. 记录Token消费日报（暂时记录为0，后续从Agent响应中获取实际token数）
+                            var currentUser = usersInfra.getUserById(session.getUserId());
+                            Long deptId = currentUser != null ? currentUser.getDeptId() : null;
+                            chatTokenUsageInfra.incrementUsage(session.getUserId(), session.getModelConfigId(),
+                                    java.time.LocalDate.now(), deptId, 1, 0, 0, 0);
 
                             // 11. 首轮自动生成标题
                             autoGenerateTitle(session);
@@ -530,30 +545,6 @@ public class SendMessageManager {
         assistantMsg.setFinishReason(finishReason);
         assistantMsg.setDurationMs(durationMs);
         chatMessageInfra.save(assistantMsg);
-    }
-
-    /**
-     * 更新 Token 消费日报（upsert 逻辑）
-     */
-    private void updateTokenUsage(Long userId, Long modelConfigId,
-                                   int promptTokens, int completionTokens, int totalTokens) {
-        LocalDate today = LocalDate.now();
-        ChatTokenUsageEntity usage = chatTokenUsageInfra.getByUserAndModelAndDate(
-                userId, modelConfigId, today);
-        if (usage != null) {
-            chatTokenUsageInfra.incrementUsage(usage.getId(),
-                    promptTokens, completionTokens, totalTokens);
-        } else {
-            ChatTokenUsageEntity newUsage = new ChatTokenUsageEntity();
-            newUsage.setUserId(userId);
-            newUsage.setModelConfigId(modelConfigId);
-            newUsage.setUsageDate(today);
-            newUsage.setRequestCount(1);
-            newUsage.setPromptTokens(promptTokens);
-            newUsage.setCompletionTokens(completionTokens);
-            newUsage.setTotalTokens(totalTokens);
-            chatTokenUsageInfra.save(newUsage);
-        }
     }
 
     /**

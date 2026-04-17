@@ -204,6 +204,30 @@ export const appDefinitions: Record<string, AppDefinition> = {
     minHeight: 380,
     dockOrder: -1,
     roles: ['SUPER_ADMIN']
+  },
+  'chat-history': {
+    id: 'chat-history',
+    name: '对话历史',
+    icon: 'MessageSquareText',
+    gradient: 'linear-gradient(135deg, #0A84FF, #5AC8FA)',
+    defaultWidth: 950,
+    defaultHeight: 650,
+    minWidth: 700,
+    minHeight: 450,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN', 'ADMIN']
+  },
+  'token-usage': {
+    id: 'token-usage',
+    name: '用量统计',
+    icon: 'BarChart3',
+    gradient: 'linear-gradient(135deg, #FF9F0A, #FF6B00)',
+    defaultWidth: 900,
+    defaultHeight: 600,
+    minWidth: 650,
+    minHeight: 400,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN', 'ADMIN']
   }
 }
 

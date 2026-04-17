@@ -2,9 +2,9 @@ package org.evolve.aiplatform.api;
 
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.evolve.aiplatform.bean.entity.ChatMessageEntity;
-import org.evolve.aiplatform.bean.entity.ChatSessionEntity;
-import org.evolve.aiplatform.bean.entity.ChatTokenUsageEntity;
+import org.evolve.domain.resource.model.ChatMessageEntity;
+import org.evolve.domain.resource.model.ChatSessionEntity;
+import org.evolve.domain.resource.model.ChatTokenUsageEntity;
 import org.evolve.aiplatform.request.ListMessagesRequest;
 import org.evolve.aiplatform.request.SendMessageRequest;
 import org.evolve.aiplatform.request.TokenUsageQueryRequest;
