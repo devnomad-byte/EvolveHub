@@ -18,7 +18,7 @@ import org.springframework.stereotype.Repository;
 public class RolesInfra extends ServiceImpl<RolesInfra.RolesMapper, RolesEntity> {
 
     @Mapper
-    interface RolesMapper extends BaseMapper<RolesEntity> {}
+    public interface RolesMapper extends BaseMapper<RolesEntity> {}
 
     public RolesEntity getRoleById(Long id) {
         return this.getById(id);

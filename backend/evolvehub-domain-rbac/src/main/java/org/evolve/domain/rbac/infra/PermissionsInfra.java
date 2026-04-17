@@ -20,7 +20,7 @@ import java.util.List;
 public class PermissionsInfra extends ServiceImpl<PermissionsInfra.PermissionsMapper, PermissionsEntity> {
 
     @Mapper
-    interface PermissionsMapper extends BaseMapper<PermissionsEntity> {}
+    public interface PermissionsMapper extends BaseMapper<PermissionsEntity> {}
 
     public PermissionsEntity getPermissionById(Long id) {
         return this.getById(id);

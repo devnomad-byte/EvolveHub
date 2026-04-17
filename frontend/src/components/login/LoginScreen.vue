@@ -117,6 +117,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useDesktopStore } from '../../stores/desktop'
 import { authApi } from '../../api'
+import type { UserRole } from '../../types'
 
 const desktop = useDesktopStore()
 const passwordInput = ref<HTMLInputElement>()
@@ -189,7 +190,7 @@ async function handleLogin() {
       id: userInfo.id,
       username: userInfo.username,
       displayName: userInfo.nickname || response.nickname || response.username,
-      role: userInfo.roles[0] || response.roles[0] || 'USER',
+      roles: userInfo.roles?.length ? userInfo.roles : (response.roles?.length ? response.roles : ['USER']),
       deptName: userInfo.deptName || '',
       email: userInfo.email || '',
       avatar: userInfo.avatar || '👤'

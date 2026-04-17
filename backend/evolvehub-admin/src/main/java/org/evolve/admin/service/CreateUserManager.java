@@ -71,9 +71,14 @@ public class CreateUserManager extends BaseManager<CreateUserRequest, UserRespon
         }
 
         // 检查角色是否存在
-        RolesEntity role = rolesInfra.getRoleById(request.roleId());
-        if (role == null) {
-            throw new BusinessException(ResultCode.DATA_NOT_EXIST, "角色不存在");
+        if (request.roleIds() == null || request.roleIds().isEmpty()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "至少需要分配一个角色");
+        }
+        for (Long roleId : request.roleIds()) {
+            RolesEntity role = rolesInfra.getRoleById(roleId);
+            if (role == null) {
+                throw new BusinessException(ResultCode.DATA_NOT_EXIST, "角色不存在: " + roleId);
+            }
         }
     }
 
@@ -91,11 +96,13 @@ public class CreateUserManager extends BaseManager<CreateUserRequest, UserRespon
         user.setStatus(request.status() != null ? request.status() : 1);
         usersInfra.createUser(user);
 
-        // 分配角色
-        UserRolesEntity userRole = new UserRolesEntity();
-        userRole.setUserId(user.getId());
-        userRole.setRoleId(request.roleId());
-        userRolesInfra.assignRole(userRole);
+        // 批量分配角色
+        for (Long roleId : request.roleIds()) {
+            UserRolesEntity userRole = new UserRolesEntity();
+            userRole.setUserId(user.getId());
+            userRole.setRoleId(roleId);
+            userRolesInfra.assignRole(userRole);
+        }
 
         // 返回完整信息
         return buildUserResponse(user);
@@ -106,17 +113,12 @@ public class CreateUserManager extends BaseManager<CreateUserRequest, UserRespon
         DeptEntity dept = deptInfra.getDeptById(user.getDeptId());
         String deptName = dept != null ? dept.getDeptName() : null;
 
-        // 查询角色信息
-        UserRolesEntity userRole = userRolesInfra.listByUserId(user.getId()).stream().findFirst().orElse(null);
-        RolesEntity role = null;
-        if (userRole != null) {
-            role = rolesInfra.getRoleById(userRole.getRoleId());
-        }
-
-        UserResponse.RoleInfo roleInfo = null;
-        if (role != null) {
-            roleInfo = new UserResponse.RoleInfo(role.getId(), role.getRoleName(), role.getRoleCode());
-        }
+        // 查询所有角色
+        List<UserRolesEntity> userRoles = userRolesInfra.listByUserId(user.getId());
+        List<UserResponse.RoleInfo> roles = userRoles.stream().map(ur -> {
+            RolesEntity role = rolesInfra.getRoleById(ur.getRoleId());
+            return role != null ? new UserResponse.RoleInfo(role.getId(), role.getRoleName(), role.getRoleCode()) : null;
+        }).filter(java.util.Objects::nonNull).toList();
 
         return new UserResponse(
                 user.getId(),
@@ -127,7 +129,7 @@ public class CreateUserManager extends BaseManager<CreateUserRequest, UserRespon
                 user.getAvatar(),
                 user.getDeptId(),
                 deptName,
-                roleInfo != null ? List.of(roleInfo) : List.of(),
+                roles,
                 user.getStatus(),
                 user.getCreateTime(),
                 user.getUpdateTime()

@@ -218,6 +218,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { desktopIconApi, type DesktopIconInfo } from '../../../api/desktopIcon'
 import { useDesktopStore } from '../../../stores/desktop'
+import { useConfirm } from '@/composables/useConfirm'
 import {
   MessageSquare, BookOpen, Bot, Users, Wrench, Zap, Settings, Monitor, Cat,
   Building, FileText, Folder, Database, Cloud, Globe, Star, Heart, Flag, Tag,
@@ -237,6 +238,7 @@ import {
 } from 'lucide-vue-next'
 
 const desktop = useDesktopStore()
+const { confirm } = useConfirm()
 
 // ==================== Icon Map ====================
 const iconMap: Record<string, typeof MessageSquare> = {
@@ -436,7 +438,7 @@ async function handleSubmit() {
 }
 
 async function handleDelete(icon: DesktopIconInfo) {
-  if (!confirm(`确定要删除图标「${icon.permName}」吗？`)) return
+  if (!await confirm('删除图标', `确定要删除图标「${icon.permName}」吗？`)) return
   try {
     await desktopIconApi.delete(icon.id)
     desktop.addToast('图标已删除', 'success')

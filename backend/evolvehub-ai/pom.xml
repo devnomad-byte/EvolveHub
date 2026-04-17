@@ -86,6 +86,12 @@
             <artifactId>evolvehub-domain-resource</artifactId>
         </dependency>
 
+        <!-- Domain RBAC (用户/部门/角色查询) -->
+        <dependency>
+            <groupId>org.evolve</groupId>
+            <artifactId>evolvehub-domain-rbac</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

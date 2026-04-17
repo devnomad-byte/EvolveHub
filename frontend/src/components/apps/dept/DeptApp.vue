@@ -143,6 +143,37 @@
             </tbody>
           </table>
         </div>
+
+        <!-- 关联资源 -->
+        <div v-if="selectedDeptId !== null" class="resource-section">
+          <div class="resource-header">关联资源</div>
+          <div class="resource-cards">
+            <div class="resource-card">
+              <div class="resource-title">MCP 服务</div>
+              <div class="resource-count">{{ deptMcps.length }}</div>
+              <div v-if="deptMcps.length > 0" class="resource-list">
+                <span v-for="m in deptMcps" :key="m.id" class="resource-tag mcp">{{ m.name }}</span>
+              </div>
+              <div v-else class="resource-empty">暂无</div>
+            </div>
+            <div class="resource-card">
+              <div class="resource-title">技能</div>
+              <div class="resource-count">{{ deptSkills.length }}</div>
+              <div v-if="deptSkills.length > 0" class="resource-list">
+                <span v-for="s in deptSkills" :key="s.id" class="resource-tag skill">{{ s.name }}</span>
+              </div>
+              <div v-else class="resource-empty">暂无</div>
+            </div>
+            <div class="resource-card">
+              <div class="resource-title">模型</div>
+              <div class="resource-count">{{ deptModels.length }}</div>
+              <div v-if="deptModels.length > 0" class="resource-list">
+                <span v-for="m in deptModels" :key="m.id" class="resource-tag model">{{ m.name }}</span>
+              </div>
+              <div v-else class="resource-empty">暂无</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -207,10 +238,15 @@ import { ref, computed, onMounted } from 'vue'
 import { Building } from 'lucide-vue-next'
 import { adminDeptApi, type DeptInfo } from '../../../api/adminDept'
 import { deptApi, type DeptInfo as DeptTreeInfo } from '../../../api/dept'
+import { adminMcpConfigApi, type McpConfigInfo } from '../../../api/adminMcpConfig'
+import { adminSkillConfigApi, type SkillConfigInfo } from '../../../api/adminSkillConfig'
+import { adminModelConfigApi, type ModelConfigInfo } from '../../../api/adminModelConfig'
 import { useDesktopStore } from '../../../stores/desktop'
+import { useConfirm } from '@/composables/useConfirm'
 import DeptTreeNode from './DeptTreeNode.vue'
 
 const desktop = useDesktopStore()
+const { confirm } = useConfirm()
 
 // ==================== Data ====================
 const deptList = ref<DeptInfo[]>([])
@@ -218,6 +254,11 @@ const deptTree = ref<DeptTreeInfo[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
 const selectedDeptId = ref<number | null>(null)
+
+// 资源数据
+const allMcps = ref<McpConfigInfo[]>([])
+const allSkills = ref<SkillConfigInfo[]>([])
+const allModels = ref<ModelConfigInfo[]>([])
 
 // ==================== Modal State ====================
 const showModal = ref(false)
@@ -251,8 +292,24 @@ const filteredDepts = computed(() => {
   return list
 })
 
+// 选中部门的关联资源
+const deptMcps = computed(() => {
+  if (!selectedDeptId.value) return []
+  return allMcps.value.filter(m => m.scope === 'DEPT' && m.deptId === selectedDeptId.value)
+})
+
+const deptSkills = computed(() => {
+  if (!selectedDeptId.value) return []
+  return allSkills.value.filter(s => s.scope === 'DEPT' && s.deptId === selectedDeptId.value)
+})
+
+const deptModels = computed(() => {
+  if (!selectedDeptId.value) return []
+  return allModels.value.filter(m => m.scope === 'DEPT' && m.deptId === selectedDeptId.value)
+})
+
 // ==================== Helpers ====================
-function getDepth(deptId: number): number {
+function getDepth(_deptId: number): number {
   // approximate depth by counting ancestors (simplified)
   return 0
 }
@@ -277,6 +334,21 @@ async function loadDeptList() {
     deptList.value = res.records
   } catch (e: any) {
     desktop.addToast('加载部门列表失败', 'error')
+  }
+}
+
+async function loadResources() {
+  try {
+    const [mcpRes, skillRes, modelRes] = await Promise.all([
+      adminMcpConfigApi.list(1, 1000),
+      adminSkillConfigApi.list(1, 1000),
+      adminModelConfigApi.list(1, 1000)
+    ])
+    allMcps.value = mcpRes.records || []
+    allSkills.value = skillRes.records || []
+    allModels.value = modelRes.records || []
+  } catch {
+    // 静默失败，资源列表是辅助信息
   }
 }
 
@@ -346,7 +418,7 @@ async function handleSubmit() {
 }
 
 async function handleDelete(dept: DeptInfo) {
-  if (!confirm(`确定要删除部门「${dept.deptName}」吗？`)) return
+  if (!await confirm('删除部门', `确定要删除部门「${dept.deptName}」吗？此操作不可恢复。`)) return
   try {
     await adminDeptApi.delete(dept.id)
     desktop.addToast('部门已删除', 'success')
@@ -359,7 +431,7 @@ async function handleDelete(dept: DeptInfo) {
 // ==================== Init ====================
 onMounted(async () => {
   isLoading.value = true
-  await Promise.all([loadDeptTree(), loadDeptList()])
+  await Promise.all([loadDeptTree(), loadDeptList(), loadResources()])
   isLoading.value = false
 })
 </script>
@@ -520,7 +592,7 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .table-toolbar {
@@ -589,6 +661,7 @@ onMounted(async () => {
 /* ========== Table ========== */
 .table-container {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px 20px;
 }
@@ -920,5 +993,78 @@ onMounted(async () => {
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+}
+
+/* ========== Resource Section ========== */
+.resource-section {
+  border-top: 1px solid var(--border-subtle);
+  padding: 16px 20px;
+  flex-shrink: 0;
+}
+
+.resource-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.resource-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.resource-card {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+}
+
+.resource-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.resource-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.resource-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.resource-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.resource-tag.mcp {
+  background: rgba(10, 132, 255, 0.12);
+  color: #0A84FF;
+}
+
+.resource-tag.skill {
+  background: rgba(191, 90, 242, 0.12);
+  color: #BF5AF2;
+}
+
+.resource-tag.model {
+  background: rgba(48, 209, 88, 0.12);
+  color: #30D158;
+}
+
+.resource-empty {
+  font-size: 11px;
+  color: var(--text-disabled);
 }
 </style>

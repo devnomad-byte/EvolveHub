@@ -76,4 +76,11 @@ public class Result<T> implements Serializable {
     public static <T> Result<T> fail(int code, String message) {
         return new Result<>(code, message, null);
     }
+
+    /**
+     * 失败（携带数据，用于安全扫描等需要返回详细信息的场景）
+     */
+    public static <T> Result<T> fail(int code, String message, T data) {
+        return new Result<>(code, message, data);
+    }
 }

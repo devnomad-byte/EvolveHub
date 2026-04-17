@@ -19,7 +19,7 @@ import java.util.List;
 public class UserRolesInfra extends ServiceImpl<UserRolesInfra.UserRolesMapper, UserRolesEntity> {
 
     @Mapper
-    interface UserRolesMapper extends BaseMapper<UserRolesEntity> {}
+    public interface UserRolesMapper extends BaseMapper<UserRolesEntity> {}
 
     public UserRolesEntity getByUserIdAndRoleId(Long userId, Long roleId) {
         return this.lambdaQuery()

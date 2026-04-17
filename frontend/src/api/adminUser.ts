@@ -31,7 +31,7 @@ export interface CreateUserRequest {
   email?: string
   phone?: string
   deptId: number
-  roleId: number
+  roleIds: number[]
   status?: number
 }
 
@@ -43,7 +43,7 @@ export interface UpdateUserRequest {
   phone?: string
   avatar?: string
   deptId?: number
-  roleId?: number
+  roleIds?: number[]
   status?: number
 }
 

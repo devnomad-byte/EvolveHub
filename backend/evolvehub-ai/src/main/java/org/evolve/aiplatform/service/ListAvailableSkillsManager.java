@@ -3,16 +3,22 @@ package org.evolve.aiplatform.service;
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.annotation.Resource;
 import org.evolve.common.base.BaseManager;
+import org.evolve.domain.rbac.infra.DeptInfra;
+import org.evolve.domain.rbac.infra.UsersInfra;
+import org.evolve.domain.rbac.model.UsersEntity;
 import org.evolve.domain.resource.infra.ResourceGrantInfra;
 import org.evolve.domain.resource.infra.SkillConfigInfra;
 import org.evolve.domain.resource.model.SkillConfigEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 查询当前用户可用的技能列表（自己的 USER 技能 + 被授权的 SYSTEM 技能）
+ * 查询当前用户可用的技能列表
+ * <p>
+ * 可见性规则同 ListAvailableMcpsManager：
+ * SYSTEM 全部 + DEPT 祖先链 + GRANT 授权
+ * </p>
  *
  * @author zhao
  */
@@ -25,6 +31,12 @@ public class ListAvailableSkillsManager extends BaseManager<Void, List<SkillConf
     @Resource
     private ResourceGrantInfra resourceGrantInfra;
 
+    @Resource
+    private UsersInfra usersInfra;
+
+    @Resource
+    private DeptInfra deptInfra;
+
     @Override
     protected void check(Void request) {
     }
@@ -32,12 +44,13 @@ public class ListAvailableSkillsManager extends BaseManager<Void, List<SkillConf
     @Override
     protected List<SkillConfigEntity> process(Void request) {
         Long currentUserId = StpUtil.getLoginIdAsLong();
-        List<SkillConfigEntity> userSkills = skillConfigInfra.listPageByOwnerId(currentUserId, 1, 1000).getRecords();
-        List<Long> grantedIds = resourceGrantInfra.listGrantedResourceIds(currentUserId, "SKILL");
-        List<SkillConfigEntity> systemSkills = skillConfigInfra.listByIdsAndScope(grantedIds);
-        List<SkillConfigEntity> result = new ArrayList<>(userSkills.size() + systemSkills.size());
-        result.addAll(userSkills);
-        result.addAll(systemSkills);
-        return result;
+        UsersEntity user = usersInfra.getUserById(currentUserId);
+        Long deptId = user != null ? user.getDeptId() : null;
+
+        List<Long> ancestorDeptIds = deptInfra.getAncestorDeptIds(deptId);
+        List<Long> grantResourceIds = resourceGrantInfra.listVisibleGrantedResourceIds(
+                currentUserId, deptId, "SKILL");
+
+        return skillConfigInfra.listVisibleSkills(ancestorDeptIds, grantResourceIds);
     }
 }

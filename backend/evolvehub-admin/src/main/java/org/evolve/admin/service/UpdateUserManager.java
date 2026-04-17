@@ -50,7 +50,7 @@ public class UpdateUserManager extends BaseManager<UpdateUserRequest, UserRespon
         // 不能修改自己的状态和角色（安全考虑）
         Long currentUserId = StpUtil.getLoginIdAsLong();
         if (currentUserId.equals(request.id())) {
-            if (request.status() != null || request.roleId() != null) {
+            if (request.status() != null || request.roleIds() != null) {
                 throw new BusinessException(ResultCode.BUSINESS_ERROR, "不能修改自己的状态或角色");
             }
         }
@@ -64,10 +64,12 @@ public class UpdateUserManager extends BaseManager<UpdateUserRequest, UserRespon
         }
 
         // 如果要修改角色，检查角色是否存在
-        if (request.roleId() != null) {
-            RolesEntity role = rolesInfra.getRoleById(request.roleId());
-            if (role == null) {
-                throw new BusinessException(ResultCode.DATA_NOT_EXIST, "角色不存在");
+        if (request.roleIds() != null) {
+            for (Long roleId : request.roleIds()) {
+                RolesEntity role = rolesInfra.getRoleById(roleId);
+                if (role == null) {
+                    throw new BusinessException(ResultCode.DATA_NOT_EXIST, "角色不存在: " + roleId);
+                }
             }
         }
     }
@@ -91,15 +93,17 @@ public class UpdateUserManager extends BaseManager<UpdateUserRequest, UserRespon
         usersInfra.updateUser(user);
 
         // 如果要更新角色
-        if (request.roleId() != null) {
+        if (request.roleIds() != null) {
             // 删除旧角色
             userRolesInfra.removeByUserId(user.getId());
 
-            // 分配新角色
-            UserRolesEntity userRole = new UserRolesEntity();
-            userRole.setUserId(user.getId());
-            userRole.setRoleId(request.roleId());
-            userRolesInfra.assignRole(userRole);
+            // 批量分配新角色
+            for (Long roleId : request.roleIds()) {
+                UserRolesEntity userRole = new UserRolesEntity();
+                userRole.setUserId(user.getId());
+                userRole.setRoleId(roleId);
+                userRolesInfra.assignRole(userRole);
+            }
 
             // 如果禁用了用户，强制下线
             if (request.status() != null && request.status() == 0) {
@@ -115,17 +119,12 @@ public class UpdateUserManager extends BaseManager<UpdateUserRequest, UserRespon
         DeptEntity dept = deptInfra.getDeptById(user.getDeptId());
         String deptName = dept != null ? dept.getDeptName() : null;
 
-        // 查询角色信息
-        UserRolesEntity userRole = userRolesInfra.listByUserId(user.getId()).stream().findFirst().orElse(null);
-        RolesEntity role = null;
-        if (userRole != null) {
-            role = rolesInfra.getRoleById(userRole.getRoleId());
-        }
-
-        UserResponse.RoleInfo roleInfo = null;
-        if (role != null) {
-            roleInfo = new UserResponse.RoleInfo(role.getId(), role.getRoleName(), role.getRoleCode());
-        }
+        // 查询所有角色
+        List<UserRolesEntity> userRoles = userRolesInfra.listByUserId(user.getId());
+        List<UserResponse.RoleInfo> roles = userRoles.stream().map(ur -> {
+            RolesEntity role = rolesInfra.getRoleById(ur.getRoleId());
+            return role != null ? new UserResponse.RoleInfo(role.getId(), role.getRoleName(), role.getRoleCode()) : null;
+        }).filter(java.util.Objects::nonNull).toList();
 
         return new UserResponse(
                 user.getId(),
@@ -136,7 +135,7 @@ public class UpdateUserManager extends BaseManager<UpdateUserRequest, UserRespon
                 user.getAvatar(),
                 user.getDeptId(),
                 deptName,
-                roleInfo != null ? List.of(roleInfo) : List.of(),
+                roles,
                 user.getStatus(),
                 user.getCreateTime(),
                 user.getUpdateTime()

@@ -7,6 +7,7 @@ import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.admin.request.CreateModelConfigRequest;
 import org.evolve.admin.response.CreateModelConfigResponse;
 import org.evolve.common.base.BaseManager;
+import cn.dev33.satoken.stp.StpUtil;
 import org.evolve.common.web.exception.BusinessException;
 import org.evolve.common.web.response.ResultCode;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,8 @@ public class CreateModelConfigManager extends BaseManager<CreateModelConfigReque
 
     @Override
     protected CreateModelConfigResponse process(CreateModelConfigRequest request) {
+        String scope = request.scope() != null ? request.scope() : "SYSTEM";
+
         ModelConfigEntity entity = new ModelConfigEntity();
         entity.setName(request.name());
         entity.setProvider(request.provider());
@@ -61,8 +64,9 @@ public class CreateModelConfigManager extends BaseManager<CreateModelConfigReque
         entity.setBaseUrl(request.baseUrl());
         entity.setEnabled(request.enabled());
         entity.setModelType(request.modelType());
-        entity.setScope("SYSTEM");
-        entity.setOwnerId(null);
+        entity.setScope(scope);
+        entity.setDeptId("DEPT".equals(scope) ? request.deptId() : null);
+        entity.setOwnerId("USER".equals(scope) ? StpUtil.getLoginIdAsLong() : null);
         modelConfigInfra.createModelConfig(entity);
         return new CreateModelConfigResponse(entity.getId());
     }

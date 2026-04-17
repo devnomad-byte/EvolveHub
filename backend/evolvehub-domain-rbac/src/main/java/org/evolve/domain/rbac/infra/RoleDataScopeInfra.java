@@ -19,7 +19,7 @@ import java.util.List;
 public class RoleDataScopeInfra extends ServiceImpl<RoleDataScopeInfra.RoleDataScopeMapper, RoleDataScopeEntity> {
 
     @Mapper
-    interface RoleDataScopeMapper extends BaseMapper<RoleDataScopeEntity> {}
+    public interface RoleDataScopeMapper extends BaseMapper<RoleDataScopeEntity> {}
 
     public RoleDataScopeEntity getByRoleIdAndDeptId(Long roleId, Long deptId) {
         return this.lambdaQuery()

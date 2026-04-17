@@ -77,7 +77,7 @@
     <div class="user-sidebar">
       <!-- User avatar at top -->
       <div class="sidebar-user">
-        <div class="sidebar-user-avatar">{{ desktop.currentUser.avatar }}</div>
+        <div class="sidebar-user-avatar">{{ safeUserInfo.avatar }}</div>
       </div>
 
       <div class="sidebar-nav">
@@ -180,7 +180,7 @@
             <div class="profile-avatar-section">
               <div class="profile-avatar">{{ safeUserInfo.avatar }}</div>
               <div class="profile-name">{{ safeUserInfo.displayName }}</div>
-              <div class="profile-role">{{ safeUserInfo.role === 'SUPER_ADMIN' ? '超级管理员' : '普通用户' }}</div>
+              <div class="profile-role">{{ safeUserInfo.roles?.includes('SUPER_ADMIN') ? '超级管理员' : safeUserInfo.roles?.includes('ADMIN') ? '管理员' : '普通用户' }}</div>
               <div class="profile-dept">{{ safeUserInfo.deptName }}</div>
             </div>
             <div class="profile-section">
@@ -210,6 +210,7 @@ import { MessageSquare, BookOpen, Zap, Settings, LogOut, Bell, User } from 'luci
 import { gsap } from 'gsap'
 import { useWindowStore } from '../../stores/window'
 import { useDesktopStore } from '../../stores/desktop'
+import { useAppearanceStore } from '@/composables/useAppearance'
 import type { AppId } from '../../types'
 import DesktopPet from './DesktopPet.vue'
 
@@ -223,8 +224,9 @@ const safeUserInfo = computed(() => {
       id: 0,
       username: '',
       displayName: '用户',
-      role: 'USER',
+      roles: ['USER'],
       deptName: '',
+      email: '',
       avatar: '👤'
     }
   }
@@ -306,7 +308,7 @@ const userProfileMd = computed(() => {
       </div>
     `
   }
-  return profileData[String(desktop.currentUser.id)] || profileData['2']
+  return profileData[String(safeUserInfo.value.id)] || profileData['2']
 })
 
 // Particle positions

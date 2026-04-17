@@ -20,7 +20,7 @@ import java.util.List;
 public class ResourceGrantInfra extends ServiceImpl<ResourceGrantInfra.ResourceGrantMapper, ResourceGrantEntity> {
 
     @Mapper
-    interface ResourceGrantMapper extends BaseMapper<ResourceGrantEntity> {}
+    public interface ResourceGrantMapper extends BaseMapper<ResourceGrantEntity> {}
 
     /**
      * 检查用户是否已被授权某个资源
@@ -102,5 +102,77 @@ public class ResourceGrantInfra extends ServiceImpl<ResourceGrantInfra.ResourceG
         return this.lambdaQuery()
                 .eq(ResourceGrantEntity::getUserId, userId)
                 .page(new Page<>(pageNum, pageSize));
+    }
+
+    /**
+     * 按资源查询所有授权记录
+     *
+     * @param resourceType 资源类型（MCP / SKILL / MODEL）
+     * @param resourceId   资源 ID
+     * @return 授权记录列表
+     */
+    public List<ResourceGrantEntity> listByResource(String resourceType, Long resourceId) {
+        return this.lambdaQuery()
+                .eq(ResourceGrantEntity::getResourceType, resourceType)
+                .eq(ResourceGrantEntity::getResourceId, resourceId)
+                .list();
+    }
+
+    /**
+     * 查询用户被授权的某类资源 ID 列表（包含用户直接授权 + 用户所属部门的授权）
+     *
+     * @param userId       用户 ID
+     * @param deptId       用户部门 ID（可为 null）
+     * @param resourceType 资源类型
+     * @return 资源 ID 列表（去重）
+     */
+    public List<Long> listVisibleGrantedResourceIds(Long userId, Long deptId, String resourceType) {
+        return this.lambdaQuery()
+                .eq(ResourceGrantEntity::getResourceType, resourceType)
+                .and(wrapper -> {
+                    wrapper.eq(ResourceGrantEntity::getUserId, userId);
+                    if (deptId != null) {
+                        wrapper.or().eq(ResourceGrantEntity::getDeptId, deptId);
+                    }
+                })
+                .list()
+                .stream()
+                .map(ResourceGrantEntity::getResourceId)
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * 按部门查询授权的资源 ID 列表
+     *
+     * @param deptId       部门 ID
+     * @param resourceType 资源类型
+     * @return 资源 ID 列表
+     */
+    public List<Long> listByDept(Long deptId, String resourceType) {
+        return this.lambdaQuery()
+                .eq(ResourceGrantEntity::getDeptId, deptId)
+                .eq(ResourceGrantEntity::getResourceType, resourceType)
+                .list()
+                .stream()
+                .map(ResourceGrantEntity::getResourceId)
+                .toList();
+    }
+
+    /**
+     * 按角色查询授权的资源 ID 列表
+     *
+     * @param roleId       角色 ID
+     * @param resourceType 资源类型
+     * @return 资源 ID 列表
+     */
+    public List<Long> listByRole(Long roleId, String resourceType) {
+        return this.lambdaQuery()
+                .eq(ResourceGrantEntity::getRoleId, roleId)
+                .eq(ResourceGrantEntity::getResourceType, resourceType)
+                .list()
+                .stream()
+                .map(ResourceGrantEntity::getResourceId)
+                .toList();
     }
 }

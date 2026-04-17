@@ -1,5 +1,6 @@
 package org.evolve.aiplatform.utils;
 
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.evolve.common.config.S3Properties;
@@ -26,6 +27,8 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * MinIO 场景下的 S3 工具类。
@@ -173,5 +176,40 @@ public class S3Util {
         } catch (Exception e) {
             throw new BusinessException(ResultCode.FAIL, "创建 MinIO Bucket 失败: " + bucket);
         }
+    }
+
+    /**
+     * 列出指定前缀下的所有对象
+     */
+    public List<S3ObjectSummary> listObjects(String prefix) {
+        try {
+            List<S3ObjectSummary> result = new ArrayList<>();
+            software.amazon.awssdk.services.s3.model.ListObjectsV2Request request = software.amazon.awssdk.services.s3.model.ListObjectsV2Request.builder()
+                    .bucket(properties.getBucket())
+                    .prefix(prefix)
+                    .build();
+            software.amazon.awssdk.services.s3.model.ListObjectsV2Response response = s3Client.listObjectsV2(request);
+            for (software.amazon.awssdk.services.s3.model.S3Object s3Object : response.contents()) {
+                S3ObjectSummary summary = new S3ObjectSummary();
+                summary.setKey(s3Object.key());
+                summary.setSize(s3Object.size());
+                summary.setLastModified(s3Object.lastModified() != null ? s3Object.lastModified().toString() : null);
+                result.add(summary);
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("列出 S3 对象失败: prefix={}", prefix, e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * S3 对象摘要
+     */
+    @Data
+    public static class S3ObjectSummary {
+        private String key;
+        private long size;
+        private String lastModified;
     }
 }

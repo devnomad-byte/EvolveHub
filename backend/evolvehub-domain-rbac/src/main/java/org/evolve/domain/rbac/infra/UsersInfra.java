@@ -22,7 +22,7 @@ import org.springframework.stereotype.Repository;
 public class UsersInfra extends ServiceImpl<UsersInfra.UsersMapper, UsersEntity> {
 
     @Mapper
-    interface UsersMapper extends BaseMapper<UsersEntity> {}
+    public interface UsersMapper extends BaseMapper<UsersEntity> {}
 
     // ==================== 单条查询 ====================
 

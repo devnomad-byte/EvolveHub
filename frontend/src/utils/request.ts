@@ -35,6 +35,11 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response) => {
+    // Blob 类型直接返回（用于文件下载）
+    if (response.data instanceof Blob) {
+      return response.data
+    }
+
     const res = response.data as ApiResponse
 
     // 如果 code 不是 200，认为是错误
@@ -46,7 +51,10 @@ request.interceptors.response.use(
         handleUnauthorized()
       }
 
-      return Promise.reject(new Error(res.message || '请求失败'))
+      const error: any = new Error(res.message || '请求失败')
+      error.code = res.code
+      error.data = res.data
+      return Promise.reject(error)
     }
 
     return res.data

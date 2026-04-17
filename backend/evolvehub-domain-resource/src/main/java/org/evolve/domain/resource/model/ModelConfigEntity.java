@@ -48,12 +48,17 @@ public class ModelConfigEntity extends BaseEntity {
     private String modelType;
 
     /**
-     * 资源范围：SYSTEM-系统级 USER-用户级
+     * 资源范围：SYSTEM-系统级 DEPT-部门级 USER-指定用户级
      */
     private String scope;
 
     /**
-     * 资源所有者 ID，scope=SYSTEM 时为 NULL
+     * 部门 ID，scope=DEPT 时必填
+     */
+    private Long deptId;
+
+    /**
+     * 创建者 ID，USER 时记录创建者（可见性由 eh_resource_grant 决定）
      */
     private Long ownerId;
 

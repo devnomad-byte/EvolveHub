@@ -20,7 +20,7 @@ import java.util.List;
 public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMapper, ModelConfigEntity> {
 
     @Mapper
-    interface ModelConfigMapper extends BaseMapper<ModelConfigEntity> {}
+    public interface ModelConfigMapper extends BaseMapper<ModelConfigEntity> {}
 
     public ModelConfigEntity getModelConfigById(Long id) {
         return this.getById(id);
@@ -53,7 +53,7 @@ public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMa
     /**
      * 按 scope 分页查询
      *
-     * @param scope    资源范围（SYSTEM / USER）
+     * @param scope    资源范围（SYSTEM / DEPT / USER）
      * @param pageNum  页码
      * @param pageSize 每页条数
      * @return 分页结果
@@ -61,6 +61,16 @@ public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMa
     public Page<ModelConfigEntity> listPageByScope(String scope, int pageNum, int pageSize) {
         return this.lambdaQuery()
                 .eq(ModelConfigEntity::getScope, scope)
+                .page(new Page<>(pageNum, pageSize));
+    }
+
+    /**
+     * 按部门查询部门级模型
+     */
+    public Page<ModelConfigEntity> listPageByDeptId(Long deptId, int pageNum, int pageSize) {
+        return this.lambdaQuery()
+                .eq(ModelConfigEntity::getScope, "DEPT")
+                .eq(ModelConfigEntity::getDeptId, deptId)
                 .page(new Page<>(pageNum, pageSize));
     }
 
@@ -106,6 +116,35 @@ public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMa
                 .eq(ModelConfigEntity::getScope, "SYSTEM")
                 .eq(ModelConfigEntity::getEnabled, 1)
                 .in(ModelConfigEntity::getId, resourceIds)
+                .list();
+    }
+
+    /**
+     * 查询用户可用的模型
+     * <p>
+     * 可见性规则同 McpConfigInfra.listVisibleMcps
+     * </p>
+     *
+     * @param ancestorDeptIds 用户部门及其所有祖先部门的 ID 集合（含自身部门）
+     * @param grantResourceIds 通过 eh_resource_grant 授权给该用户的资源 ID 列表
+     */
+    public List<ModelConfigEntity> listVisibleModels(List<Long> ancestorDeptIds, List<Long> grantResourceIds) {
+        return this.lambdaQuery()
+                .eq(ModelConfigEntity::getEnabled, 1)
+                .and(w -> {
+                    w.eq(ModelConfigEntity::getScope, "SYSTEM");
+
+                    if (ancestorDeptIds != null && !ancestorDeptIds.isEmpty()) {
+                        w.or(ow -> ow
+                                .eq(ModelConfigEntity::getScope, "DEPT")
+                                .in(ModelConfigEntity::getDeptId, ancestorDeptIds)
+                        );
+                    }
+
+                    if (grantResourceIds != null && !grantResourceIds.isEmpty()) {
+                        w.or(ow -> ow.in(ModelConfigEntity::getId, grantResourceIds));
+                    }
+                })
                 .list();
     }
 }

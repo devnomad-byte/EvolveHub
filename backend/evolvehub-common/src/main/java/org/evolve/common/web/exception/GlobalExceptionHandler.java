@@ -35,6 +35,15 @@ public class GlobalExceptionHandler {
         return Result.fail(e.getCode(), e.getMessage());
     }
 
+    // ==================== 安全扫描异常 ====================
+
+    @ExceptionHandler(SecurityScanException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public Result<Object> handleSecurityScanException(SecurityScanException e, HttpServletRequest request) {
+        log.warn("[安全扫描] {} - 扫描未通过", request.getRequestURI());
+        return Result.fail(4001, "安全扫描未通过", e.getScanData());
+    }
+
     // ==================== 参数校验异常 ====================
 
     /**

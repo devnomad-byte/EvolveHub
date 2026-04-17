@@ -69,6 +69,7 @@ import { useDesktopStore } from '../../stores/desktop'
 import { useAppearanceStore } from '../../composables/useAppearance'
 import { menuApi } from '../../api/menu'
 import type { MenuInfo } from '../../api/menu'
+import type { AppId } from '../../types'
 import MenuBar from './MenuBar.vue'
 import DockBar from './DockBar.vue'
 import DesktopIcon from './DesktopIcon.vue'
@@ -80,7 +81,7 @@ const winStore = useWindowStore()
 const desktop = useDesktopStore()
 const appearance = useAppearanceStore()
 
-const isAdmin = computed(() => desktop.currentUser.role !== 'USER')
+const isAdmin = computed(() => desktop.isAdmin)
 
 const contextMenu = ref({ visible: false, x: 0, y: 0 })
 
@@ -93,16 +94,16 @@ async function loadDesktopIcons() {
     // 拦截器已 unwrap，直接返回 data
     const menus = await menuApi.getMenus()
     // parentId === 0 的为桌面图标
-    desktopIcons.value = (menus || []).filter(menu => menu.parentId === 0 && menu.status === 1)
+    desktopIcons.value = (menus || []).filter(menu => Number(menu.parentId) === 0 && menu.status === 1)
   } catch (e) {
     console.error('Failed to load desktop icons:', e)
   }
 }
 
 // permCode 转 appId（如 'app:chat' -> 'chat'）
-function permCodeToAppId(permCode: string): string {
+function permCodeToAppId(permCode: string): AppId {
   // 移除 'app:' 或 'system:' 前缀
-  return permCode.replace(/^(app|system):/, '')
+  return permCode.replace(/^(app|system):/, '') as AppId
 }
 
 const stars = Array.from({ length: 40 }, (_, i) => ({

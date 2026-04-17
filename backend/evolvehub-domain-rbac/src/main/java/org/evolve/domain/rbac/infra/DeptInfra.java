@@ -8,6 +8,9 @@ import org.evolve.domain.rbac.model.DeptEntity;
 import org.evolve.common.datascope.DataScopeContextHolder;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 部门数据访问层
  * <p>
@@ -22,7 +25,7 @@ import org.springframework.stereotype.Repository;
 public class DeptInfra extends ServiceImpl<DeptInfra.DeptMapper, DeptEntity> {
 
     @Mapper
-    interface DeptMapper extends BaseMapper<DeptEntity> {}
+    public interface DeptMapper extends BaseMapper<DeptEntity> {}
 
     // ==================== 单条查询 ====================
 
@@ -59,6 +62,33 @@ public class DeptInfra extends ServiceImpl<DeptInfra.DeptMapper, DeptEntity> {
 
     public void deleteDept(Long id) {
         this.removeById(id);
+    }
+
+    /**
+     * 获取部门及其所有祖先部门的 ID 列表（含自身）
+     * <p>
+     * 从当前部门出发，沿 parentId 向上遍历直到顶级（parentId=0），
+     * 返回所有途经部门的 ID。
+     * </p>
+     *
+     * @param deptId 起始部门 ID
+     * @return 包含自身及所有祖先部门 ID 的列表，deptId 无效时返回空列表
+     */
+    public List<Long> getAncestorDeptIds(Long deptId) {
+        List<Long> ids = new ArrayList<>();
+        if (deptId == null) {
+            return ids;
+        }
+        Long currentId = deptId;
+        while (currentId != null && currentId > 0) {
+            ids.add(currentId);
+            DeptEntity dept = this.getById(currentId);
+            if (dept == null || dept.getParentId() == null || dept.getParentId() == 0L) {
+                break;
+            }
+            currentId = dept.getParentId();
+        }
+        return ids;
     }
 
     // ==================== 分页 ====================
