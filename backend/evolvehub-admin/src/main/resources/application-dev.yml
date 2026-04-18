@@ -6,7 +6,7 @@ server:
 spring:
   # ----- DataSource (local PostgreSQL, 与 auth 共用同一库) -----
   datasource:
-    url: jdbc:postgresql://localhost:${DB_PORT:5432}/evolve_auth
+    url: jdbc:postgresql://localhost:${DB_PORT:5432}/evolve_hub
     username: postgres
     password: Postgres@2026
     driver-class-name: org.postgresql.Driver
@@ -17,6 +17,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       database: 0
+      password: Redis@2026
 
 
 # ----- S3 (MinIO) -----

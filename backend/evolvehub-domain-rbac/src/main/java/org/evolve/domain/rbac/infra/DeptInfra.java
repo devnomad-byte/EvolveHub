@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 部门数据访问层
+ * 部门数据访问层（RBAC模块）
  * <p>
  * 封装 t_dept 表的所有数据库操作。部门为树形结构，通过 parentId 构建层级关系，
  * 同时作为数据权限的核心维度（用户归属部门 → 角色关联数据范围）。
@@ -87,6 +87,34 @@ public class DeptInfra extends ServiceImpl<DeptInfra.DeptMapper, DeptEntity> {
                 break;
             }
             currentId = dept.getParentId();
+        }
+        return ids;
+    }
+
+    /**
+     * 获取部门及其所有子孙部门的 ID 列表（含自身）
+     * <p>
+     * 从当前部门出发，递归查询所有子部门，返回所有子孙部门的 ID。
+     * 用于 dataScope=2（部门及子部门数据）的场景。
+     * </p>
+     *
+     * @param deptId 起始部门 ID
+     * @return 包含自身及所有子孙部门 ID 的列表，deptId 无效时返回空列表
+     */
+    public List<Long> getDescendantDeptIds(Long deptId) {
+        List<Long> ids = new ArrayList<>();
+        if (deptId == null) {
+            return ids;
+        }
+        // 添加当前部门
+        ids.add(deptId);
+        // 递归查询所有子部门
+        List<DeptEntity> children = this.lambdaQuery()
+                .eq(DeptEntity::getParentId, deptId)
+                .list();
+        for (DeptEntity child : children) {
+            // 递归添加子部门的子孙部门
+            ids.addAll(getDescendantDeptIds(child.getId()));
         }
         return ids;
     }

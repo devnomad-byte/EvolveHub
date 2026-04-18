@@ -1131,3 +1131,337 @@ ALTER TABLE eh_mcp_config ALTER COLUMN args TYPE VARCHAR(1000);
 ALTER TABLE eh_mcp_config ALTER COLUMN env TYPE TEXT;
 
 ALTER TABLE eh_mcp_tool ALTER COLUMN input_schema TYPE TEXT;
+-- ============================================================================
+-- EvolveHub v1.0 - 用户历史对话管理表结构（最终修正版）
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 一、对话会话表 (eh_chat_session)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_chat_session (
+    id                      BIGINT PRIMARY KEY,
+    user_id                 BIGINT       NOT NULL,
+    title                   VARCHAR(200),
+    model_config_id         BIGINT,
+    sys_prompt              TEXT,
+    total_prompt_tokens     INTEGER DEFAULT 0,
+    total_completion_tokens INTEGER DEFAULT 0,
+    total_tokens            INTEGER DEFAULT 0,
+    message_count           INTEGER DEFAULT 0,
+    context_summary         TEXT,
+    dept_id                 BIGINT,
+    create_by               BIGINT,
+    create_time             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted                 INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE eh_chat_session IS 'AI对话会话表';
+COMMENT ON COLUMN eh_chat_session.dept_id IS '部门ID（冗余字段，便于数据权限过滤）';
+COMMENT ON COLUMN eh_chat_session.create_by IS '创建者ID（=user_id，用于data_scope=4本人数据过滤）';
+
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_session_user_id ON eh_chat_session(user_id);
+CREATE INDEX IF NOT EXISTS idx_session_dept_id ON eh_chat_session(dept_id);
+CREATE INDEX IF NOT EXISTS idx_session_create_by ON eh_chat_session(create_by);
+CREATE INDEX IF NOT EXISTS idx_session_create_time ON eh_chat_session(create_time DESC);
+CREATE INDEX IF NOT EXISTS idx_session_update_time ON eh_chat_session(update_time DESC);
+CREATE INDEX IF NOT EXISTS idx_session_deleted ON eh_chat_session(deleted);
+
+-- 外键
+ALTER TABLE eh_chat_session ADD CONSTRAINT fk_session_user
+    FOREIGN KEY (user_id) REFERENCES eh_user(id) ON DELETE CASCADE;
+
+ALTER TABLE eh_chat_session ADD CONSTRAINT fk_session_dept
+    FOREIGN KEY (dept_id) REFERENCES eh_dept(id) ON DELETE SET NULL;
+
+-- ----------------------------------------------------------------------------
+-- 二、对话消息表 (eh_chat_message)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_chat_message (
+    id                BIGINT PRIMARY KEY,
+    session_id        BIGINT       NOT NULL,
+    role              VARCHAR(20)  NOT NULL,
+    content           TEXT,
+    tool_calls        TEXT,
+    tool_call_id      VARCHAR(100),
+    model_name        VARCHAR(100),
+    prompt_tokens     INTEGER DEFAULT 0,
+    completion_tokens INTEGER DEFAULT 0,
+    total_tokens      INTEGER DEFAULT 0,
+    finish_reason     VARCHAR(20),
+    duration_ms       INTEGER,
+    create_by         BIGINT,
+    create_time       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted           INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE eh_chat_message IS 'AI对话消息表';
+
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_message_session_id ON eh_chat_message(session_id);
+CREATE INDEX IF NOT EXISTS idx_message_role ON eh_chat_message(role);
+CREATE INDEX IF NOT EXISTS idx_message_create_time ON eh_chat_message(create_time);
+CREATE INDEX IF NOT EXISTS idx_message_deleted ON eh_chat_message(deleted);
+
+-- 全文搜索索引
+CREATE INDEX IF NOT EXISTS idx_message_content_gin ON eh_chat_message
+    USING gin(to_tsvector('simple', content));
+
+-- 外键
+ALTER TABLE eh_chat_message ADD CONSTRAINT fk_message_session
+    FOREIGN KEY (session_id) REFERENCES eh_chat_session(id) ON DELETE CASCADE;
+
+-- ----------------------------------------------------------------------------
+-- 三、权限数据插入
+-- ----------------------------------------------------------------------------
+
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (28, 0, '对话历史管理', 'app:chat-history', 'MENU', '/app/chat-history', 'MessageSquare', 15, 1, NOW(), NOW(), 'linear-gradient(135deg, #0A84FF, #5E5CE6)', 1200, 700, 900, 500, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (29, 0, '对话历史查看', 'chat-history:list', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (30, 0, '对话历史搜索', 'chat-history:search', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (31, 0, '对话历史导出', 'chat-history:export', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- 全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 28, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 29, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 30, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 31, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 部门负责人（DEPT_HEAD）- 查看和搜索权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 3, 28, NOW(), NOW()),
+    (nextval('seq_role_permission'), 3, 29, NOW(), NOW()),
+    (nextval('seq_role_permission'), 3, 30, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 高层领导（LEADER）- 查看和搜索权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 2, 28, NOW(), NOW()),
+    (nextval('seq_role_permission'), 2, 29, NOW(), NOW()),
+    (nextval('seq_role_permission'), 2, 30, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 四、测试数据
+-- ----------------------------------------------------------------------------
+
+INSERT INTO eh_chat_session (id, user_id, title, model_config_id, sys_prompt, total_prompt_tokens, total_completion_tokens, total_tokens, message_count, dept_id, create_by, create_time, update_time, deleted)
+VALUES
+    (1, 1, '如何使用Spring Boot集成Redis？', 1, '你是一个专业的Java开发助手，擅长Spring Boot相关技术。', 35, 1200, 1235, 8, 1, 1, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 0),
+    (2, 1, 'Vue3组件开发最佳实践', 2, '你是一个前端开发专家，精通Vue3生态系统。', 25, 800, 825, 5, 1, 1, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 0),
+    (3, 1, 'PostgreSQL性能优化建议', 1, '你是一个数据库优化专家，精通PostgreSQL。', 40, 2300, 2340, 12, 1, 1, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days', 0)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO eh_chat_message (id, session_id, role, content, model_name, prompt_tokens, completion_tokens, total_tokens, finish_reason, duration_ms, create_time, deleted)
+VALUES
+    (1, 1, 'user', '如何使用Spring Boot集成Redis？需要配置文件和代码示例。', 'GLM-4-Plus', 35, 0, 35, NULL, NULL, NOW() - INTERVAL '1 day', 0),
+    (2, 1, 'assistant', '# Spring Boot 集成 Redis
+
+## 1. 添加依赖
+
+在 `pom.xml` 中添加：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+## 2. 配置Redis连接
+
+在 `application.yml` 中配置：
+
+```yaml
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    database: 0
+    timeout: 3000ms
+    jedis:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
+```
+
+## 3. 使用RedisTemplate
+
+```java
+@Service
+public class RedisService {
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    public void set(String key, Object value) {
+        redisTemplate.opsForValue().set(key, value);
+    }
+
+    public Object get(String key) {
+        return redisTemplate.opsForValue().get(key);
+    }
+}
+```
+
+这样就可以在Spring Boot中使用Redis了！', 'GLM-4-Plus', 450, 784, 1234, 'stop', 1500, NOW() - INTERVAL '1 day' + INTERVAL '1 second', 0),
+    (3, 1, 'user', '能给我一个完整示例项目吗？包含启动类和配置类', 'GLM-4-Plus', 28, 0, 28, NULL, NULL, NOW() - INTERVAL '1 day' + INTERVAL '2 seconds', 0),
+    (4, 1, 'assistant', '当然！这里是一个完整的Spring Boot Redis示例项目结构：
+
+```
+src/main/java/com/example/redis/
+├── RedisApplication.java          # 启动类
+├── config/
+│   └── RedisConfig.java           # Redis配置
+├── service/
+│   └── RedisService.java          # Redis服务
+└── controller/
+    └── RedisController.java       # 控制器
+```
+
+详细的代码实现可以在GitHub上找到完整项目示例。', 'GLM-4-Plus', 380, 560, 940, 'stop', 1200, NOW() - INTERVAL '1 day' + INTERVAL '3 seconds', 0)
+ON CONFLICT DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 五、用户对话统计视图
+-- ----------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW v_user_chat_stats AS
+SELECT
+    u.id AS user_id,
+    u.username,
+    u.nickname,
+    u.dept_id,
+    d.dept_name,
+    COUNT(s.id) AS session_count,
+    COALESCE(SUM(s.total_tokens), 0) AS total_tokens,
+    COALESCE(SUM(s.message_count), 0) AS total_messages,
+    MAX(s.update_time) AS last_active_time
+FROM eh_user u
+LEFT JOIN eh_chat_session s ON u.id = s.user_id AND s.deleted = 0
+LEFT JOIN eh_dept d ON u.dept_id = d.id
+WHERE u.deleted = 0
+GROUP BY u.id, u.username, u.nickname, u.dept_id, d.dept_name;
+
+COMMENT ON VIEW v_user_chat_stats IS '用户对话统计视图，用于管理员对话历史功能的用户列表展示';
+
+-- ============================================================================
+-- 六、Token消费统计表 (eh_chat_token_usage)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS eh_chat_token_usage (
+    id                BIGINT PRIMARY KEY,
+    user_id           BIGINT       NOT NULL,
+    model_config_id   BIGINT       NOT NULL,
+    usage_date        DATE         NOT NULL,
+    request_count     INTEGER      DEFAULT 0,
+    prompt_tokens     INTEGER      DEFAULT 0,
+    completion_tokens INTEGER      DEFAULT 0,
+    total_tokens      INTEGER      DEFAULT 0,
+    dept_id           BIGINT,
+    create_by         BIGINT,
+    create_time       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    update_time       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    deleted           INTEGER      DEFAULT 0
+);
+
+COMMENT ON TABLE eh_chat_token_usage IS 'Token消费日报表';
+COMMENT ON COLUMN eh_chat_token_usage.user_id IS '用户ID';
+COMMENT ON COLUMN eh_chat_token_usage.model_config_id IS '模型配置ID';
+COMMENT ON COLUMN eh_chat_token_usage.usage_date IS '统计日期';
+COMMENT ON COLUMN eh_chat_token_usage.request_count IS '当日请求次数';
+COMMENT ON COLUMN eh_chat_token_usage.prompt_tokens IS '当日prompt token数';
+COMMENT ON COLUMN eh_chat_token_usage.completion_tokens IS '当日completion token数';
+COMMENT ON COLUMN eh_chat_token_usage.total_tokens IS '当日总token数';
+COMMENT ON COLUMN eh_chat_token_usage.dept_id IS '部门ID（冗余字段，便于数据权限过滤）';
+
+-- 唯一索引：同一用户同一模型同一日期只能有一条记录
+CREATE UNIQUE INDEX IF NOT EXISTS uk_token_usage ON eh_chat_token_usage(user_id, model_config_id, usage_date) WHERE deleted = 0;
+
+-- 查询索引
+CREATE INDEX IF NOT EXISTS idx_token_usage_user_date ON eh_chat_token_usage(user_id, usage_date DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_dept_date ON eh_chat_token_usage(dept_id, usage_date DESC);
+CREATE INDEX IF NOT EXISTS idx_token_usage_create_by ON eh_chat_token_usage(create_by);
+CREATE INDEX IF NOT EXISTS idx_token_usage_deleted ON eh_chat_token_usage(deleted);
+
+-- 外键
+ALTER TABLE eh_chat_token_usage ADD CONSTRAINT fk_token_usage_user
+    FOREIGN KEY (user_id) REFERENCES eh_user(id) ON DELETE CASCADE;
+
+ALTER TABLE eh_chat_token_usage ADD CONSTRAINT fk_token_usage_model
+    FOREIGN KEY (model_config_id) REFERENCES eh_model_config(id) ON DELETE CASCADE;
+
+ALTER TABLE eh_chat_token_usage ADD CONSTRAINT fk_token_usage_dept
+    FOREIGN KEY (dept_id) REFERENCES eh_dept(id) ON DELETE SET NULL;
+
+-- ============================================================================
+-- 七、用量统计菜单权限
+-- ============================================================================
+
+-- 用量统计 MENU
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (32, 0, '用量统计', 'app:token-usage', 'MENU', '/app/token-usage', 'BarChart3', 16, 1, NOW(), NOW(), 'linear-gradient(135deg, #FF9F0A, #FF6B00)', 900, 600, 650, 400, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- 用量统计按钮权限
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (33, 0, '用量统计查看', 'token-usage:records', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (34, 0, '用量统计管理', 'token-usage:admin', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- 用量统计全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 32, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 33, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 34, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 普通管理员（ADMIN）- 对话历史 + 用量统计权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 4, 28, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 29, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 30, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 32, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 33, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 34, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 高层领导（LEADER）- 用量统计查看
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 2, 32, NOW(), NOW()),
+    (nextval('seq_role_permission'), 2, 33, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 部门负责人（DEPT_HEAD）- 用量统计查看
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 3, 32, NOW(), NOW()),
+    (nextval('seq_role_permission'), 3, 33, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ============================================================================
+-- 执行完成！现在实体类和数据库表已完全对齐
+-- ============================================================================

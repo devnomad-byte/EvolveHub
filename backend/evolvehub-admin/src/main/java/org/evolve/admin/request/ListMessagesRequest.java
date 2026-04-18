@@ -1,4 +1,4 @@
-package org.evolve.aiplatform.request;
+package org.evolve.admin.request;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
