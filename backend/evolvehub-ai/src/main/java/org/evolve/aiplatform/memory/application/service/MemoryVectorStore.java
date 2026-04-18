@@ -23,7 +23,7 @@ public interface MemoryVectorStore {
      * @author TellyJiang
      * @since 2026-04-15
      */
-    List<MemoryVectorHitDTO> search(Long userId, String query, Integer topK);
+    List<MemoryVectorHitDTO> search(Long userId, Long deptId, String query, Integer topK);
 
     /**
      * 保存向量记忆
@@ -40,8 +40,8 @@ public interface MemoryVectorStore {
      * @author TellyJiang
      * @since 2026-04-15
      */
-    String save(Long userId, Long deptId, Long sessionId, String content, BigDecimal importance,
-                String memoryKind, Integer roundStartNo, Integer roundEndNo);
+    String save(Long userId, Long deptId, Long sessionId, String memoryKey, String memoryType, String content,
+                BigDecimal importance, String memoryKind, Integer roundStartNo, Integer roundEndNo);
 
     /**
      * 判断是否存在高相似记忆

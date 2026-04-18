@@ -950,8 +950,9 @@ function skillGradient(type: string | undefined) {
   return gradients[type || ''] || 'linear-gradient(135deg, #667eea, #764ba2)'
 }
 
-function parseTags(tags: string | undefined) {
+function parseTags(tags: string[] | string | undefined) {
   if (!tags) return []
+  if (Array.isArray(tags)) return tags
   try {
     return JSON.parse(tags)
   } catch {

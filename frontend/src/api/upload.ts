@@ -98,7 +98,7 @@ export async function uploadMcpZip(
     // 发送请求
     console.log('🚀 开始上传:', url)
     xhr.open('POST', url)
-    xhr.setRequestHeader('satoken', localStorage.getItem('token') || '')
+    xhr.setRequestHeader('Authorization', localStorage.getItem('token') || '')
     xhr.send(formData)
   })
 }

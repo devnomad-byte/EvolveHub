@@ -2,8 +2,10 @@ package org.evolve.aiplatform.memory.application.service.impl;
 
 import jakarta.annotation.Resource;
 import org.evolve.aiplatform.memory.application.service.MemoryExtractionService;
+import org.evolve.aiplatform.memory.application.service.MemoryProfileService;
 import org.evolve.aiplatform.memory.application.service.MemoryStructuredService;
 import org.evolve.aiplatform.memory.application.service.MemoryVectorService;
+import org.evolve.aiplatform.memory.domain.bean.dto.MemoryProfileDTO;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryExtractionRequestDTO;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryExtractionResultDTO;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryStructuredItemDTO;
@@ -40,6 +42,9 @@ class MemoryExtractionServiceImpl implements MemoryExtractionService {
 
     @Resource(name = "memoryVectorServiceImpl")
     private MemoryVectorService memoryVectorService;
+
+    @Resource(name = "memoryProfileServiceImpl")
+    private MemoryProfileService memoryProfileService;
 
     @Resource
     private MemoryExtractionAlgorithm memoryExtractionAlgorithm;
@@ -91,6 +96,17 @@ class MemoryExtractionServiceImpl implements MemoryExtractionService {
     }
 
     private MemoryStructuredItemDTO persistExtractedItem(MemoryExtractionRequestDTO request, MemoryStructuredItemDTO item) {
+        MemoryStructuredItemDTO normalizedItem = normalizeExtractedItem(request, item);
+        syncProfileProjectionIfNeeded(request, normalizedItem);
+        try {
+            memoryVectorService.saveMemoryVector(normalizedItem);
+            return memoryStructuredService.upsertMemoryStructuredItem(normalizedItem);
+        } catch (Exception exception) {
+            return memoryStructuredService.upsertMemoryStructuredItem(normalizedItem);
+        }
+    }
+
+    private MemoryStructuredItemDTO normalizeExtractedItem(MemoryExtractionRequestDTO request, MemoryStructuredItemDTO item) {
         MemoryStructuredItemDTO normalizedItem = new MemoryStructuredItemDTO(
                 request.getUserId(),
                 item.getMemoryKey() == null || item.getMemoryKey().isBlank()
@@ -102,18 +118,32 @@ class MemoryExtractionServiceImpl implements MemoryExtractionService {
                 item.getContent(),
                 item.getImportance()
         );
-        try {
-            MemoryStructuredItemDTO vectorItem = memoryVectorService.saveConversationMemory(
-                    request.getUserId(),
-                    request.getSessionId(),
-                    normalizedItem.getContent(),
-                    normalizedItem.getImportance()
-            );
-            memoryStructuredService.upsertMemoryStructuredItem(normalizedItem);
-            return vectorItem;
-        } catch (Exception exception) {
-            return memoryStructuredService.upsertMemoryStructuredItem(normalizedItem);
+        if (normalizedItem.getMemoryKey() == null || normalizedItem.getMemoryKey().isBlank()) {
+            normalizedItem.setMemoryKey(buildMemoryKey(request.getSessionId(), normalizedItem.getContent()));
         }
+        return normalizedItem;
+    }
+
+    private void syncProfileProjectionIfNeeded(MemoryExtractionRequestDTO request, MemoryStructuredItemDTO item) {
+        if (request.getUserId() == null || item.getMemoryKey() == null) {
+            return;
+        }
+        if (!item.getMemoryKey().startsWith("profile.")) {
+            return;
+        }
+        MemoryProfileDTO profile = new MemoryProfileDTO();
+        profile.setUserId(request.getUserId());
+        switch (item.getMemoryKey()) {
+            case "profile.name" -> profile.setName(item.getContent());
+            case "profile.department" -> profile.setDepartment(item.getContent());
+            case "profile.language" -> profile.setLanguage(item.getContent());
+            case "profile.model" -> profile.setPreferredModel(item.getContent());
+            case "profile.tools" -> profile.setToolPreference(item.getContent());
+            default -> {
+                return;
+            }
+        }
+        memoryProfileService.updateMemoryProfile(profile);
     }
 
     private String buildMemoryKey(Long sessionId, String content) {

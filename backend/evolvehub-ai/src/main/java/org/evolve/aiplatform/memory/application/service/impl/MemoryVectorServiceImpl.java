@@ -5,17 +5,18 @@ import org.evolve.aiplatform.memory.application.service.MemoryVectorService;
 import org.evolve.aiplatform.memory.application.service.MemoryVectorStore;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryStructuredItemDTO;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryVectorHitDTO;
-import org.evolve.aiplatform.memory.domain.bean.entity.AgentMemoryRecordEntity;
+import org.evolve.aiplatform.memory.domain.bean.entity.UserMemoryEntity;
 import org.evolve.aiplatform.memory.domain.bean.vo.MemoryManagedItemVO;
 import org.evolve.aiplatform.memory.domain.bean.vo.MemoryRecallResultVO;
 import org.evolve.aiplatform.memory.domain.constant.MemoryConstants;
 import org.evolve.aiplatform.memory.framework.agentscope.algorithm.MemoryImportanceAlgorithm;
-import org.evolve.aiplatform.memory.infrastructure.repository.AgentMemoryRecordRepository;
+import org.evolve.aiplatform.memory.infrastructure.repository.UserMemoryRepository;
 import org.evolve.common.web.exception.BusinessException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,7 +34,7 @@ import java.util.UUID;
 class MemoryVectorServiceImpl implements MemoryVectorService {
 
     @Resource
-    private AgentMemoryRecordRepository agentMemoryRecordRepository;
+    private UserMemoryRepository userMemoryRepository;
 
     @Resource
     private MemoryImportanceAlgorithm memoryImportanceAlgorithm;
@@ -59,31 +60,28 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
                 item.getUserId(),
                 memoryOperatorContext.getCurrentDeptId(),
                 null,
+                item.getMemoryKey(),
+                mapVectorMemoryType(item.getMemoryType()),
                 item.getContent(),
                 importance,
-                MemoryConstants.MEMORY_KIND_FACT,
+                mapVectorMemoryType(item.getMemoryType()),
                 null,
                 null
         );
-        AgentMemoryRecordEntity entity = new AgentMemoryRecordEntity();
+        UserMemoryEntity entity = new UserMemoryEntity();
         entity.setUserId(item.getUserId());
         entity.setDeptId(memoryOperatorContext.getCurrentDeptId());
-        entity.setSessionId(null);
         entity.setMemoryKey(item.getMemoryKey());
         entity.setMemoryType(item.getMemoryType());
-        entity.setSourceKind(MemoryConstants.MEMORY_SOURCE_KIND_VECTOR);
-        entity.setMemoryKind(MemoryConstants.MEMORY_KIND_FACT);
-        entity.setRole("SYSTEM");
-        entity.setEmbeddingModelId(MemoryConstants.MEMORY_DEFAULT_EMBEDDING_MODEL_ID);
         entity.setVectorDocId(vectorDocId);
-        entity.setExcerpt(item.getContent());
+        entity.setContent(item.getContent());
         entity.setImportance(importance);
-        agentMemoryRecordRepository.saveOrUpdateEntity(entity);
+        userMemoryRepository.saveOrUpdateByUserAndKey(entity);
         return new MemoryStructuredItemDTO(
                 entity.getUserId(),
                 entity.getMemoryKey(),
                 entity.getMemoryType(),
-                entity.getExcerpt(),
+                entity.getContent(),
                 entity.getImportance()
         );
     }
@@ -110,35 +108,34 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
                     normalizeImportance(importance)
             );
         }
+        String memoryKey = buildMemoryKey(sessionId, content);
         String vectorDocId = memoryVectorStore.save(
                 userId,
                 memoryOperatorContext.getCurrentDeptId(),
                 sessionId,
+                memoryKey,
+                MemoryConstants.MEMORY_TYPE_FACT,
                 content,
                 normalizeImportance(importance),
                 MemoryConstants.MEMORY_KIND_FACT,
                 null,
                 null
         );
-        AgentMemoryRecordEntity entity = new AgentMemoryRecordEntity();
+        UserMemoryEntity entity = new UserMemoryEntity();
         entity.setUserId(userId);
         entity.setDeptId(memoryOperatorContext.getCurrentDeptId());
         entity.setSessionId(sessionId == null ? null : String.valueOf(sessionId));
-        entity.setMemoryKey(buildMemoryKey(sessionId, content));
+        entity.setMemoryKey(memoryKey);
         entity.setMemoryType(MemoryConstants.MEMORY_TYPE_FACT);
-        entity.setSourceKind(MemoryConstants.MEMORY_SOURCE_KIND_VECTOR);
-        entity.setMemoryKind(MemoryConstants.MEMORY_KIND_FACT);
-        entity.setRole("SYSTEM");
-        entity.setEmbeddingModelId(MemoryConstants.MEMORY_DEFAULT_EMBEDDING_MODEL_ID);
         entity.setVectorDocId(vectorDocId);
-        entity.setExcerpt(content);
+        entity.setContent(content);
         entity.setImportance(normalizeImportance(importance));
-        agentMemoryRecordRepository.saveOrUpdateEntity(entity);
+        userMemoryRepository.saveOrUpdateByUserAndKey(entity);
         return new MemoryStructuredItemDTO(
                 entity.getUserId(),
                 entity.getMemoryKey(),
                 entity.getMemoryType(),
-                entity.getExcerpt(),
+                entity.getContent(),
                 entity.getImportance()
         );
     }
@@ -150,33 +147,29 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
                 userId,
                 memoryOperatorContext.getCurrentDeptId(),
                 sessionId,
+                buildSummaryKey(sessionId, roundStartNo, roundEndNo),
+                MemoryConstants.MEMORY_TYPE_FACT,
                 content,
                 normalizeImportance(importance),
                 MemoryConstants.MEMORY_KIND_SUMMARY,
                 roundStartNo,
                 roundEndNo
         );
-        AgentMemoryRecordEntity entity = new AgentMemoryRecordEntity();
+        UserMemoryEntity entity = new UserMemoryEntity();
         entity.setUserId(userId);
         entity.setDeptId(memoryOperatorContext.getCurrentDeptId());
         entity.setSessionId(sessionId == null ? null : String.valueOf(sessionId));
         entity.setMemoryKey(buildSummaryKey(sessionId, roundStartNo, roundEndNo));
         entity.setMemoryType(MemoryConstants.MEMORY_TYPE_FACT);
-        entity.setSourceKind(MemoryConstants.MEMORY_SOURCE_KIND_VECTOR);
-        entity.setMemoryKind(MemoryConstants.MEMORY_KIND_SUMMARY);
-        entity.setRole("SYSTEM");
-        entity.setEmbeddingModelId(MemoryConstants.MEMORY_DEFAULT_EMBEDDING_MODEL_ID);
         entity.setVectorDocId(vectorDocId);
-        entity.setExcerpt(content);
+        entity.setContent(content);
         entity.setImportance(normalizeImportance(importance));
-        entity.setRoundStartNo(roundStartNo);
-        entity.setRoundEndNo(roundEndNo);
-        agentMemoryRecordRepository.saveOrUpdateEntity(entity);
+        userMemoryRepository.saveOrUpdateByUserAndKey(entity);
         return new MemoryStructuredItemDTO(
                 entity.getUserId(),
                 entity.getMemoryKey(),
                 entity.getMemoryType(),
-                entity.getExcerpt(),
+                entity.getContent(),
                 entity.getImportance()
         );
     }
@@ -193,7 +186,10 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
      */
     @Override
     public List<MemoryRecallResultVO> recallMemoryVectors(Long userId, String query, Integer topK) {
-        List<MemoryVectorHitDTO> vectorResults = memoryVectorStore.search(userId, query, topK);
+        List<MemoryVectorHitDTO> vectorResults = memoryVectorStore.search(userId, memoryOperatorContext.getCurrentDeptId(), query, topK);
+        if (vectorResults == null || vectorResults.isEmpty()) {
+            return fallbackToStructuredMemories(userId, topK);
+        }
         return vectorResults.stream()
                 .map(result -> mergeWithManagedMetadata(userId, result))
                 .toList();
@@ -209,14 +205,14 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
      */
     @Override
     public List<MemoryManagedItemVO> listManagedMemories(Long userId) {
-        return agentMemoryRecordRepository.listManagedByUserId(userId).stream()
+        return userMemoryRepository.listByUserIdAndType(userId, null).stream()
                 .map(entity -> new MemoryManagedItemVO(
                         entity.getId(),
                         entity.getVectorDocId(),
                         entity.getMemoryKey(),
                         entity.getMemoryType(),
-                        entity.getSourceKind(),
-                        entity.getExcerpt(),
+                        MemoryConstants.MEMORY_SOURCE_KIND_VECTOR,
+                        entity.getContent(),
                         entity.getImportance(),
                         entity.getUpdateTime()
                 ))
@@ -233,18 +229,21 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
      */
     @Override
     public void deleteManagedMemory(Long userId, Long memoryId) {
-        AgentMemoryRecordEntity entity = agentMemoryRecordRepository.getManagedById(userId, memoryId);
+        UserMemoryEntity entity = userMemoryRepository.getById(memoryId);
         if (entity == null) {
+            throw new BusinessException("记忆不存在或无权操作");
+        }
+        if (!userId.equals(entity.getUserId())) {
             throw new BusinessException("记忆不存在或无权操作");
         }
         if (entity.getVectorDocId() != null && !entity.getVectorDocId().isBlank()) {
             memoryVectorStore.delete(entity.getVectorDocId());
         }
-        agentMemoryRecordRepository.removeById(entity.getId());
+        userMemoryRepository.removeById(entity.getId());
     }
 
     private MemoryRecallResultVO mergeWithManagedMetadata(Long userId, MemoryVectorHitDTO vectorResult) {
-        AgentMemoryRecordEntity metadata = agentMemoryRecordRepository.getByVectorDocId(userId, vectorResult.getVectorDocId());
+        UserMemoryEntity metadata = userMemoryRepository.getByVectorDocId(userId, vectorResult.getVectorDocId());
         if (metadata == null) {
             return new MemoryRecallResultVO(
                     vectorResult.getVectorDocId(),
@@ -262,8 +261,8 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
                 vectorResult.getContent(),
                 vectorResult.getScore(),
                 metadata.getImportance() == null ? vectorResult.getImportance() : metadata.getImportance(),
-                metadata.getMemoryKind(),
-                metadata.getRoundEndNo()
+                mapVectorMemoryType(metadata.getMemoryType()),
+                metadata.getRoundEndNo() == null ? vectorResult.getRoundEndNo() : metadata.getRoundEndNo()
         );
     }
 
@@ -280,5 +279,34 @@ class MemoryVectorServiceImpl implements MemoryVectorService {
     private String buildSummaryKey(Long sessionId, Integer roundStartNo, Integer roundEndNo) {
         String sessionPart = sessionId == null ? "global" : String.valueOf(sessionId);
         return sessionPart + "-summary-" + roundStartNo + "-" + roundEndNo;
+    }
+
+    private String mapVectorMemoryType(String memoryType) {
+        if (MemoryConstants.MEMORY_TYPE_TOOL_CONFIG.equals(memoryType)) {
+            return MemoryConstants.MEMORY_TYPE_SKILL;
+        }
+        if (memoryType == null || memoryType.isBlank()) {
+            return MemoryConstants.MEMORY_TYPE_FACT;
+        }
+        return memoryType;
+    }
+
+    private List<MemoryRecallResultVO> fallbackToStructuredMemories(Long userId, Integer topK) {
+        int limit = (topK == null || topK <= 0) ? 5 : topK;
+        return userMemoryRepository.listByUserIdAndType(userId, null).stream()
+                .sorted(Comparator.comparing(UserMemoryEntity::getImportance,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(UserMemoryEntity::getUpdateTime, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(limit)
+                .map(entity -> new MemoryRecallResultVO(
+                        entity.getMemoryKey(),
+                        entity.getMemoryType(),
+                        entity.getContent(),
+                        BigDecimal.ZERO,
+                        entity.getImportance(),
+                        mapVectorMemoryType(entity.getMemoryType()),
+                        entity.getRoundEndNo()
+                ))
+                .toList();
     }
 }

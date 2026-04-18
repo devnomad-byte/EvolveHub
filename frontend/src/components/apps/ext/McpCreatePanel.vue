@@ -69,7 +69,7 @@
               上传中... {{ uploadStatus.progress }}%
             </div>
             <div v-if="uploadStatus.success" class="upload-success">
-              ✅ 上传成功！文件路径: {{ form.packagePath }} ({{ formatSize(selectedFile.size) }})
+              ✅ 上传成功！文件路径: {{ form.packagePath }}<template v-if="selectedFile"> ({{ formatSize(selectedFile.size) }})</template>
             </div>
             <div v-if="uploadStatus.error" class="upload-error">
               ❌ {{ uploadStatus.error }}

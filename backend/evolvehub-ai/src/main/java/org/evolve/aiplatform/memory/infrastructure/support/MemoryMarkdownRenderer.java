@@ -12,6 +12,17 @@ import org.evolve.aiplatform.memory.domain.bean.dto.MemoryProfileDTO;
 public class MemoryMarkdownRenderer {
 
     /**
+     * 默认模板内容
+     */
+    private static final String DEFAULT_TEMPLATE = """
+            # 基本信息
+
+            # 偏好设置
+
+            # 工具设置
+            """;
+
+    /**
      * 渲染默认 Memory 模板
      *
      * @param userId 用户 ID
@@ -20,8 +31,7 @@ public class MemoryMarkdownRenderer {
      * @since 2026-04-11
      */
     public String renderDefaultTemplate(Long userId) {
-        MemoryProfileDTO profile = new MemoryProfileDTO(userId, "", "", "", "", "", "");
-        return render(profile);
+        return DEFAULT_TEMPLATE;
     }
 
     /**

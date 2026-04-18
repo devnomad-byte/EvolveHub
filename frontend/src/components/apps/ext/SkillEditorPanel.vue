@@ -58,7 +58,7 @@
     <div class="editor-statusbar">
       <span>{{ currentFile || 'SKILL.md' }}</span>
       <span v-if="isDirty" class="dirty">● 未保存</span>
-      <button class="btn btn-sm btn-primary" @click="saveContent" :disabled="!isDirty">保存</button>
+      <button class="btn btn-sm btn-primary" @click="() => saveContent()" :disabled="!isDirty">保存</button>
     </div>
 
     <!-- 上传对话框 -->
@@ -122,7 +122,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { RefreshCw, Upload, FolderPlus, Folder, X, FileText, Eye } from 'lucide-vue-next'
 import { marked } from 'marked'
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import * as monaco from 'monaco-editor'
 import 'monaco-editor/esm/vs/editor/editor.all.js'
 import '@/utils/monacoEnv'
 import { getLanguageFromFilename } from '@/utils/monacoLanguages'

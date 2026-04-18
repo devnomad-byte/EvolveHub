@@ -117,7 +117,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useDesktopStore } from '../../stores/desktop'
 import { authApi } from '../../api'
-import type { UserRole } from '../../types'
 
 const desktop = useDesktopStore()
 const passwordInput = ref<HTMLInputElement>()

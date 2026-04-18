@@ -292,7 +292,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h, defineComponent } from 'vue'
+import { ref, computed, onMounted, h, defineComponent, resolveComponent, type Component, type PropType, type VNode } from 'vue'
 import { adminUserApi, type UserInfo as AdminUserInfo } from '../../../api/adminUser'
 import { deptApi, type DeptInfo } from '../../../api/dept'
 import { useDesktopStore } from '../../../stores/desktop'
@@ -300,6 +300,7 @@ import { useConfirm } from '@/composables/useConfirm'
 
 // 类型别名，保持组件内使用 UserInfo
 type UserInfo = AdminUserInfo
+type DeptTreeNode = DeptInfo & { children?: DeptTreeNode[] }
 
 const desktop = useDesktopStore()
 const { confirm } = useConfirm()
@@ -561,9 +562,10 @@ onMounted(async () => {
 
 // ==================== DeptNode Sub-Component ====================
 const DeptNode = defineComponent({
+  name: 'DeptNode',
   props: {
-    dept: { type: Object as () => DeptInfo, required: true },
-    selectedId: { type: Number as () => number | null, default: null },
+    dept: { type: Object as PropType<DeptTreeNode>, required: true },
+    selectedId: { type: Number as PropType<number | null>, default: null },
     depth: { type: Number, default: 0 }
   },
   emits: ['select'],
@@ -571,9 +573,10 @@ const DeptNode = defineComponent({
     const expanded = ref(true)
     const hasChildren = computed(() => (props.dept.children || []).length > 0)
 
-    return () => {
-      const children = props.dept.children || []
+    return (): VNode => {
+      const children = (props.dept.children || []) as DeptTreeNode[]
       const indent = props.depth * 16 + 10
+      const selfComponent = resolveComponent('DeptNode') as string | Component
 
       return h('div', { class: 'tree-branch' }, [
         h('div', {
@@ -592,8 +595,8 @@ const DeptNode = defineComponent({
         ]),
         hasChildren.value && expanded.value
           ? h('div', { class: 'tree-children' },
-              children.map((child: DeptInfo) =>
-                h(DeptNode, {
+              children.map((child: DeptTreeNode) =>
+                h(selfComponent, {
                   key: child.id,
                   dept: child,
                   selectedId: props.selectedId,

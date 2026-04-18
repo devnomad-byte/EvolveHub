@@ -31,11 +31,11 @@ public class DefaultMemoryProfileProjectionAlgorithm implements MemoryProfilePro
         if (profile == null) {
             return items;
         }
-        addPreference(items, profile, "profile_name", profile.getName());
-        addFact(items, profile, "profile_department", profile.getDepartment());
-        addPreference(items, profile, "preferred_language", profile.getLanguage());
-        addPreference(items, profile, "preferred_model", profile.getPreferredModel());
-        addPreference(items, profile, "tool_preference", profile.getToolPreference());
+        addFact(items, profile, "profile.name", profile.getName());
+        addFact(items, profile, "profile.department", profile.getDepartment());
+        addPreference(items, profile, "profile.language", profile.getLanguage());
+        addPreference(items, profile, "profile.model", profile.getPreferredModel());
+        addToolConfig(items, profile, "profile.tools", profile.getToolPreference());
         return items;
     }
 
@@ -58,6 +58,10 @@ public class DefaultMemoryProfileProjectionAlgorithm implements MemoryProfilePro
 
     private void addFact(List<MemoryStructuredItemDTO> items, MemoryProfileDTO profile, String key, String content) {
         addItem(items, profile, key, MemoryConstants.MEMORY_TYPE_FACT, content);
+    }
+
+    private void addToolConfig(List<MemoryStructuredItemDTO> items, MemoryProfileDTO profile, String key, String content) {
+        addItem(items, profile, key, MemoryConstants.MEMORY_TYPE_TOOL_CONFIG, content);
     }
 
     private void addItem(List<MemoryStructuredItemDTO> items,

@@ -2,7 +2,7 @@ package org.evolve.aiplatform.infra.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.evolve.aiplatform.bean.entity.ChatSessionEntity;
+import org.evolve.domain.resource.model.ChatSessionEntity;
 
 /**
  * 对话会话 Mapper
