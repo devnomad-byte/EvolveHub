@@ -37,6 +37,8 @@
         <McpEditorApp v-else-if="windowState.appId === 'mcp-editor'" />
         <McpCreateApp v-else-if="windowState.appId === 'mcp-create'" />
         <SkillEditApp v-else-if="windowState.appId === 'skill-edit'" />
+        <ChatHistoryApp v-else-if="windowState.appId === 'chat-history'" />
+        <TokenUsageApp v-else-if="windowState.appId === 'token-usage'" />
       </div>
 
       <!-- Resize handles -->
@@ -68,6 +70,8 @@ import DesktopIconApp from '../apps/desktopicon/DesktopIconApp.vue'
 import DeptApp from '../apps/dept/DeptApp.vue'
 import RoleApp from '../apps/role/RoleApp.vue'
 import PermissionApp from '../apps/permission/PermissionApp.vue'
+import ChatHistoryApp from '../apps/chatHistory/ChatHistoryApp.vue'
+import TokenUsageApp from '../apps/tokenUsage/TokenUsageApp.vue'
 
 const props = defineProps<{
   windowState: WindowState

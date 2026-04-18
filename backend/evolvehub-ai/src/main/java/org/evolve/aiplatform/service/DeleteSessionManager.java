@@ -2,9 +2,9 @@ package org.evolve.aiplatform.service;
 
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.annotation.Resource;
-import org.evolve.aiplatform.bean.entity.ChatSessionEntity;
-import org.evolve.aiplatform.infra.ChatMessageInfra;
-import org.evolve.aiplatform.infra.ChatSessionInfra;
+import org.evolve.domain.resource.model.ChatSessionEntity;
+import org.evolve.domain.resource.infra.ChatMessageInfra;
+import org.evolve.domain.resource.infra.ChatSessionInfra;
 import org.evolve.common.base.BaseManager;
 import org.evolve.common.web.exception.BusinessException;
 import org.springframework.stereotype.Service;
