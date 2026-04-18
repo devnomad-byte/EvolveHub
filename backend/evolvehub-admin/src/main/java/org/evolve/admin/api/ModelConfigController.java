@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.evolve.admin.request.TestConnectionRequest;
+import org.evolve.admin.response.BatchTestModelConfigResponse;
 import org.evolve.domain.resource.ai.ModelConnectivityTester;
 import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.evolve.admin.request.CreateModelConfigRequest;
@@ -57,6 +58,10 @@ public class ModelConfigController {
     /** 模型连通性测试工具 */
     @Resource
     private ModelConnectivityTester modelConnectivityTester;
+
+    /** 批量测试 SYSTEM 模型连通性 */
+    @Resource
+    private BatchTestModelConfigManager batchTestModelConfigManager;
 
     /**
      * 创建模型配置
@@ -150,5 +155,18 @@ public class ModelConfigController {
             return Result.ok("连通性测试通过");
         }
         return Result.fail("连通性测试失败: " + result.message());
+    }
+
+    /**
+     * 批量测试 SYSTEM 公共模型连通性
+     * <p>
+     * 查询所有 scope=SYSTEM 的模型，逐个测试连通性，
+     * 失败模型自动禁用（enabled=0），返回每个模型的测试结果。
+     * </p>
+     */
+    @SaCheckRole("SUPER_ADMIN")
+    @PostMapping("/batch-test")
+    public Result<BatchTestModelConfigResponse> batchTest() {
+        return Result.ok(batchTestModelConfigManager.execute());
     }
 }

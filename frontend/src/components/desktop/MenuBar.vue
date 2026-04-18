@@ -2,7 +2,7 @@
   <div class="menubar glass">
     <div class="menubar-left">
       <div class="menubar-logo">
-        <div class="logo-icon"></div>
+        <img class="logo-icon" src="/logo.svg" alt="EvolveHub" />
         <span class="logo-text">EvolveHub</span>
       </div>
       <div class="menubar-items">
@@ -130,10 +130,9 @@ onUnmounted(() => {
 }
 
 .logo-icon {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #0A84FF, #5E5CE6);
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .logo-text {

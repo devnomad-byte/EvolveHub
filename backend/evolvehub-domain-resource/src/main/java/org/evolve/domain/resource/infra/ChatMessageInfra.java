@@ -37,6 +37,13 @@ public class ChatMessageInfra extends ServiceImpl<ChatMessageInfra.ChatMessageMa
                 .count();
     }
 
+    public List<ChatMessageEntity> listBySessionId(Long sessionId) {
+        return this.lambdaQuery()
+                .eq(ChatMessageEntity::getSessionId, sessionId)
+                .orderByAsc(ChatMessageEntity::getCreateTime)
+                .list();
+    }
+
     public void deleteBySessionId(Long sessionId) {
         this.lambdaUpdate()
                 .eq(ChatMessageEntity::getSessionId, sessionId)

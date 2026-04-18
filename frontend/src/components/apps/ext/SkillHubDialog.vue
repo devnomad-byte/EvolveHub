@@ -29,17 +29,21 @@
         </div>
 
         <!-- URL 输入模式 (ModelScope 等不支持列表的 Hub) -->
-        <div v-if="selectedHub === 'ModelScope'" class="url-input-mode">
+        <div v-if="selectedHub === 'ModelScope' || selectedHub === 'GitHub'" class="url-input-mode">
           <div class="url-hint">
             <Link :size="16" />
-            <span>请输入 ModelScope 技能 URL，例如：</span>
+            <span>请输入 {{ selectedHub === 'GitHub' ? 'GitHub' : 'ModelScope' }} 技能 URL，例如：</span>
           </div>
-          <div class="url-example">https://modelscope.cn/skills/@owner/skill-name</div>
+          <div class="url-example">{{ selectedHub === 'GitHub'
+              ? 'https://github.com/owner/repo/tree/branch/path'
+              : 'https://modelscope.cn/skills/@owner/skill-name' }}</div>
           <input
             v-model="directUrl"
             type="text"
             class="url-input"
-            placeholder="粘贴 ModelScope 技能 URL..."
+            :placeholder="selectedHub === 'GitHub'
+              ? '粘贴 GitHub 技能目录 URL...'
+              : '粘贴 ModelScope 技能 URL...'"
           />
           <button class="btn btn-primary btn-block" @click="installFromUrl" :disabled="!directUrl">
             安装
@@ -97,13 +101,15 @@
       </div>
     </div>
 
-    <!-- 安全扫描报告 -->
-    <ScanReportDialog
-      :visible="showScanReport"
-      :result="scanResult"
-      @close="showScanReport = false"
-      @force-proceed="handleForceProceedInstall"
-    />
+    <!-- 安全扫描报告 - Teleport 到 body 避免被父级 overflow 裁剪 -->
+    <Teleport to="body">
+      <ScanReportDialog
+        :visible="showScanReport"
+        :result="scanResult"
+        @close="showScanReport = false"
+        @force-proceed="handleForceProceedInstall"
+      />
+    </Teleport>
   </div>
 </template>
 
@@ -121,7 +127,7 @@ const { confirm } = useConfirm()
 
 const emit = defineEmits<{
   close: []
-  installed: [skillId: number]
+  installed: [skillIds: number[]]
 }>()
 
 const keyword = ref('')
@@ -175,7 +181,7 @@ function selectHub(hub: string) {
   keyword.value = ''
   results.value = []
   directUrl.value = ''
-  if (hub !== 'ModelScope') {
+  if (hub !== 'ModelScope' && hub !== 'GitHub') {
     doSearch()
   }
 }
@@ -202,8 +208,8 @@ async function install(item: HubSearchResult) {
   pendingHubName = item.hubName
   pendingBundleUrl = item.bundleUrl
   try {
-    const skillId = await adminSkillHubApi.install(item.hubName, item.bundleUrl)
-    emit('installed', skillId)
+    const skillIds = await adminSkillHubApi.install(item.hubName, item.bundleUrl)
+    emit('installed', skillIds)
     emit('close')
   } catch (e: any) {
     if (e.code === 4001 && e.data) {
@@ -220,13 +226,15 @@ async function install(item: HubSearchResult) {
 
 async function installFromUrl() {
   if (!directUrl.value) return
+  const trimmedUrl = directUrl.value.trim()
+  if (!trimmedUrl) return
   if (!await confirm('安装技能', '确定安装此技能吗？', { danger: false, confirmText: '安装' })) return
   loading.value = true
-  pendingHubName = 'ModelScope'
-  pendingBundleUrl = directUrl.value
+  pendingHubName = selectedHub.value
+  pendingBundleUrl = trimmedUrl
   try {
-    const skillId = await adminSkillHubApi.install('ModelScope', directUrl.value)
-    emit('installed', skillId)
+    const skillIds = await adminSkillHubApi.install(selectedHub.value, trimmedUrl)
+    emit('installed', skillIds)
     emit('close')
   } catch (e: any) {
     if (e.code === 4001 && e.data) {
@@ -245,8 +253,8 @@ async function handleForceProceedInstall() {
   showScanReport.value = false
   loading.value = true
   try {
-    const skillId = await adminSkillHubApi.install(pendingHubName, pendingBundleUrl, true)
-    emit('installed', skillId)
+    const skillIds = await adminSkillHubApi.install(pendingHubName, pendingBundleUrl, true)
+    emit('installed', skillIds)
     emit('close')
   } catch (e: any) {
     console.error('安装失败', e)

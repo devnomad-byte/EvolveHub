@@ -26,10 +26,12 @@ public class SkillFileController {
 
     /**
      * 列出技能工作区文件
+     * @param path 可选子目录路径，如 "scripts/"，为空表示根目录
      */
     @GetMapping("/{id}/files")
-    public Result<List<FileNode>> listFiles(@PathVariable Long id) {
-        return Result.ok(skillFileService.listFiles(id));
+    public Result<List<FileNode>> listFiles(@PathVariable Long id,
+                                           @RequestParam(value = "path", defaultValue = "") String path) {
+        return Result.ok(skillFileService.listFiles(id, path));
     }
 
     /**

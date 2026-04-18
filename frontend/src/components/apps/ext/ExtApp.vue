@@ -783,9 +783,11 @@ function openSkillEdit(item: SkillConfigInfo) {
   winStore.openApp('skill-edit')
 }
 
-function handleSkillInstalled(skillId: number) {
+function handleSkillInstalled(skillIds: number[]) {
   loadSkillList()
-  selectedSkillId.value = skillId
+  if (skillIds.length > 0) {
+    selectedSkillId.value = skillIds[0]
+  }
 }
 
 // Helpers

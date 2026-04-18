@@ -61,18 +61,60 @@ public class ChatTokenUsageInfra extends ServiceImpl<ChatTokenUsageInfra.ChatTok
         }
     }
 
-    public Page<ChatTokenUsageEntity> listPageByDataScope(Integer dataScope, Long userDeptId,
-                                                          Set<Long> visibleDeptIds,
-                                                          Long currentUserId,
-                                                          int pageNum, int pageSize) {
+    /**
+     * 管理员分页查询用量记录（支持数据权限过滤 + 用户/日期过滤）
+     */
+    public Page<ChatTokenUsageEntity> listPageByDataScope(
+            Integer dataScope, Long userDeptId, Set<Long> visibleDeptIds,
+            Long currentUserId, Long userId, Long modelConfigId,
+            String startDate, String endDate,
+            int pageNum, int pageSize) {
+
+        // 预处理日期参数
+        LocalDate start = (startDate != null && !startDate.isBlank()) ? LocalDate.parse(startDate) : null;
+        LocalDate end = (endDate != null && !endDate.isBlank()) ? LocalDate.parse(endDate) : null;
+
         return this.lambdaQuery()
-                .eq(dataScope == 4, ChatTokenUsageEntity::getCreateBy, currentUserId)
-                .eq(dataScope == 3, ChatTokenUsageEntity::getDeptId, userDeptId)
-                .in(dataScope == 2, ChatTokenUsageEntity::getDeptId,
+                // 数据权限过滤
+                .eq(dataScope != null && dataScope == 4, ChatTokenUsageEntity::getCreateBy, currentUserId)
+                .eq(dataScope != null && dataScope == 3, ChatTokenUsageEntity::getDeptId, userDeptId)
+                .in(dataScope != null && dataScope == 2, ChatTokenUsageEntity::getDeptId,
                         visibleDeptIds != null ? visibleDeptIds : Set.of(userDeptId))
-                .in(dataScope == 5 && visibleDeptIds != null, ChatTokenUsageEntity::getDeptId, visibleDeptIds)
+                .in(dataScope != null && dataScope == 5 && visibleDeptIds != null, ChatTokenUsageEntity::getDeptId, visibleDeptIds)
+                // scope=1 不过滤
+                // 用户过滤
+                .eq(userId != null, ChatTokenUsageEntity::getUserId, userId)
+                // 模型过滤
+                .eq(modelConfigId != null, ChatTokenUsageEntity::getModelConfigId, modelConfigId)
+                // 日期范围过滤
+                .ge(start != null, ChatTokenUsageEntity::getUsageDate, start)
+                .le(end != null, ChatTokenUsageEntity::getUsageDate, end)
                 .orderByDesc(ChatTokenUsageEntity::getUsageDate)
                 .orderByDesc(ChatTokenUsageEntity::getTotalTokens)
                 .page(new Page<>(pageNum, pageSize));
+    }
+
+    /**
+     * 统计指定用户的用量记录总数
+     */
+    public long countByUserId(Long userId) {
+        return this.lambdaQuery()
+                .eq(ChatTokenUsageEntity::getUserId, userId)
+                .count();
+    }
+
+    /**
+     * 按用户ID列表查询用量记录
+     */
+    public List<ChatTokenUsageEntity> listByUserIds(Set<Long> userIds, String startDate, String endDate) {
+        LocalDate start = (startDate != null && !startDate.isBlank()) ? LocalDate.parse(startDate) : null;
+        LocalDate end = (endDate != null && !endDate.isBlank()) ? LocalDate.parse(endDate) : null;
+
+        return this.lambdaQuery()
+                .in(userIds != null && !userIds.isEmpty(), ChatTokenUsageEntity::getUserId, userIds)
+                .ge(start != null, ChatTokenUsageEntity::getUsageDate, start)
+                .le(end != null, ChatTokenUsageEntity::getUsageDate, end)
+                .orderByDesc(ChatTokenUsageEntity::getUsageDate)
+                .list();
     }
 }

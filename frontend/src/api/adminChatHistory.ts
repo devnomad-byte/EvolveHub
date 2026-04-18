@@ -1,24 +1,35 @@
 import { http } from '@/utils/request'
 
-// 对话会话信息
-export interface ChatSessionInfo {
+// 用户聊天活动信息
+export interface UserChatActivity {
+  userId: number
+  username: string
+  nickname: string
+  avatar: string
+  deptId: number
+  deptName: string
+  lastActiveTime: string
+  sessionCount: number
+}
+
+// 会话项（含用户信息和模型信息）
+export interface SessionItem {
   id: number
   userId: number
+  username: string
+  nickname: string
   title: string
   modelConfigId: number
-  sysPrompt: string
+  modelName: string
   totalPromptTokens: number
   totalCompletionTokens: number
   totalTokens: number
   messageCount: number
-  contextSummary: string
-  deptId: number
-  createBy: number
   createTime: string
   updateTime: string
 }
 
-// 对话消息信息
+// 消息信息
 export interface ChatMessageInfo {
   id: number
   sessionId: number
@@ -43,23 +54,38 @@ export interface PageResponse<T> {
   pageSize: number
 }
 
-// 管理员对话历史 API
 export const adminChatHistoryApi = {
   /**
-   * 获取对话会话列表（数据权限过滤）
+   * 获取有聊天记录的用户列表
    */
-  getSessions: (pageNum: number = 1, pageSize: number = 10) => {
-    return http.get<PageResponse<ChatSessionInfo>>('/admin/chat-history/sessions', {
-      params: { pageNum, pageSize }
+  getUsers: (keyword?: string, deptId?: number, pageNum = 1, pageSize = 20) => {
+    return http.get<PageResponse<UserChatActivity>>('/admin/chat-history/users', {
+      params: { keyword, deptId, pageNum, pageSize }
+    })
+  },
+
+  /**
+   * 获取用户的会话列表
+   */
+  getSessions: (userId?: number, keyword?: string, startDate?: string, endDate?: string, pageNum = 1, pageSize = 15) => {
+    return http.get<PageResponse<SessionItem>>('/admin/chat-history/sessions', {
+      params: { userId, keyword, startDate, endDate, pageNum, pageSize }
     })
   },
 
   /**
    * 获取会话消息列表
    */
-  getMessages: (sessionId: number, pageNum: number = 1, pageSize: number = 20) => {
+  getMessages: (sessionId: number, pageNum = 1, pageSize = 20) => {
     return http.get<PageResponse<ChatMessageInfo>>(`/admin/chat-history/sessions/${sessionId}/messages`, {
       params: { pageNum, pageSize }
     })
+  },
+
+  /**
+   * 导出对话记录
+   */
+  exportChatHistory: (userId?: number, startDate?: string, endDate?: string, format = 'md') => {
+    return http.post<{ filename: string, content: string }>(`/admin/chat-history/export?userId=${userId || ''}&startDate=${startDate || ''}&endDate=${endDate || ''}&format=${format}`, {})
   }
 }

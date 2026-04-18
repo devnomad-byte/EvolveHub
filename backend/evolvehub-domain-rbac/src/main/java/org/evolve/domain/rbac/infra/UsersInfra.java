@@ -8,6 +8,9 @@ import org.evolve.domain.rbac.model.UsersEntity;
 import org.evolve.common.datascope.DataScopeContextHolder;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Set;
+
 /**
  * 用户数据访问层
  * <p>
@@ -123,5 +126,45 @@ public class UsersInfra extends ServiceImpl<UsersInfra.UsersMapper, UsersEntity>
         } finally {
             DataScopeContextHolder.disableFilter();
         }
+    }
+
+    // ==================== 对话历史用 ====================
+
+    /**
+     * 按部门列表 + 关键字搜索用户（用于对话历史管理）
+     *
+     * @param deptIds 可见部门列表（null/空表示不限部门）
+     * @param keyword 用户名/昵称关键字（可选）
+     * @param pageNum 页码
+     * @param pageSize 每页条数
+     */
+    public Page<UsersEntity> listByDeptIdsAndKeyword(Set<Long> deptIds, String keyword, int pageNum, int pageSize) {
+        return this.lambdaQuery()
+                .eq(deptIds != null && !deptIds.isEmpty(), UsersEntity::getDeptId, deptIds)
+                .like(keyword != null && !keyword.isBlank(), UsersEntity::getUsername, keyword)
+                .or(keyword != null && !keyword.isBlank(),
+                        w -> w.like(UsersEntity::getNickname, keyword))
+                .eq(UsersEntity::getStatus, 1)
+                .orderByDesc(UsersEntity::getId)
+                .page(new Page<>(pageNum, pageSize));
+    }
+
+    /**
+     * 按部门列表查询用户（不过滤关键字）
+     */
+    public Page<UsersEntity> listByDeptIds(Set<Long> deptIds, int pageNum, int pageSize) {
+        return this.lambdaQuery()
+                .eq(deptIds != null && !deptIds.isEmpty(), UsersEntity::getDeptId, deptIds)
+                .eq(UsersEntity::getStatus, 1)
+                .orderByDesc(UsersEntity::getId)
+                .page(new Page<>(pageNum, pageSize));
+    }
+
+    /**
+     * 批量查询用户
+     */
+    public List<UsersEntity> listByIds(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return this.lambdaQuery().in(UsersEntity::getId, ids).list();
     }
 }

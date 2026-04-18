@@ -1216,7 +1216,140 @@ ALTER TABLE eh_chat_message ADD CONSTRAINT fk_message_session
     FOREIGN KEY (session_id) REFERENCES eh_chat_session(id) ON DELETE CASCADE;
 
 -- ----------------------------------------------------------------------------
--- 三、用户结构化记忆表 (user_memory)
+-- 三、Memory 长期记忆主表 (eh_agent_memory_record)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_agent_memory_record (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id VARCHAR(64),
+    dept_id BIGINT,
+    message_id VARCHAR(64),
+    memory_key VARCHAR(128) NOT NULL,
+    memory_type VARCHAR(32),
+    source_kind VARCHAR(32) NOT NULL,
+    memory_kind VARCHAR(32),
+    role VARCHAR(32),
+    model_config_id BIGINT,
+    embedding_model_id BIGINT,
+    vector_doc_id VARCHAR(128),
+    object_id BIGINT,
+    round_start_no INTEGER,
+    round_end_no INTEGER,
+    archive_object_id BIGINT,
+    excerpt TEXT,
+    importance NUMERIC(5, 3) DEFAULT 0.000,
+    last_access_time TIMESTAMP,
+    last_activated_round_no INTEGER,
+    sleep_after_round_no INTEGER,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_eh_agent_memory_record_user_source_key
+    ON eh_agent_memory_record (user_id, source_kind, memory_key) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_record_user_source_update
+    ON eh_agent_memory_record (user_id, source_kind, update_time DESC) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_record_user_session_kind
+    ON eh_agent_memory_record (user_id, session_id, memory_kind) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_record_user_vector_doc
+    ON eh_agent_memory_record (user_id, vector_doc_id) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_record_user_memory_key
+    ON eh_agent_memory_record (user_id, memory_key) WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 四、Memory 对象索引表 (eh_agent_memory_object)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_agent_memory_object (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id VARCHAR(64),
+    object_type VARCHAR(64) NOT NULL,
+    bucket VARCHAR(128) NOT NULL,
+    object_key VARCHAR(512) NOT NULL,
+    content_type VARCHAR(128),
+    checksum VARCHAR(128),
+    size_bytes BIGINT,
+    version_no INTEGER DEFAULT 1,
+    source_record_id BIGINT,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_eh_agent_memory_object_object_key
+    ON eh_agent_memory_object (object_key) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_object_user_session
+    ON eh_agent_memory_object (user_id, session_id) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_object_source_record
+    ON eh_agent_memory_object (source_record_id) WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 五、Memory 用户画像索引表 (eh_agent_memory_profile)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_agent_memory_profile (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    profile_object_id BIGINT,
+    profile_summary TEXT,
+    name VARCHAR(128),
+    department VARCHAR(128),
+    preferred_language VARCHAR(64),
+    preferred_model VARCHAR(128),
+    tool_preference VARCHAR(256),
+    last_extracted_time TIMESTAMP,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_eh_agent_memory_profile_user_id
+    ON eh_agent_memory_profile (user_id) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_profile_profile_object
+    ON eh_agent_memory_profile (profile_object_id) WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 六、Memory 会话元数据表 (eh_agent_memory_session_meta)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_agent_memory_session_meta (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id VARCHAR(64) NOT NULL,
+    session_key VARCHAR(128) NOT NULL,
+    model_name VARCHAR(128),
+    message_count INTEGER NOT NULL DEFAULT 0,
+    last_summary_object_id BIGINT,
+    transcript_object_id BIGINT,
+    current_round_no INTEGER NOT NULL DEFAULT 0,
+    last_compacted_round_no INTEGER NOT NULL DEFAULT 0,
+    last_snapshot_object_id BIGINT,
+    status VARCHAR(32),
+    expire_time TIMESTAMP,
+    last_message_time TIMESTAMP,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_eh_agent_memory_session_meta_user_session
+    ON eh_agent_memory_session_meta (user_id, session_id) WHERE deleted = 0;
+CREATE UNIQUE INDEX IF NOT EXISTS uk_eh_agent_memory_session_meta_session_key
+    ON eh_agent_memory_session_meta (session_key) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_session_meta_user_status
+    ON eh_agent_memory_session_meta (user_id, status) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_eh_agent_memory_session_meta_expire_time
+    ON eh_agent_memory_session_meta (expire_time) WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 七、用户结构化记忆表 (user_memory)
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS user_memory (
@@ -1253,7 +1386,7 @@ CREATE INDEX IF NOT EXISTS idx_user_memory_user_vector_doc
     ON user_memory(user_id, vector_doc_id) WHERE deleted = 0;
 
 -- ----------------------------------------------------------------------------
--- 四、权限数据插入
+-- 八、权限数据插入
 -- ----------------------------------------------------------------------------
 
 INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
@@ -1294,7 +1427,7 @@ VALUES
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 五、测试数据
+-- 九、测试数据
 -- ----------------------------------------------------------------------------
 
 INSERT INTO eh_chat_session (id, user_id, title, model_config_id, sys_prompt, total_prompt_tokens, total_completion_tokens, total_tokens, message_count, dept_id, create_by, create_time, update_time, deleted)
@@ -1378,7 +1511,7 @@ src/main/java/com/example/redis/
 ON CONFLICT DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 六、用户对话统计视图
+-- 十、用户对话统计视图
 -- ----------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW v_user_chat_stats AS
@@ -1401,7 +1534,7 @@ GROUP BY u.id, u.username, u.nickname, u.dept_id, d.dept_name;
 COMMENT ON VIEW v_user_chat_stats IS '用户对话统计视图，用于管理员对话历史功能的用户列表展示';
 
 -- ============================================================================
--- 七、Token消费统计表 (eh_chat_token_usage)
+-- 十一、Token消费统计表 (eh_chat_token_usage)
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS eh_chat_token_usage (
@@ -1497,6 +1630,542 @@ INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_
 VALUES
     (nextval('seq_role_permission'), 3, 32, NOW(), NOW()),
     (nextval('seq_role_permission'), 3, 33, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ============================================================================
+-- S3 文件服务器管理
+-- ============================================================================
+
+-- S3 文件管理菜单
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (35, 0, 'S3文件管理', 'app:s3-browser', 'MENU', '/app/s3-browser', 'HardDrive', 17, 1, NOW(), NOW(), 'linear-gradient(135deg, #64D2FF, #5AC8FA)', 1100, 700, 800, 500, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- S3 按钮权限
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (36, 0, 'S3查看', 's3:list', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (37, 0, 'S3上传', 's3:upload', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (38, 0, 'S3删除', 's3:delete', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- S3 全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 35, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 36, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 37, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 38, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ============================================================================
+-- 环境变量管理 (eh_env_var)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS eh_env_var (
+    id            BIGINT PRIMARY KEY,
+    var_key       VARCHAR(100) NOT NULL UNIQUE,
+    var_value     TEXT,
+    var_group     VARCHAR(50)  DEFAULT 'DEFAULT',
+    description   VARCHAR(255),
+    is_sensitive  INTEGER DEFAULT 0,
+    status        INTEGER DEFAULT 1,
+    sort          INTEGER DEFAULT 0,
+    create_by     BIGINT,
+    create_time   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted       INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE eh_env_var IS '全局环境变量表';
+COMMENT ON COLUMN eh_env_var.var_key IS '变量名（唯一键）';
+COMMENT ON COLUMN eh_env_var.var_value IS '变量值';
+COMMENT ON COLUMN eh_env_var.var_group IS '分组（OPENAI/MODELSCOPE/S3/CUSTOM/DEFAULT）';
+COMMENT ON COLUMN eh_env_var.description IS '描述说明';
+COMMENT ON COLUMN eh_env_var.is_sensitive IS '是否敏感（1=敏感值，前端默认隐藏）';
+COMMENT ON COLUMN eh_env_var.status IS '状态（1=启用 0=禁用）';
+COMMENT ON COLUMN eh_env_var.sort IS '排序';
+
+CREATE INDEX IF NOT EXISTS idx_env_var_key ON eh_env_var(var_key);
+CREATE INDEX IF NOT EXISTS idx_env_var_group ON eh_env_var(var_group);
+CREATE INDEX IF NOT EXISTS idx_env_var_status ON eh_env_var(status);
+
+-- 环境变量菜单
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (39, 0, '环境变量', 'app:env-var', 'MENU', '/app/env-var', 'Settings', 18, 1, NOW(), NOW(), 'linear-gradient(135deg, #30D158, #0A84FF)', 900, 600, 700, 450, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- 环境变量按钮权限
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (40, 0, '查看变量', 'env:list', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (41, 0, '新增变量', 'env:create', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (42, 0, '修改变量', 'env:update', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (43, 0, '删除变量', 'env:delete', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- 环境变量全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 39, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 40, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 41, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 42, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 43, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- =============================================================================
+-- Tool Guard 表
+-- =============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 一、工具守卫规则表 (eh_tool_guard_rule)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_tool_guard_rule (
+    id              BIGINT PRIMARY KEY,
+    rule_id         VARCHAR(64)  NOT NULL UNIQUE,
+    name            VARCHAR(128) NOT NULL,
+    tools           VARCHAR(512) NOT NULL,
+    params          VARCHAR(512) NOT NULL,
+    category        VARCHAR(32)  NOT NULL,
+    severity        VARCHAR(16)  NOT NULL,
+    patterns        TEXT         NOT NULL,
+    exclude_patterns TEXT,
+    description     VARCHAR(256),
+    remediation     VARCHAR(256),
+    is_builtin      INTEGER DEFAULT 0,
+    enabled         INTEGER DEFAULT 1,
+    create_by       BIGINT,
+    create_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted         INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_tool_guard_rule IS '工具守卫规则表';
+COMMENT ON COLUMN eh_tool_guard_rule.rule_id IS '规则唯一标识，如 TOOL_CMD_DANGEROUS_RM';
+COMMENT ON COLUMN eh_tool_guard_rule.name IS '规则中文名称';
+COMMENT ON COLUMN eh_tool_guard_rule.tools IS '适用的工具列表，JSON数组';
+COMMENT ON COLUMN eh_tool_guard_rule.params IS '需要检查的参数名，JSON数组';
+COMMENT ON COLUMN eh_tool_guard_rule.category IS '威胁类别';
+COMMENT ON COLUMN eh_tool_guard_rule.severity IS 'CRITICAL/HIGH/MEDIUM/LOW/INFO';
+COMMENT ON COLUMN eh_tool_guard_rule.patterns IS '正则表达式列表，JSON数组';
+COMMENT ON COLUMN eh_tool_guard_rule.exclude_patterns IS '排除正则，JSON数组';
+COMMENT ON COLUMN eh_tool_guard_rule.is_builtin IS '是否内置规则（1=内置，0=自定义）';
+COMMENT ON COLUMN eh_tool_guard_rule.enabled IS '是否启用（1=启用，0=禁用）';
+
+CREATE INDEX IF NOT EXISTS idx_tool_guard_rule_id ON eh_tool_guard_rule(rule_id);
+CREATE INDEX IF NOT EXISTS idx_tool_guard_rule_enabled ON eh_tool_guard_rule(enabled);
+CREATE INDEX IF NOT EXISTS idx_tool_guard_rule_tools ON eh_tool_guard_rule(tools);
+
+-- ----------------------------------------------------------------------------
+-- 二、工具守卫阻断历史表 (eh_tool_guard_history)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_tool_guard_history (
+    id              BIGINT PRIMARY KEY,
+    session_id      VARCHAR(64),
+    user_id         BIGINT,
+    user_nickname   VARCHAR(50),
+    tool_name       VARCHAR(64)  NOT NULL,
+    param_name      VARCHAR(64),
+    matched_rule_id VARCHAR(64),
+    matched_value   TEXT,
+    severity        VARCHAR(16),
+    action          VARCHAR(16)  NOT NULL,
+    create_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE  eh_tool_guard_history IS '工具守卫阻断历史表';
+COMMENT ON COLUMN eh_tool_guard_history.session_id IS '对话会话ID';
+COMMENT ON COLUMN eh_tool_guard_history.user_id IS '触发用户ID';
+COMMENT ON COLUMN eh_tool_guard_history.tool_name IS '工具名称';
+COMMENT ON COLUMN eh_tool_guard_history.matched_rule_id IS '匹配的规则ID';
+COMMENT ON COLUMN eh_tool_guard_history.matched_value IS '匹配到的危险内容（脱敏）';
+COMMENT ON COLUMN eh_tool_guard_history.action IS 'BLOCKED/WARNED';
+
+CREATE INDEX IF NOT EXISTS idx_tool_guard_history_session ON eh_tool_guard_history(session_id);
+CREATE INDEX IF NOT EXISTS idx_tool_guard_history_user ON eh_tool_guard_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_tool_guard_history_time ON eh_tool_guard_history(create_time);
+CREATE INDEX IF NOT EXISTS idx_tool_guard_history_severity ON eh_tool_guard_history(severity);
+
+-- 为 tool_guard_history 增加 guard_type 字段（TOOL=工具规则检查，FILE=文件规则检查）
+ALTER TABLE eh_tool_guard_history ADD COLUMN IF NOT EXISTS guard_type VARCHAR(16) DEFAULT 'TOOL';
+COMMENT ON COLUMN eh_tool_guard_history.guard_type IS '守卫类型：TOOL=工具规则，FILE=文件规则';
+
+-- ----------------------------------------------------------------------------
+-- 三、工具守卫全局配置表 (eh_tool_guard_config)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS eh_tool_guard_config (
+    id              BIGINT PRIMARY KEY DEFAULT 1,
+    enabled         INTEGER DEFAULT 1,
+    guarded_tools   TEXT,
+    denied_tools    TEXT,
+    update_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE  eh_tool_guard_config IS '工具守卫全局配置表';
+COMMENT ON COLUMN eh_tool_guard_config.enabled IS '整体开关（1=启用，0=禁用）';
+COMMENT ON COLUMN eh_tool_guard_config.guarded_tools IS '受保护的工具列表，JSON数组，null表示全部';
+COMMENT ON COLUMN eh_tool_guard_config.denied_tools IS '直接拒绝的工具列表，JSON数组';
+
+-- 初始化默认配置
+INSERT INTO eh_tool_guard_config (id, enabled, guarded_tools, denied_tools, update_time)
+VALUES (1, 1, '["execute_shell_command"]', '[]', NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 四、预置内置规则
+-- ----------------------------------------------------------------------------
+
+-- TOOL_CMD_DANGEROUS_RM - 危险删除命令
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1001, 'TOOL_CMD_DANGEROUS_RM', '危险删除命令', '["execute_shell_command"]', '["command"]', 'command_injection', 'HIGH', '["\\\\brm\\\\b", "\\\\bdel\\\\b", "\\\\bRemove-Item\\\\b"]', '["^\\\\s*#"]', 'Shell command contains rm/del which may cause data loss', 'Confirm with the user before removing files or directories', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_DANGEROUS_MV - 危险移动命令
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1002, 'TOOL_CMD_DANGEROUS_MV', '危险移动命令', '["execute_shell_command"]', '["command"]', 'command_injection', 'HIGH', '["\\\\bmv\\\\b"]', NULL, 'Shell command contains mv which may move or overwrite files unexpectedly', 'Confirm with the user before moving or renaming files', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_FS_DESTRUCTION - 文件系统破坏
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1003, 'TOOL_CMD_FS_DESTRUCTION', '文件系统破坏', '["execute_shell_command"]', '["command"]', 'command_injection', 'CRITICAL', '["\\\\bmkfs(\\\\.[a-zA-Z0-9_]+)?\\\\b", "\\\\bmke2fs\\\\b", "\\\\bdd\\\\s+.*of=\\\\/dev\\\\/", ">\\\\s*\\\\/dev\\\\/(sd[a-z][0-9]*|vd[a-z][0-9]*|nvme\\\\d+n\\\\d+(p\\\\d+)?)"]', NULL, 'Detects low-level disk formatting or wiping commands', 'Block operation. Agents should not format or overwrite raw block devices.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_DOS_FORK_BOMB - 拒绝服务攻击
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1004, 'TOOL_CMD_DOS_FORK_BOMB', '拒绝服务攻击', '["execute_shell_command"]', '["command"]', 'resource_abuse', 'CRITICAL', '[":\\\\s*\\\\(\\\\s*\\\\)\\\\s*\\\\{\\\\s*:\\\\s*\\\\|\\\\s*:\\\\s*&\\\\s*\\\\}\\\\s*;\\\\s*:", "\\\\bkill\\\\s+-9\\\\s+(-1\\\\b|1\\\\b)"]', NULL, 'Detects classic Bash fork bombs and mass process termination', 'Block immediately. These commands will crash the host system.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_PIPE_TO_SHELL - 管道注入执行
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1005, 'TOOL_CMD_PIPE_TO_SHELL', '管道注入执行', '["execute_shell_command"]', '["command"]', 'code_execution', 'CRITICAL', '["\\\\b(curl|wget)\\\\b\\\\s+.*\\\\|.*\\\\b(bash|sh|zsh|ash|dash)\\\\b"]', NULL, 'Detects curl | bash patterns used to download and immediately execute remote payloads', 'Confirm with user. Agents should inspect scripts before executing them.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_REVERSE_SHELL - 反向Shell
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1006, 'TOOL_CMD_REVERSE_SHELL', '反向Shell', '["execute_shell_command"]', '["command"]', 'network_abuse', 'CRITICAL', '["\\\\/dev\\\\/(tcp|udp)\\\\/", "\\\\bnc\\\\s+.*-e\\\\s*\\\\S+", "\\\\bncat\\\\s+.*-e\\\\s*\\\\S+", "\\\\bsocat\\\\s+.*EXEC:"]', NULL, 'Detects attempts to establish reverse shells or unauthorized network tunnels', 'Block operation. Agents do not need to bind interactive shells to network sockets.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_SYSTEM_TAMPERING - 系统篡改
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1007, 'TOOL_CMD_SYSTEM_TAMPERING', '系统篡改', '["execute_shell_command"]', '["command"]', 'sensitive_file_access', 'HIGH', '["\\\\bcrontab\\\\b", "\\\\bauthorized_keys\\\\b", "\\\\/etc\\\\/sudoers", "\\\\/etc\\\\/crontab"]', NULL, 'Detects access to cron jobs, SSH keys, or sudo permissions', 'Confirm with user. Treat any access to credential and scheduling files as sensitive.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_UNSAFE_PERMISSIONS - 危险权限修改
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1008, 'TOOL_CMD_UNSAFE_PERMISSIONS', '危险权限修改', '["execute_shell_command"]', '["command"]', 'privilege_escalation', 'HIGH', '["\\\\bchmod\\\\s+-[a-zA-Z]*R[a-zA-Z]*\\\\s+(777|a\\\\+rwx)\\\\s+\\\\/", "\\\\bchattr\\\\s+\\\\+i"]', NULL, 'Detects global permission downgrades (chmod 777) or setting immutable flags', 'Prompt for confirmation. Suggest least-privilege permission models.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_OBFUSCATED_EXEC - 混淆命令执行
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1009, 'TOOL_CMD_OBFUSCATED_EXEC', '混淆命令执行', '["execute_shell_command"]', '["command"]', 'code_execution', 'HIGH', '["\\\\bbase64\\\\s+(-d|--decode)\\\\s*\\\\|\\\\s*\\\\b(bash|sh|zsh)\\\\b"]', NULL, 'Detects execution of base64 encoded strings passed directly to a shell interpreter', 'Block execution. Agents should use plain text commands.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_SYSTEM_REBOOT - 系统重启/关机
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1010, 'TOOL_CMD_SYSTEM_REBOOT', '系统重启/关机', '["execute_shell_command"]', '["command"]', 'resource_abuse', 'CRITICAL', '["\\\\b(reboot|shutdown|halt|poweroff)\\\\b", "\\\\binit\\\\s+(0|6)\\\\b", "\\\\btelinit\\\\s+(0|6)\\\\b", "\\\\bShutdown-Computer\\\\b", "\\\\bRestart-Computer\\\\b"]', NULL, 'Detects system reboot or shutdown commands that will terminate the host system', 'Block operation. Agents should not restart or shutdown the system.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_SERVICE_RESTART - 服务管理命令
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1011, 'TOOL_CMD_SERVICE_RESTART', '服务管理命令', '["execute_shell_command"]', '["command"]', 'resource_abuse', 'HIGH', '["\\\\bsystemctl\\\\s+(restart|stop|start|reload|kill)\\\\b", "\\\\bservice\\\\s+\\\\S+\\\\s+(restart|stop|start|reload)\\\\b", "\\\\b(sc|net)\\\\s+(start|stop|restart)\\\\b", "\\\\blaunchctl\\\\s+(load|unload|stop|start|kickstart|kill)\\\\b", "\\\\brc-service\\\\s+(restart|stop|start)\\\\b"]', NULL, 'Detects service management commands that can disrupt system services', 'Confirm with user. Restarting services may cause downtime or data loss.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_PROCESS_KILL - 进程终止命令
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1012, 'TOOL_CMD_PROCESS_KILL', '进程终止命令', '["execute_shell_command"]', '["command"]', 'resource_abuse', 'HIGH', '["\\\\b(pkill|killall)\\\\b", "\\\\bkill\\\\s+(-(9|KILL|15|TERM|1|HUP|2|INT)\\\\s+)?[^-\\\\s]", "\\\\btaskkill\\\\s+\\\\/F\\\\b", "\\\\bStop-Process\\\\b.*-Force\\\\b"]', '["kill\\\\s+\\\\\\$\\\\\\$"]', 'Detects process termination commands that may kill critical processes', 'Confirm with user. Killing processes may cause data loss or system instability.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_PRIVILEGE_ESCALATION - 权限提升
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1013, 'TOOL_CMD_PRIVILEGE_ESCALATION', '权限提升', '["execute_shell_command"]', '["command"]', 'privilege_escalation', 'CRITICAL', '["\\\\bsudo\\\\s+", "\\\\bsu\\\\b", "\\\\bdoas\\\\s+", "\\\\bpkexec\\\\b", "\\\\brunas\\\\s+\\\\/user:"]', '["^\\\\s*#"]', 'Detects privilege escalation attempts using sudo, su, doas, pkexec, or runas', 'Block operation. Agents should not execute commands with elevated privileges.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_IFS_INJECTION - IFS变量注入
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1014, 'TOOL_CMD_IFS_INJECTION', 'IFS变量注入', '["execute_shell_command"]', '["command"]', 'code_execution', 'HIGH', '["\\\\$IFS(?![A-Za-z0-9_])", "\\\\$\\\\{[^}]*IFS"]', '["^\\\\s*#"]', 'Command uses $IFS variable which could bypass security validation', 'Reject commands containing IFS manipulation.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_CONTROL_CHARS - 控制字符注入
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1015, 'TOOL_CMD_CONTROL_CHARS', '控制字符注入', '["execute_shell_command"]', '["command"]', 'code_execution', 'CRITICAL', '["[\\\\x00-\\\\x08\\\\x0b\\\\x0c\\\\x0e-\\\\x1f\\\\x7f]"]', NULL, 'Command contains non-printable control characters that could bypass security checks', 'Block commands containing control characters.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_UNICODE_WHITESPACE - Unicode空白注入
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1016, 'TOOL_CMD_UNICODE_WHITESPACE', 'Unicode空白注入', '["execute_shell_command"]', '["command"]', 'code_execution', 'HIGH', '["[\\\\u00a0\\\\u1680\\\\u2000-\\\\u200a\\\\u2028\\\\u2029\\\\u202f\\\\u205f\\\\u3000\\\\ufeff]"]', NULL, 'Command contains Unicode whitespace characters that could cause parsing inconsistencies', 'Block commands containing non-ASCII whitespace.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_PROC_ENVIRON - 进程环境读取
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1017, 'TOOL_CMD_PROC_ENVIRON', '进程环境读取', '["execute_shell_command"]', '["command"]', 'sensitive_file_access', 'HIGH', '["\\\\/proc\\\\/(?:self|\\\\d+)\\\\/environ(?:\\\\b|$)"]', '["^\\\\s*#"]', 'Command accesses /proc/*/environ which could expose sensitive environment variables', 'Block access to process environment files.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_JQ_SYSTEM - jq命令注入
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1018, 'TOOL_CMD_JQ_SYSTEM', 'jq命令注入', '["execute_shell_command"]', '["command"]', 'code_execution', 'HIGH', '["\\\\bjq\\\\b.*\\\\bsystem\\\\s*\\\\("]', '["^\\\\s*#"]', 'jq command contains system() function which can execute arbitrary shell commands', 'Block jq commands using system().', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_JQ_FILE_FLAGS - jq危险文件标志
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1019, 'TOOL_CMD_JQ_FILE_FLAGS', 'jq危险文件标志', '["execute_shell_command"]', '["command"]', 'code_execution', 'HIGH', '["\\\\bjq\\\\b.*(?:\\\\s-f\\\\b|\\\\s--from-file\\\\b|\\\\s--rawfile\\\\b|\\\\s--slurpfile\\\\b|\\\\s-L\\\\b|\\\\s--library-path\\\\b)"]', '["^\\\\s*#"]', 'jq command uses flags that could read arbitrary files or execute external code', 'Confirm with user. These jq flags can access files outside the intended scope.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- TOOL_CMD_ZSH_DANGEROUS - Zsh危险命令
+INSERT INTO eh_tool_guard_rule (id, rule_id, name, tools, params, category, severity, patterns, exclude_patterns, description, remediation, is_builtin, enabled, create_time, update_time)
+VALUES (1020, 'TOOL_CMD_ZSH_DANGEROUS', 'Zsh危险命令', '["execute_shell_command"]', '["command"]', 'code_execution', 'HIGH', '["\\\\bzmodload\\\\b", "\\\\bemulate\\\\b(?:\\\\s+-\\\\S+)*\\\\s+-c\\\\b", "\\\\b(sysopen|sysread|syswrite|sysseek)\\\\b", "\\\\b(zpty|ztcp|zsocket)\\\\b", "\\\\bzf_(rm|mv|ln|chmod|chown|mkdir|rmdir|chgrp)\\\\b", "\\\\bfc\\\\b.*\\\\s-\\\\S*e"]', '["^\\\\s*#"]', 'Command uses Zsh-specific builtins that can bypass security checks', 'Block Zsh module/builtin commands.', 1, 1, NOW(), NOW())
+ON CONFLICT (rule_id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 五、菜单和权限
+-- ----------------------------------------------------------------------------
+
+-- Tool Guard 菜单
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (44, 0, 'Tool Guard', 'app:tool-guard', 'MENU', '/app/tool-guard', 'Shield', 19, 1, NOW(), NOW(), 'linear-gradient(135deg, #FF453A, #BF5AF2)', 1000, 700, 800, 500, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- Tool Guard 按钮权限
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (45, 0, '查看规则', 'tool-guard:list', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (46, 0, '新增规则', 'tool-guard:create', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (47, 0, '修改规则', 'tool-guard:update', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (48, 0, '删除规则', 'tool-guard:delete', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (49, 0, '查看历史', 'tool-guard:history', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (50, 0, '清除历史', 'tool-guard:history:delete', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (51, 0, '管理配置', 'tool-guard:manage', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- Tool Guard 全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 44, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 45, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 46, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 47, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 48, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 49, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 50, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 51, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ============================================================================
+-- 四、File Guard — 敏感文件保护
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. 敏感文件规则表 (eh_file_guard_rule)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_file_guard_rule (
+    id              BIGINT PRIMARY KEY,
+    rule_id         VARCHAR(64)  NOT NULL UNIQUE,
+    name            VARCHAR(128) NOT NULL,
+    path_pattern    VARCHAR(512) NOT NULL,
+    path_type       VARCHAR(16)  NOT NULL,
+    tools           TEXT,
+    description     VARCHAR(512),
+    remediation     VARCHAR(512),
+    severity        VARCHAR(16)  NOT NULL DEFAULT 'HIGH',
+    is_builtin      INTEGER      NOT NULL DEFAULT 0,
+    enabled         INTEGER      NOT NULL DEFAULT 1,
+    create_by       BIGINT,
+    create_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted         INTEGER      NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_file_guard_rule IS '敏感文件保护规则表';
+COMMENT ON COLUMN eh_file_guard_rule.rule_id IS '规则唯一标识';
+COMMENT ON COLUMN eh_file_guard_rule.path_pattern IS '路径模式（支持目录路径、通配符）';
+COMMENT ON COLUMN eh_file_guard_rule.path_type IS '路径类型：FILE=精确文件，DIRECTORY=目录，WILDCARD=通配符';
+COMMENT ON COLUMN eh_file_guard_rule.tools IS '适用的工具列表，JSON数组，null表示全部工具';
+
+CREATE INDEX IF NOT EXISTS idx_file_guard_rule_id ON eh_file_guard_rule(rule_id);
+CREATE INDEX IF NOT EXISTS idx_file_guard_rule_enabled ON eh_file_guard_rule(enabled);
+
+-- ----------------------------------------------------------------------------
+-- 2. 敏感文件全局配置表 (eh_file_guard_config)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_file_guard_config (
+    id              BIGINT PRIMARY KEY DEFAULT 1,
+    enabled         INTEGER      NOT NULL DEFAULT 1,
+    update_time     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE  eh_file_guard_config IS '敏感文件保护全局配置表';
+COMMENT ON COLUMN eh_file_guard_config.enabled IS '整体开关（1=启用，0=禁用）';
+
+-- 初始化默认配置
+INSERT INTO eh_file_guard_config (id, enabled, update_time)
+VALUES (1, 1, NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 3. 内置敏感文件规则（12条，借鉴 QwenPaw）
+-- ----------------------------------------------------------------------------
+INSERT INTO eh_file_guard_rule (id, rule_id, name, path_pattern, path_type, tools, description, remediation, severity, is_builtin, enabled)
+VALUES
+    (100, 'FG_SSH_KEYS', 'SSH 密钥目录', '~/.ssh/', 'DIRECTORY', NULL, 'SSH 密钥目录，包含私钥文件', '使用项目内的临时文件目录，不要操作 SSH 密钥', 'CRITICAL', 1, 1),
+    (101, 'FG_PEM_KEY', 'PEM 私钥文件', '*.pem', 'WILDCARD', NULL, 'PEM 格式私钥文件', '使用项目内的证书文件，不要操作私钥', 'CRITICAL', 1, 1),
+    (102, 'FG_KEY_FILE', '密钥文件', '*.key', 'WILDCARD', NULL, '密钥文件', '使用项目内的密钥文件，不要操作私钥', 'CRITICAL', 1, 1),
+    (103, 'FG_ETC_PASSWD', '系统用户账户', '/etc/passwd', 'FILE', NULL, 'Linux 系统用户账户文件', '不要读取系统账户文件', 'HIGH', 1, 1),
+    (104, 'FG_ETC_SHADOW', '系统密码哈希', '/etc/shadow', 'FILE', NULL, 'Linux 系统用户密码哈希文件', '不要读取系统密码文件', 'CRITICAL', 1, 1),
+    (105, 'FG_SUDOERS', 'Sudo 配置', '/etc/sudoers', 'FILE', NULL, 'sudo 权限配置文件', '不要修改 sudo 配置', 'CRITICAL', 1, 1),
+    (106, 'FG_WIN_SYS', 'Windows 系统配置', 'C:\Windows\System32\config\', 'DIRECTORY', NULL, 'Windows 注册表配置目录', '不要修改 Windows 系统配置', 'CRITICAL', 1, 1),
+    (107, 'FG_WIN_USERS', 'Windows 用户目录', 'C:\Users\', 'DIRECTORY', NULL, 'Windows 用户主目录', '不要操作其他用户的文件', 'CRITICAL', 1, 1),
+    (108, 'FG_ENV_FILE', '环境变量文件', '.env', 'FILE', NULL, '环境变量文件，可能包含敏感凭证', '不要读取 .env 文件，使用配置管理工具', 'HIGH', 1, 1),
+    (109, 'FG_SECRETS_DIR', '密钥目录', 'secrets/', 'DIRECTORY', NULL, '密钥和敏感信息目录', '不要访问 secrets 目录，使用授权的密钥管理服务', 'CRITICAL', 1, 1),
+    (110, 'FG_KUBECONFIG', 'Kubernetes 配置', '*kubeconfig*', 'WILDCARD', NULL, 'Kubernetes 集群配置文件', '不要访问 kubeconfig，使用 K8S SDK 或已配置的集群', 'HIGH', 1, 1),
+    (111, 'FG_AWS_CREDS', 'AWS 凭证文件', '*aws*credential*', 'WILDCARD', NULL, 'AWS 访问凭证文件', '不要访问 AWS 凭证，使用 IAM 角色或环境变量', 'CRITICAL', 1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 4. File Guard 菜单和权限
+-- ----------------------------------------------------------------------------
+-- 桌面图标菜单
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES (52, 0, 'File Guard', 'app:file-guard', 'MENU', '/app/file-guard', 'FileSearch', 20, 1, NOW(), NOW(), 'linear-gradient(135deg, #FF453A, #FF6B6B)', 950, 650, 700, 450, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- File Guard 按钮权限
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (53, 0, '查看规则', 'file-guard:list', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (54, 0, '新增规则', 'file-guard:create', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (55, 0, '修改规则', 'file-guard:update', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (56, 0, '删除规则', 'file-guard:delete', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (57, 0, '管理配置', 'file-guard:manage', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- File Guard 全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 52, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 53, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 54, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 55, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 56, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 57, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ============================================================================
+-- 4.3 Security Scanner - 安全扫描白名单 + 被阻止历史
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. 安全扫描白名单表 (eh_security_scanner_whitelist)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_security_scanner_whitelist (
+    id          BIGINT PRIMARY KEY,
+    skill_name  VARCHAR(255) NOT NULL COMMENT '技能名称',
+    content_hash VARCHAR(128) NOT NULL COMMENT '内容哈希（SHA-256）',
+    added_by    BIGINT COMMENT '添加人',
+    create_by   BIGINT,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted     INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_security_scanner_whitelist IS '安全扫描白名单表';
+COMMENT ON COLUMN eh_security_scanner_whitelist.skill_name  IS '技能名称';
+COMMENT ON COLUMN eh_security_scanner_whitelist.content_hash IS '内容哈希（SHA-256）';
+COMMENT ON COLUMN eh_security_scanner_whitelist.added_by    IS '添加人';
+
+CREATE INDEX IF NOT EXISTS idx_whitelist_skill ON eh_security_scanner_whitelist(skill_name);
+CREATE INDEX IF NOT EXISTS idx_whitelist_hash  ON eh_security_scanner_whitelist(content_hash);
+
+-- ----------------------------------------------------------------------------
+-- 2. 被阻止/告警的技能历史表 (eh_security_scanner_blocked_history)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_security_scanner_blocked_history (
+    id           BIGINT PRIMARY KEY,
+    skill_name   VARCHAR(255) NOT NULL COMMENT '技能名称',
+    action       VARCHAR(20) NOT NULL COMMENT '操作类型：BLOCKED/WARNED',
+    content_hash VARCHAR(128) COMMENT '文件内容哈希',
+    max_severity VARCHAR(20) COMMENT '最高严重级别：CRITICAL/HIGH/MEDIUM/LOW',
+    findings     TEXT COMMENT '发现的问题详情，JSON数组',
+    user_id      BIGINT COMMENT '操作用户',
+    user_nickname VARCHAR(100) COMMENT '操作用户昵称',
+    create_by    BIGINT,
+    create_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted      INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_security_scanner_blocked_history IS '安全扫描阻断历史表';
+COMMENT ON COLUMN eh_security_scanner_blocked_history.skill_name   IS '技能名称';
+COMMENT ON COLUMN eh_security_scanner_blocked_history.action       IS '操作类型：BLOCKED/WARNED';
+COMMENT ON COLUMN eh_security_scanner_blocked_history.content_hash IS '文件内容哈希';
+COMMENT ON COLUMN eh_security_scanner_blocked_history.max_severity IS '最高严重级别';
+COMMENT ON COLUMN eh_security_scanner_blocked_history.findings    IS '发现的问题详情，JSON数组';
+
+CREATE INDEX IF NOT EXISTS idx_blocked_history_skill   ON eh_security_scanner_blocked_history(skill_name);
+CREATE INDEX IF NOT EXISTS idx_blocked_history_action  ON eh_security_scanner_blocked_history(action);
+CREATE INDEX IF NOT EXISTS idx_blocked_history_time    ON eh_security_scanner_blocked_history(create_time);
+CREATE INDEX IF NOT EXISTS idx_blocked_history_user    ON eh_security_scanner_blocked_history(user_id);
+
+-- ----------------------------------------------------------------------------
+-- 3. 安全扫描全局配置表 (eh_security_scanner_config)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_security_scanner_config (
+    id          BIGINT PRIMARY KEY,
+    enabled     INTEGER DEFAULT 1 COMMENT '整体开关（1=启用，0=禁用）',
+    mode        VARCHAR(20) DEFAULT 'block' COMMENT '扫描模式：block/warn/off',
+    timeout     INTEGER DEFAULT 30 COMMENT '扫描超时时间（秒）',
+    create_by   BIGINT,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted     INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE  eh_security_scanner_config    IS '安全扫描全局配置表';
+COMMENT ON COLUMN eh_security_scanner_config.enabled IS '整体开关（1=启用，0=禁用）';
+COMMENT ON COLUMN eh_security_scanner_config.mode   IS '扫描模式：block=阻断，warn=警告，off=关闭';
+COMMENT ON COLUMN eh_security_scanner_config.timeout  IS '扫描超时时间（秒）';
+
+-- 初始化默认配置
+INSERT INTO eh_security_scanner_config (id, enabled, mode, timeout, create_time, update_time)
+VALUES (1, 1, 'block', 30, NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- Security Scanner 菜单和权限
+-- ----------------------------------------------------------------------------
+-- 桌面图标菜单
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES (58, 0, 'Security Scanner', 'app:security-scanner', 'MENU', '/app/security-scanner', 'Scan', 21, 1, NOW(), NOW(), 'linear-gradient(135deg, #BF5AF2, #FF453A)', 1000, 700, 800, 500, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- Security Scanner 按钮权限
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (59, 0, '查看配置', 'security-scanner:config', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (60, 0, '管理配置', 'security-scanner:manage', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (61, 0, '查看白名单', 'security-scanner:whitelist', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (62, 0, '添加白名单', 'security-scanner:whitelist:add', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (63, 0, '删除白名单', 'security-scanner:whitelist:delete', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (64, 0, '查看历史', 'security-scanner:history', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (65, 0, '删除历史', 'security-scanner:history:delete', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- Security Scanner 全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 58, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 59, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 60, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 61, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 62, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 63, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 64, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 65, NOW(), NOW())
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- ============================================================================

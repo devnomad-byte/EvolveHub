@@ -85,15 +85,14 @@ const emit = defineEmits<{
 const findings = computed(() => props.result?.findings ?? [])
 const maxSeverity = computed(() => props.result?.maxSeverity ?? 'LOW')
 
-/** CRITICAL/HIGH 阻断，不允许继续 */
+/** 无任何阻断，所有级别均可无视风险强制继续 */
 const isBlocked = computed(() => {
-  const sev = maxSeverity.value
-  return sev === 'CRITICAL' || sev === 'HIGH'
+  return false
 })
 
-/** 仅 MEDIUM/LOW 允许用户选择无视风险继续 */
+/** 只要扫描未通过就显示强制继续按钮 */
 const canProceed = computed(() => {
-  return !props.result?.passed && !isBlocked.value
+  return !props.result?.passed
 })
 
 function close() {

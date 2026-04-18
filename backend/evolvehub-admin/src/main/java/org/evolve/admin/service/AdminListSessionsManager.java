@@ -29,7 +29,8 @@ public class AdminListSessionsManager extends BaseManager<PageRequest, PageRespo
         var dataScopeInfo = userDataScopeService.getDataScopeInfo(currentUserId);
         Page<ChatSessionEntity> page = chatSessionInfra.listPageByDataScope(
                 dataScopeInfo.dataScope(), dataScopeInfo.deptId(),
-                dataScopeInfo.visibleDeptIds(), currentUserId,
+                dataScopeInfo.visibleDeptIds() , currentUserId,
+                null, null, null, null,
                 request.pageNum(), request.pageSize());
         return new PageResponse<>(page.getRecords(), page.getTotal(), request.pageNum(), request.pageSize());
     }

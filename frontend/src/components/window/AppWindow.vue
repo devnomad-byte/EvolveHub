@@ -8,7 +8,7 @@
       @mousedown="winStore.focusWindow(windowState.id)"
     >
       <!-- Title bar -->
-      <div class="window-titlebar" @mousedown.left="startDrag">
+      <div class="window-titlebar" @mousedown.left="startDrag" @dblclick="winStore.maximizeWindow(windowState.id)">
         <div class="traffic-lights">
           <span class="light light-close" @click.stop="winStore.closeWindow(windowState.id)">×</span>
           <span class="light light-minimize" @click.stop="winStore.minimizeWindow(windowState.id)">−</span>
@@ -39,6 +39,11 @@
         <SkillEditApp v-else-if="windowState.appId === 'skill-edit'" />
         <ChatHistoryApp v-else-if="windowState.appId === 'chat-history'" />
         <TokenUsageApp v-else-if="windowState.appId === 'token-usage'" />
+        <S3BrowserApp v-else-if="windowState.appId === 's3-browser'" />
+        <EnvVarApp v-else-if="windowState.appId === 'env-var'" />
+        <ToolGuardApp v-else-if="windowState.appId === 'tool-guard'" />
+        <FileGuardApp v-else-if="windowState.appId === 'file-guard'" />
+        <SecurityScannerApp v-else-if="windowState.appId === 'security-scanner'" />
       </div>
 
       <!-- Resize handles -->
@@ -72,6 +77,11 @@ import RoleApp from '../apps/role/RoleApp.vue'
 import PermissionApp from '../apps/permission/PermissionApp.vue'
 import ChatHistoryApp from '../apps/chatHistory/ChatHistoryApp.vue'
 import TokenUsageApp from '../apps/tokenUsage/TokenUsageApp.vue'
+import S3BrowserApp from '../apps/s3Browser/S3BrowserApp.vue'
+import EnvVarApp from '../apps/envVar/EnvVarApp.vue'
+import ToolGuardApp from '../apps/toolGuard/ToolGuardApp.vue'
+import FileGuardApp from '../apps/fileGuard/FileGuardApp.vue'
+import SecurityScannerApp from '../apps/securityScanner/SecurityScannerApp.vue'
 
 const props = defineProps<{
   windowState: WindowState
@@ -227,6 +237,7 @@ function startResize(dir: string, e: MouseEvent) {
 .window-content {
   flex: 1;
   overflow: hidden;
+  padding: 0;
 }
 
 .resize-handle {
