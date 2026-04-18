@@ -1,9 +1,10 @@
-package org.evolve.aiplatform.service.agent;
+package org.evolve.aiplatform.memory.application.tool;
 
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import org.evolve.aiplatform.service.ChatMemoryService;
+import org.evolve.aiplatform.memory.application.service.MemoryApi;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -13,12 +14,17 @@ import java.util.List;
  * 每次对话构建 Agent 时，按当前用户/会话实例化并注册到 Toolkit。
  * </p>
  *
- * @param chatMemoryService 长期记忆服务
- * @param userId            当前用户 ID
- * @param sessionId         当前会话 ID
  * @author zhao
  */
-public record MemoryTools(ChatMemoryService chatMemoryService, Long userId, Long sessionId) {
+public record MemoryTools(MemoryApi memoryApi, Long userId, Long sessionId) {
+
+    /**
+     * @param memoryApi         Memory 统一门面
+     * @param userId            当前用户 ID
+     * @param sessionId         当前会话 ID
+     */
+    public MemoryTools {
+    }
 
     /**
      * 检索长期记忆
@@ -36,7 +42,9 @@ public record MemoryTools(ChatMemoryService chatMemoryService, Long userId, Long
             @ToolParam(name = "query", description = "检索关键词或语义查询文本") String query,
             @ToolParam(name = "top_k", description = "返回条数，默认 5", required = false) Integer topK) {
         int k = (topK != null && topK > 0) ? topK : 5;
-        return chatMemoryService.retrieve(userId, query, k);
+        return memoryApi.recallMemoryVectors(userId, query, k).stream()
+                .map(result -> result.getContent())
+                .toList();
     }
 
     /**
@@ -53,7 +61,7 @@ public record MemoryTools(ChatMemoryService chatMemoryService, Long userId, Long
     public String saveMemory(
             @ToolParam(name = "content", description = "要记忆的内容，一句简洁的陈述句") String content) {
         try {
-            chatMemoryService.saveMemoryWithDedup(userId, sessionId, content);
+            memoryApi.saveConversationMemory(userId, sessionId, content, BigDecimal.valueOf(0.8D));
             return "记忆已保存：" + content;
         } catch (Exception e) {
             return "记忆保存失败：" + e.getMessage();
