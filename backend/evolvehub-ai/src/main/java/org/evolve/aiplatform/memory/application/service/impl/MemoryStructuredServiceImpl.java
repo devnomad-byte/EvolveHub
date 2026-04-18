@@ -2,9 +2,9 @@ package org.evolve.aiplatform.memory.application.service.impl;
 
 import jakarta.annotation.Resource;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryStructuredItemDTO;
-import org.evolve.aiplatform.memory.domain.bean.entity.AgentMemoryRecordEntity;
+import org.evolve.aiplatform.memory.domain.bean.entity.UserMemoryEntity;
 import org.evolve.aiplatform.memory.domain.constant.MemoryConstants;
-import org.evolve.aiplatform.memory.infrastructure.repository.AgentMemoryRecordRepository;
+import org.evolve.aiplatform.memory.infrastructure.repository.UserMemoryRepository;
 import org.evolve.aiplatform.memory.application.service.MemoryStructuredService;
 import org.evolve.aiplatform.memory.infrastructure.support.MemoryImportanceUtil;
 import org.evolve.common.web.exception.BusinessException;
@@ -27,7 +27,10 @@ import java.util.List;
 class MemoryStructuredServiceImpl implements MemoryStructuredService {
 
     @Resource
-    private AgentMemoryRecordRepository agentMemoryRecordRepository;
+    private UserMemoryRepository userMemoryRepository;
+
+    @Resource
+    private MemoryOperatorContext memoryOperatorContext;
 
     @Resource
     private MemoryImportanceUtil memoryImportanceUtil;
@@ -43,22 +46,19 @@ class MemoryStructuredServiceImpl implements MemoryStructuredService {
     @Override
     public MemoryStructuredItemDTO upsertMemoryStructuredItem(MemoryStructuredItemDTO item) {
         validateMemoryType(item.getMemoryType());
-        AgentMemoryRecordEntity entity = new AgentMemoryRecordEntity();
+        UserMemoryEntity entity = new UserMemoryEntity();
         entity.setUserId(item.getUserId());
-        entity.setSessionId(null);
+        entity.setDeptId(memoryOperatorContext.getCurrentDeptId());
         entity.setMemoryKey(item.getMemoryKey());
         entity.setMemoryType(item.getMemoryType());
-        entity.setSourceKind(MemoryConstants.MEMORY_SOURCE_KIND_STRUCTURED);
-        entity.setRole("SYSTEM");
-        entity.setEmbeddingModelId(MemoryConstants.MEMORY_DEFAULT_EMBEDDING_MODEL_ID);
-        entity.setExcerpt(item.getContent());
+        entity.setContent(item.getContent());
         entity.setImportance(memoryImportanceUtil.normalize(item.getImportance()));
-        agentMemoryRecordRepository.saveOrUpdateEntity(entity);
+        userMemoryRepository.saveOrUpdateByUserAndKey(entity);
         return new MemoryStructuredItemDTO(
                 entity.getUserId(),
                 entity.getMemoryKey(),
                 entity.getMemoryType(),
-                entity.getExcerpt(),
+                entity.getContent(),
                 entity.getImportance()
         );
     }
@@ -77,18 +77,22 @@ class MemoryStructuredServiceImpl implements MemoryStructuredService {
         if (memoryType != null) {
             validateMemoryType(memoryType);
         }
-        return agentMemoryRecordRepository.listStructuredByUserIdAndType(userId, memoryType).stream()
+        return userMemoryRepository.listByUserIdAndType(userId, memoryType).stream()
                 .map(entity -> new MemoryStructuredItemDTO(
                         entity.getUserId(),
                         entity.getMemoryKey(),
                         entity.getMemoryType(),
-                        entity.getExcerpt(),
+                        entity.getContent(),
                         entity.getImportance()))
                 .toList();
     }
 
     private void validateMemoryType(String memoryType) {
-        if (!MemoryConstants.MEMORY_SUPPORTED_TYPES.contains(memoryType)) {
+        if (!List.of(
+                MemoryConstants.MEMORY_TYPE_PREFERENCE,
+                MemoryConstants.MEMORY_TYPE_FACT,
+                MemoryConstants.MEMORY_TYPE_TOOL_CONFIG
+        ).contains(memoryType)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "不支持的记忆类型: " + memoryType);
         }
     }

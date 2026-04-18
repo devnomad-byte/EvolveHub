@@ -97,6 +97,25 @@ public class UserMemoryController {
     }
 
     private Long resolveTargetUserId(Long targetUserId) {
-        return targetUserId == null ? StpUtil.getLoginIdAsLong() : targetUserId;
+        Long currentUserId = StpUtil.getLoginIdAsLong();
+        if (targetUserId == null || targetUserId.equals(currentUserId)) {
+            return currentUserId;
+        }
+        if (isAdminOperator()) {
+            return targetUserId;
+        }
+        return currentUserId;
+    }
+
+    /**
+     * 判断当前操作者是否为可跨用户查看记忆的管理员角色
+     *
+     * @return 是否管理员
+     * @author TellyJiang
+     * @since 2026-04-18
+     */
+    private boolean isAdminOperator() {
+        return StpUtil.getRoleList().stream()
+                .anyMatch(roleCode -> "SUPER_ADMIN".equals(roleCode) || "ADMIN".equals(roleCode));
     }
 }

@@ -60,6 +60,10 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
      */
     @Override
     public String initializeMemoryProfile(Long userId) {
+        String existingMarkdown = loadStoredMarkdown(userId);
+        if (existingMarkdown != null && !existingMarkdown.isBlank()) {
+            return existingMarkdown;
+        }
         String markdown = memoryMarkdownRenderer.renderDefaultTemplate(userId);
         saveMemoryProfileMarkdown(userId, markdown);
         return markdown;
@@ -76,7 +80,7 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
     @Override
     public String getMemoryProfile(Long userId) {
         return agentMemoryProfileRepository.getByUserId(userId)
-                .map(this::loadStoredMarkdown)
+                .map(this::loadOrRebuildMarkdown)
                 .map(markdown -> markdown == null ? "" : markdown)
                 .orElseGet(() -> initializeMemoryProfile(userId));
     }
@@ -91,9 +95,13 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
      */
     @Override
     public String updateMemoryProfile(MemoryProfileDTO profile) {
-        String content = memoryMarkdownRenderer.render(profile);
-        saveProfile(profile, content);
-        persistProfileStructuredMemory(profile);
+        AgentMemoryProfileEntity existingEntity = agentMemoryProfileRepository.getByUserId(profile.getUserId())
+                .orElseGet(AgentMemoryProfileEntity::new);
+        existingEntity.setUserId(profile.getUserId());
+        MemoryProfileDTO mergedProfile = mergeProfile(existingEntity, profile);
+        String content = memoryMarkdownRenderer.render(mergedProfile);
+        saveProfile(existingEntity, mergedProfile, content);
+        persistProfileStructuredMemory(mergedProfile);
         return content;
     }
 
@@ -166,6 +174,18 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
         );
     }
 
+    private String loadOrRebuildMarkdown(AgentMemoryProfileEntity profileEntity) {
+        String storedMarkdown = loadStoredMarkdown(profileEntity);
+        if (storedMarkdown != null && !storedMarkdown.isBlank()) {
+            return storedMarkdown;
+        }
+        MemoryProfileDTO profile = toProfileDto(profileEntity);
+        String rebuiltMarkdown = memoryMarkdownRenderer.render(profile);
+        saveProfileObject(profileEntity, rebuiltMarkdown);
+        agentMemoryProfileRepository.saveOrUpdateEntity(profileEntity);
+        return rebuiltMarkdown;
+    }
+
     private String loadStoredMarkdown(Long userId) {
         return agentMemoryProfileRepository.getByUserId(userId)
                 .map(this::loadStoredMarkdown)
@@ -186,15 +206,35 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
         AgentMemoryProfileEntity entity = agentMemoryProfileRepository.getByUserId(profile.getUserId())
                 .orElseGet(AgentMemoryProfileEntity::new);
         entity.setUserId(profile.getUserId());
-        entity.setProfileSummary(memoryProfileProjectionAlgorithm.buildProfileSummary(profile));
-        entity.setName(profile.getName());
-        entity.setDepartment(profile.getDepartment());
-        entity.setPreferredLanguage(profile.getLanguage());
-        entity.setPreferredModel(profile.getPreferredModel());
-        entity.setToolPreference(profile.getToolPreference());
+        saveProfile(entity, mergeProfile(entity, profile), markdown);
+    }
+
+    private void saveProfile(AgentMemoryProfileEntity entity, MemoryProfileDTO mergedProfile, String markdown) {
+        entity.setProfileSummary(memoryProfileProjectionAlgorithm.buildProfileSummary(mergedProfile));
+        entity.setName(mergedProfile.getName());
+        entity.setDepartment(mergedProfile.getDepartment());
+        entity.setPreferredLanguage(mergedProfile.getLanguage());
+        entity.setPreferredModel(mergedProfile.getPreferredModel());
+        entity.setToolPreference(mergedProfile.getToolPreference());
         entity.setLastExtractedTime(LocalDateTime.now());
         saveProfileObject(entity, markdown);
         agentMemoryProfileRepository.saveOrUpdateEntity(entity);
+    }
+
+    private MemoryProfileDTO mergeProfile(AgentMemoryProfileEntity entity, MemoryProfileDTO profile) {
+        return new MemoryProfileDTO(
+                profile.getUserId(),
+                selectValue(profile.getName(), entity.getName()),
+                selectValue(profile.getDepartment(), entity.getDepartment()),
+                selectValue(profile.getLanguage(), entity.getPreferredLanguage()),
+                selectValue(profile.getPreferredModel(), entity.getPreferredModel()),
+                selectValue(profile.getToolPreference(), entity.getToolPreference()),
+                profile.getMarkdownContent()
+        );
+    }
+
+    private String selectValue(String currentValue, String fallbackValue) {
+        return currentValue == null || currentValue.isBlank() ? fallbackValue : currentValue;
     }
 
     private void saveProfileObject(AgentMemoryProfileEntity profileEntity, String markdown) {
@@ -203,7 +243,7 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
         objectEntity.setSessionId(null);
         objectEntity.setObjectType(MemoryConstants.MEMORY_OBJECT_TYPE_PROFILE);
         objectEntity.setBucket(MemoryConstants.MEMORY_DEFAULT_BUCKET);
-        objectEntity.setObjectKey("memory/profile/" + profileEntity.getUserId() + "/MEMORY.md");
+        objectEntity.setObjectKey(buildProfileObjectKey(profileEntity.getUserId()));
         objectEntity.setContentType("text/markdown");
         objectEntity.setChecksum(Integer.toHexString(markdown.hashCode()));
         objectEntity.setSizeBytes((long) markdown.getBytes(StandardCharsets.UTF_8).length);
@@ -211,6 +251,10 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
         agentMemoryObjectRepository.saveOrUpdateEntity(objectEntity);
         s3Util.upload(objectEntity.getObjectKey(), markdown.getBytes(StandardCharsets.UTF_8), "text/markdown");
         profileEntity.setProfileObjectId(objectEntity.getId());
+    }
+
+    private String buildProfileObjectKey(Long userId) {
+        return String.format("users/%d/MEMORY.md", userId);
     }
 
     private String normalizeMarkdown(String markdownContent) {

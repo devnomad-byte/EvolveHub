@@ -56,15 +56,19 @@ public class MilvusMemoryVectorStore implements MemoryVectorStore {
     private EmbeddingService embeddingService;
 
     @Override
-    public List<MemoryVectorHitDTO> search(Long userId, String query, Integer topK) {
+    public List<MemoryVectorHitDTO> search(Long userId, Long deptId, String query, Integer topK) {
         try {
             float[] queryEmbedding = toFloatArray(embeddingService.embedSync(query));
             MilvusClientV2 client = milvusStore.getClient();
+            String filter = "payload[\"user_id\"] == " + userId;
+            if (deptId != null) {
+                filter += " && payload[\"dept_id\"] == " + deptId;
+            }
             SearchReq searchReq = SearchReq.builder()
                     .collectionName(milvusStore.getCollectionName())
                     .data(List.of(new FloatVec(queryEmbedding)))
                     .topK(topK == null || topK <= 0 ? DEFAULT_TOP_K : topK)
-                    .filter("payload[\"user_id\"] == " + userId)
+                    .filter(filter)
                     .outputFields(List.of("content", "payload", "doc_id"))
                     .build();
             SearchResp response = client.search(searchReq);
@@ -99,8 +103,8 @@ public class MilvusMemoryVectorStore implements MemoryVectorStore {
     }
 
     @Override
-    public String save(Long userId, Long deptId, Long sessionId, String content, BigDecimal importance,
-                       String memoryKind, Integer roundStartNo, Integer roundEndNo) {
+    public String save(Long userId, Long deptId, Long sessionId, String memoryKey, String memoryType, String content,
+                       BigDecimal importance, String memoryKind, Integer roundStartNo, Integer roundEndNo) {
         String vectorDocId = UUID.randomUUID().toString();
         DocumentMetadata metadata = DocumentMetadata.builder()
                 .content(TextBlock.builder().text(content).build())
@@ -109,6 +113,8 @@ public class MilvusMemoryVectorStore implements MemoryVectorStore {
                 .addPayload("user_id", userId)
                 .addPayload("dept_id", deptId)
                 .addPayload("session_id", sessionId)
+                .addPayload("memory_key", memoryKey)
+                .addPayload("memory_type", memoryType)
                 .addPayload("importance", importance == null ? BigDecimal.ZERO.doubleValue() : importance.doubleValue())
                 .addPayload("memory_kind", memoryKind)
                 .addPayload("round_start_no", roundStartNo)

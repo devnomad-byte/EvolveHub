@@ -23,7 +23,7 @@ request.interceptors.request.use(
     // 从 localStorage 获取 token
     const token = localStorage.getItem('token')
     if (token) {
-      config.headers['satoken'] = token // Sa-Token 使用 satoken 作为 header
+      config.headers['Authorization'] = token
     }
     return config
   },

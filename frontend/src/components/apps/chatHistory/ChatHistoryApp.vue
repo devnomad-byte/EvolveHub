@@ -73,7 +73,7 @@
               用户 ID: {{ selectedSession.userId }} · 消息 {{ selectedSession.messageCount || 0 }} 条 · Tokens: {{ formatTokens(selectedSession.totalTokens) }}
             </div>
           </div>
-          <div class="ch-messages-list" ref="messagesListRef">
+          <div class="ch-messages-list">
             <div v-if="messagesLoading" class="ch-loading">加载消息中...</div>
             <template v-else>
               <div
@@ -133,8 +133,6 @@ const totalSessions = ref(0)
 const totalMessages = ref(0)
 const sessionPageSize = 15
 const msgPageSize = 20
-const messagesListRef = ref<HTMLElement | null>(null)
-
 const totalSessionPages = computed(() => Math.max(1, Math.ceil(totalSessions.value / sessionPageSize)))
 const totalMsgPages = computed(() => Math.max(1, Math.ceil(totalMessages.value / msgPageSize)))
 

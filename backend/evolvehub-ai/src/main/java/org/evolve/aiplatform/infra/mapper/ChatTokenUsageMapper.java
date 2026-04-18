@@ -2,7 +2,7 @@ package org.evolve.aiplatform.infra.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.evolve.aiplatform.bean.entity.ChatTokenUsageEntity;
+import org.evolve.domain.resource.model.ChatTokenUsageEntity;
 
 /**
  * Token 消费 Mapper

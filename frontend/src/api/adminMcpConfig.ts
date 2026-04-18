@@ -5,7 +5,7 @@ export type McpScope = 'SYSTEM' | 'DEPT' | 'USER'
 /** 传输类型 */
 export type TransportType = 'UPLOADED' | 'REMOTE'
 /** 协议类型 */
-export type Protocol = 'STDIO' | 'SSE'
+export type Protocol = 'STDIO' | 'SSE' | 'STREAMABLE_HTTP'
 
 export interface McpConfigInfo {
   id: number

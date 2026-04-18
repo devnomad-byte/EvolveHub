@@ -77,6 +77,10 @@ public class S3Config {
                     log.info("[S3] 已自动创建 bucket: {}", bucket);
                     return;
                 }
+                if (e.statusCode() == 403) {
+                    log.warn("[S3] 无权限校验 bucket 是否存在，跳过自动创建: {}", bucket);
+                    return;
+                }
                 throw e;
             }
         };
