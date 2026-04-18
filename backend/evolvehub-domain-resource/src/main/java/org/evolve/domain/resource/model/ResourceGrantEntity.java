@@ -1,6 +1,7 @@
 package org.evolve.domain.resource.model;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Getter;
 import lombok.Setter;
 import org.evolve.common.base.BaseEntity;
@@ -29,11 +30,13 @@ public class ResourceGrantEntity extends BaseEntity {
     /**
      * 被授权部门 ID（DEPT 级别授权必填）
      */
+    @TableField(exist = false)
     private Long deptId;
 
     /**
      * 被授权角色 ID（ROLE 级别授权必填）
      */
+    @TableField(exist = false)
     private Long roleId;
 
     /**

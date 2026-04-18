@@ -31,7 +31,18 @@ export default defineConfig({
       // AI 平台服务 -> 8082
       '/api/v1': {
         target: 'http://localhost:8082',
-        changeOrigin: true
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '/api/ai')
+      },
+      '/api/user': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '/api/ai')
+      },
+      '/api/available': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '/api/ai')
       },
       // 用户界面菜单
       '/api/app': {

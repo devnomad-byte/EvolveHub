@@ -1,6 +1,7 @@
 package org.evolve.domain.resource.model;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Getter;
 import lombok.Setter;
 import org.evolve.common.base.BaseEntity;
@@ -55,6 +56,7 @@ public class ModelConfigEntity extends BaseEntity {
     /**
      * 部门 ID，scope=DEPT 时必填
      */
+    @TableField(exist = false)
     private Long deptId;
 
     /**

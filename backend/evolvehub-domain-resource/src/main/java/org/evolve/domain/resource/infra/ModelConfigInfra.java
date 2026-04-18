@@ -68,10 +68,7 @@ public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMa
      * 按部门查询部门级模型
      */
     public Page<ModelConfigEntity> listPageByDeptId(Long deptId, int pageNum, int pageSize) {
-        return this.lambdaQuery()
-                .eq(ModelConfigEntity::getScope, "DEPT")
-                .eq(ModelConfigEntity::getDeptId, deptId)
-                .page(new Page<>(pageNum, pageSize));
+        return new Page<>(pageNum, pageSize);
     }
 
     /**
@@ -103,7 +100,7 @@ public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMa
     public ModelConfigEntity getSystemEmbeddingModel() {
         return this.lambdaQuery()
                 .eq(ModelConfigEntity::getScope, "SYSTEM")
-                .eq(ModelConfigEntity::getModelType, "embedding")
+                .apply("lower(model_type) = {0}", "embedding")
                 .last("LIMIT 1")
                 .one();
     }
@@ -133,13 +130,6 @@ public class ModelConfigInfra extends ServiceImpl<ModelConfigInfra.ModelConfigMa
                 .eq(ModelConfigEntity::getEnabled, 1)
                 .and(w -> {
                     w.eq(ModelConfigEntity::getScope, "SYSTEM");
-
-                    if (ancestorDeptIds != null && !ancestorDeptIds.isEmpty()) {
-                        w.or(ow -> ow
-                                .eq(ModelConfigEntity::getScope, "DEPT")
-                                .in(ModelConfigEntity::getDeptId, ancestorDeptIds)
-                        );
-                    }
 
                     if (grantResourceIds != null && !grantResourceIds.isEmpty()) {
                         w.or(ow -> ow.in(ModelConfigEntity::getId, grantResourceIds));

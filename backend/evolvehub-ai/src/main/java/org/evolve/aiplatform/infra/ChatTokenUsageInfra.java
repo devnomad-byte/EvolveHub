@@ -1,9 +1,8 @@
 package org.evolve.aiplatform.infra;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.apache.ibatis.annotations.Mapper;
 import org.evolve.aiplatform.bean.entity.ChatTokenUsageEntity;
+import org.evolve.aiplatform.infra.mapper.ChatTokenUsageMapper;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -17,10 +16,7 @@ import java.util.List;
  * @date 2026/4/14
  */
 @Repository
-public class ChatTokenUsageInfra extends ServiceImpl<ChatTokenUsageInfra.ChatTokenUsageMapper, ChatTokenUsageEntity> {
-
-    @Mapper
-    interface ChatTokenUsageMapper extends BaseMapper<ChatTokenUsageEntity> {}
+public class ChatTokenUsageInfra extends ServiceImpl<ChatTokenUsageMapper, ChatTokenUsageEntity> {
 
     /**
      * 查询指定用户、模型、日期的消费记录

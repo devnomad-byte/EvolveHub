@@ -53,6 +53,7 @@ export interface ChatMessage {
   content: string
   timestamp: string
   toolCalls?: ToolCall[]
+  isTyping?: boolean
 }
 
 export interface ToolCall {
@@ -67,6 +68,7 @@ export interface ChatSession {
   title: string
   time: string
   active: boolean
+  modelConfigId?: string
 }
 
 export interface KnowledgeBase {

@@ -1,62 +1,51 @@
 <template>
   <div class="memory-app">
-    <!-- Left: User list -->
-    <div class="mem-sidebar">
+    <div v-if="canSelectUsers" class="mem-sidebar">
       <div class="mem-sidebar-header">
         <span class="mem-sidebar-title">用户列表</span>
-        <span class="mem-sidebar-count">{{ userMemories.length }}</span>
+        <span class="mem-sidebar-count">{{ filteredUsers.length }}</span>
       </div>
       <div class="mem-search">
         <input v-model="userFilter" class="mem-search-input" placeholder="搜索用户..." />
       </div>
       <div class="mem-user-list">
         <div
-          v-for="u in filteredUsers"
-          :key="u.id"
+          v-for="user in filteredUsers"
+          :key="user.id"
           class="mem-user-item"
-          :class="{ active: selectedUserId === u.id }"
-          @click="selectedUserId = u.id"
+          :class="{ active: selectedUserId === user.id }"
+          @click="selectedUserId = user.id"
         >
-          <div class="mem-user-avatar">{{ u.avatar }}</div>
+          <div class="mem-user-avatar">{{ user.avatarLabel }}</div>
           <div class="mem-user-info">
-            <div class="mem-user-name">{{ u.name }}</div>
-            <div class="mem-user-meta">
-              <span class="mem-tag short">{{ u.shortCount }} 短期</span>
-              <span class="mem-tag long">{{ u.longCount }} 长期</span>
-            </div>
+            <div class="mem-user-name">{{ user.name }}</div>
+            <div class="mem-user-subtitle">{{ user.dept || '未分配部门' }}</div>
           </div>
+          <span class="mem-role-tag">{{ roleLabel(user.roleCode) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Right: Memory detail -->
     <div class="mem-main">
       <template v-if="selectedUser">
-        <!-- Header -->
         <div class="mem-detail-header">
           <div class="mem-detail-user">
-            <span class="mem-detail-avatar">{{ selectedUser.avatar }}</span>
+            <span class="mem-detail-avatar">{{ selectedUser.avatarLabel }}</span>
             <div>
               <div class="mem-detail-name">{{ selectedUser.name }}</div>
-              <div class="mem-detail-dept">{{ selectedUser.dept }}</div>
+              <div class="mem-detail-dept">
+                {{ selectedUser.dept || '未分配部门' }}
+                <span v-if="selectedUser.roleCode"> · {{ roleLabel(selectedUser.roleCode) }}</span>
+              </div>
             </div>
           </div>
           <div class="mem-tabs">
-            <button
-              class="mem-tab"
-              :class="{ active: activeTab === 'short' }"
-              @click="activeTab = 'short'"
-            >短期记忆</button>
-            <button
-              class="mem-tab"
-              :class="{ active: activeTab === 'long' }"
-              @click="activeTab = 'long'"
-            >长期记忆</button>
+            <button class="mem-tab" :class="{ active: activeTab === 'profile' }" @click="activeTab = 'profile'">画像 Markdown</button>
+            <button class="mem-tab" :class="{ active: activeTab === 'long' }" @click="activeTab = 'long'">长期记忆</button>
           </div>
         </div>
 
-        <!-- Short-term memory: MEMORY.md -->
-        <div v-if="activeTab === 'short'" class="mem-tab-content">
+        <div v-if="activeTab === 'profile'" class="mem-tab-content">
           <div class="mem-file-card">
             <div class="mem-file-header">
               <div class="mem-file-name">
@@ -64,251 +53,334 @@
                 MEMORY.md
               </div>
               <div class="mem-file-actions">
-                <button class="mem-btn mem-btn-ghost">编辑</button>
-                <button class="mem-btn mem-btn-ghost">刷新</button>
+                <button v-if="!isEditingProfile" class="mem-btn mem-btn-ghost" :disabled="loadingDetail" @click="startEditProfile">编辑</button>
+                <button v-if="isEditingProfile" class="mem-btn primary" :disabled="savingProfile" @click="saveProfile">
+                  {{ savingProfile ? '保存中...' : '保存' }}
+                </button>
+                <button v-if="isEditingProfile" class="mem-btn mem-btn-ghost" :disabled="savingProfile" @click="cancelEditProfile">取消</button>
+                <button class="mem-btn mem-btn-ghost" :disabled="loadingDetail" @click="refreshSelectedUser">刷新</button>
               </div>
             </div>
             <div class="mem-file-meta">
-              <span>{{ selectedUser.shortCount }} 条记忆</span>
-              <span>最后更新: {{ selectedUser.lastUpdate }}</span>
+              <span>当前用户画像</span>
+              <span>{{ profileDraft.length }} 字</span>
             </div>
             <div class="mem-file-body">
-              <pre>{{ selectedUser.mdContent }}</pre>
+              <textarea
+                v-if="isEditingProfile"
+                v-model="profileDraft"
+                class="mem-file-editor"
+                spellcheck="false"
+              ></textarea>
+              <pre v-else>{{ profileMarkdown || '暂无画像内容' }}</pre>
             </div>
           </div>
         </div>
 
-        <!-- Long-term memory: vector memories -->
         <div v-if="activeTab === 'long'" class="mem-tab-content">
           <div class="mem-long-toolbar">
             <input v-model="memorySearch" class="mem-search-input mem-search-wide" placeholder="搜索长期记忆..." />
-            <select v-model="memoryType" class="mem-select">
-              <option value="all">全部类型</option>
-              <option value="preference">偏好</option>
-              <option value="fact">事实</option>
-              <option value="tool_config">工具配置</option>
-            </select>
+            <div class="mem-long-toolbar-right">
+              <select v-model="memoryType" class="mem-select">
+                <option value="all">全部类型</option>
+                <option value="preference">偏好</option>
+                <option value="fact">事实</option>
+                <option value="tool_config">工具配置</option>
+              </select>
+              <button class="mem-btn mem-btn-ghost" :disabled="loadingDetail" @click="refreshSelectedUser">刷新</button>
+            </div>
           </div>
           <div class="mem-long-list">
-            <div
-              v-for="mem in filteredMemories"
-              :key="mem.id"
-              class="mem-long-item"
-            >
-              <div class="mem-long-left">
-                <span class="mem-type-badge" :class="'type-' + mem.type">{{ typeLabel[mem.type] }}</span>
-                <div class="mem-long-content">{{ mem.content }}</div>
-              </div>
-              <div class="mem-long-right">
-                <div class="mem-importance">
-                  <div class="mem-importance-bar">
-                    <div class="mem-importance-fill" :class="'imp-' + importanceLevel(mem.importance)" :style="{ width: mem.importance * 100 + '%' }"></div>
-                  </div>
-                  <span class="mem-importance-val">{{ (mem.importance * 100).toFixed(0) }}%</span>
+            <div v-if="loadingDetail" class="mem-empty">正在加载记忆...</div>
+            <template v-else>
+              <div v-for="memory in filteredMemories" :key="memory.id" class="mem-long-item">
+                <div class="mem-long-left">
+                  <span class="mem-type-badge" :class="'type-' + normalizeMemoryType(memory.memoryType)">
+                    {{ typeLabel[normalizeMemoryType(memory.memoryType)] || '其他' }}
+                  </span>
+                  <div class="mem-long-content">{{ memory.content }}</div>
                 </div>
-                <span class="mem-long-date">{{ mem.date }}</span>
+                <div class="mem-long-right">
+                  <div class="mem-importance">
+                    <div class="mem-importance-bar">
+                      <div
+                        class="mem-importance-fill"
+                        :class="'imp-' + importanceLevel(toImportance(memory.importance))"
+                        :style="{ width: `${toImportance(memory.importance) * 100}%` }"
+                      ></div>
+                    </div>
+                    <span class="mem-importance-val">{{ formatImportance(memory.importance) }}</span>
+                  </div>
+                  <span class="mem-long-date">{{ formatDate(memory.updatedAt) }}</span>
+                  <div class="mem-long-actions">
+                    <button class="mem-btn danger" @click="removeMemory(memory.id)">删除</button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div v-if="filteredMemories.length === 0" class="mem-empty">暂无匹配的记忆条目</div>
+              <div v-if="!filteredMemories.length" class="mem-empty">暂无匹配的长期记忆</div>
+            </template>
           </div>
         </div>
       </template>
 
-      <!-- No user selected -->
       <div v-else class="mem-placeholder">
         <span class="mem-placeholder-icon">🧠</span>
-        <div class="mem-placeholder-text">选择用户查看记忆</div>
+        <div class="mem-placeholder-text">{{ loadingUsers ? '正在加载用户...' : '暂无可查看的记忆数据' }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { adminUserApi } from '@/api/adminUser'
+import { memoryApi, type MemoryManagedItemRecord } from '@/api/memory'
+import { useDesktopStore } from '@/stores/desktop'
 
-const selectedUserId = ref(1)
-const activeTab = ref<'short' | 'long'>('short')
+interface MemoryUserOption {
+  id: number
+  name: string
+  dept: string
+  roleCode: string
+  avatarLabel: string
+}
+
+const desktop = useDesktopStore()
+const loadingUsers = ref(false)
+const loadingDetail = ref(false)
+const savingProfile = ref(false)
+const selectedUserId = ref<number | null>(null)
+const activeTab = ref<'profile' | 'long'>('profile')
 const userFilter = ref('')
 const memorySearch = ref('')
 const memoryType = ref('all')
+const isEditingProfile = ref(false)
+const profileMarkdown = ref('')
+const profileDraft = ref('')
+const users = ref<MemoryUserOption[]>([])
+const memoryItems = ref<MemoryManagedItemRecord[]>([])
 
 const typeLabel: Record<string, string> = {
   preference: '偏好',
   fact: '事实',
-  tool_config: '工具'
+  tool_config: '工具配置'
 }
 
-interface UserMemory {
-  id: number
-  name: string
-  avatar: string
-  dept: string
-  shortCount: number
-  longCount: number
-  lastUpdate: string
-  mdContent: string
-}
+const canSelectUsers = computed(() => {
+  const roles = desktop.currentUser?.roles || []
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN')
+})
 
-const userMemories = ref<UserMemory[]>([
-  {
-    id: 1, name: '张管理', avatar: '🧑‍💼', dept: '总经办',
-    shortCount: 12, longCount: 45, lastUpdate: '10分钟前',
-    mdContent: `## 基本信息
-- 姓名: 张管理
-- 部门: 总经办
-- 角色: 超级管理员
-
-## 偏好设置
-- 语言: 中文
-- 模型: qwen-max
-- 称呼: 老张
-
-## 工具配置
-- SSH: home-server -> 192.168.1.100
-- Docker: 默认使用 docker compose
-
-## 工作习惯
-- 每日 9:00 查看系统运行报告
-- 偏好表格化数据展示
-- 习惯使用 GitFlow 分支策略`
-  },
-  {
-    id: 2, name: '李用户', avatar: '👤', dept: '技术部',
-    shortCount: 8, longCount: 32, lastUpdate: '1小时前',
-    mdContent: `## 基本信息
-- 姓名: 李用户
-- 部门: 技术部
-
-## 偏好设置
-- 语言: 中文
-- 模型: gpt-4o
-- 回复风格: 简洁
-
-## 兴趣爱好
-- 编程 & 技术博客
-- 开源项目贡献
-- 科幻小说阅读
-- 咖啡品鉴`
-  },
-  {
-    id: 3, name: '王产品', avatar: '👩‍💻', dept: '产品部',
-    shortCount: 6, longCount: 28, lastUpdate: '3小时前',
-    mdContent: `## 基本信息
-- 姓名: 王产品
-- 部门: 产品部
-
-## 偏好设置
-- 语言: 中文
-- 模型: claude-3.5
-
-## 工作习惯
-- 每周一更新需求文档
-- 偏好 Markdown 格式
-- 使用飞书管理任务`
-  },
-  {
-    id: 4, name: '刘设计', avatar: '🎨', dept: '设计部',
-    shortCount: 4, longCount: 19, lastUpdate: '昨天',
-    mdContent: `## 基本信息
-- 姓名: 刘设计
-- 部门: 设计部
-
-## 偏好设置
-- 语言: 中文
-- 模型: qwen-max
-
-## 兴趣爱好
-- UI/UX 设计
-- 色彩心理学
-- 极简主义`
-  },
-  {
-    id: 5, name: '陈运维', avatar: '🔧', dept: '运维部',
-    shortCount: 15, longCount: 67, lastUpdate: '30分钟前',
-    mdContent: `## 基本信息
-- 姓名: 陈运维
-- 部门: 运维部
-
-## 工具配置
-- K8s 集群: prod-cluster-01
-- 监控: Prometheus + Grafana
-- 日志: ELK Stack
-- CI/CD: Jenkins + ArgoCD
-
-## 偏好设置
-- 语言: 中文 + 英文术语
-- 模型: deepseek-v3`
-  },
-  {
-    id: 6, name: '赵数据', avatar: '📊', dept: '数据部',
-    shortCount: 9, longCount: 41, lastUpdate: '2小时前',
-    mdContent: `## 基本信息
-- 姓名: 赵数据
-- 部门: 数据部
-
-## 偏好设置
-- 语言: 中文
-- 模型: gpt-4o
-- 数据库: PostgreSQL + ClickHouse
-
-## 工作习惯
-- 每天处理数据报表
-- 偏好 SQL 和 Python
-- 使用 Jupyter 进行分析`
+const filteredUsers = computed(() => {
+  const keyword = userFilter.value.trim()
+  if (!keyword) {
+    return users.value
   }
-])
-
-interface LongMemory {
-  id: string
-  userId: number
-  userName: string
-  type: 'preference' | 'fact' | 'tool_config'
-  content: string
-  importance: number
-  date: string
-}
-
-const longMemories = ref<LongMemory[]>([
-  { id: '1', userId: 1, userName: '张管理', type: 'preference', content: '偏好使用 Python 进行数据分析，不擅长 R 语言', importance: 0.8, date: '2026-04-10' },
-  { id: '2', userId: 1, userName: '张管理', type: 'fact', content: '每周五下午需要提交周报给上级领导', importance: 0.7, date: '2026-04-09' },
-  { id: '3', userId: 1, userName: '张管理', type: 'tool_config', content: 'Docker Compose 部署，默认使用 docker compose 而非 docker-compose', importance: 0.6, date: '2026-04-08' },
-  { id: '4', userId: 2, userName: '李用户', type: 'preference', content: '回复风格偏好简洁，不需要过多客套话', importance: 0.85, date: '2026-04-10' },
-  { id: '5', userId: 2, userName: '李用户', type: 'fact', content: '目前正在学习 Rust 编程语言', importance: 0.5, date: '2026-04-09' },
-  { id: '6', userId: 2, userName: '李用户', type: 'preference', content: '技术文档偏好使用英文原文，其他内容偏好中文', importance: 0.75, date: '2026-04-08' },
-  { id: '7', userId: 3, userName: '王产品', type: 'fact', content: '负责的产品线是 AI 中台和智能客服', importance: 0.6, date: '2026-04-10' },
-  { id: '8', userId: 3, userName: '王产品', type: 'preference', content: '需求文档使用 Markdown 格式，不用 Word', importance: 0.7, date: '2026-04-07' },
-  { id: '9', userId: 4, userName: '刘设计', type: 'fact', content: '设计工具主要使用 Figma，偶尔使用 Sketch', importance: 0.4, date: '2026-04-09' },
-  { id: '10', userId: 4, userName: '刘设计', type: 'preference', content: '配色偏好低饱和度，设计风格偏极简主义', importance: 0.65, date: '2026-04-06' },
-  { id: '11', userId: 5, userName: '陈运维', type: 'tool_config', content: 'K8s 集群名称 prod-cluster-01，命名空间按项目划分', importance: 0.9, date: '2026-04-10' },
-  { id: '12', userId: 5, userName: '陈运维', type: 'fact', content: '监控告警通过钉钉群发送，P0 级别同时电话通知', importance: 0.85, date: '2026-04-09' },
-  { id: '13', userId: 5, userName: '陈运维', type: 'tool_config', content: 'CI/CD 流水线使用 Jenkins + ArgoCD，GitOps 模式', importance: 0.8, date: '2026-04-08' },
-  { id: '14', userId: 6, userName: '赵数据', type: 'preference', content: '数据分析优先使用 SQL，复杂场景使用 Python pandas', importance: 0.7, date: '2026-04-10' },
-  { id: '15', userId: 6, userName: '赵数据', type: 'fact', content: '每天上午 9:00 需要生成前一日的数据报表', importance: 0.75, date: '2026-04-09' }
-])
-
-const filteredUsers = computed(() =>
-  userMemories.value.filter(u =>
-    u.name.includes(userFilter.value) || u.dept.includes(userFilter.value)
-  )
-)
+  return users.value.filter(user => user.name.includes(keyword) || user.dept.includes(keyword))
+})
 
 const selectedUser = computed(() =>
-  userMemories.value.find(u => u.id === selectedUserId.value)
+  users.value.find(user => user.id === selectedUserId.value) || null
 )
 
-const filteredMemories = computed(() =>
-  longMemories.value.filter(m => {
-    if (selectedUserId.value && m.userId !== selectedUserId.value) return false
-    if (memoryType.value !== 'all' && m.type !== memoryType.value) return false
-    if (memorySearch.value && !m.content.includes(memorySearch.value)) return false
+const filteredMemories = computed(() => {
+  const keyword = memorySearch.value.trim()
+  return memoryItems.value.filter(item => {
+    const normalizedType = normalizeMemoryType(item.memoryType)
+    if (memoryType.value !== 'all' && normalizedType !== memoryType.value) {
+      return false
+    }
+    if (keyword && !item.content.includes(keyword)) {
+      return false
+    }
     return true
   })
-)
+})
 
-function importanceLevel(imp: number): string {
-  if (imp >= 0.8) return 'high'
-  if (imp >= 0.6) return 'mid'
+watch(selectedUserId, () => {
+  if (selectedUserId.value != null) {
+    void loadSelectedUserData()
+  }
+})
+
+onMounted(() => {
+  void loadUsers()
+})
+
+async function loadUsers() {
+  loadingUsers.value = true
+  try {
+    if (canSelectUsers.value) {
+      const userList = await adminUserApi.list()
+      users.value = userList.map(user => ({
+        id: user.id,
+        name: user.nickname || user.username,
+        dept: user.deptName || '',
+        roleCode: user.roles?.[0]?.roleCode || 'USER',
+        avatarLabel: buildAvatarLabel(user.nickname || user.username)
+      }))
+    } else if (desktop.currentUser) {
+      users.value = [{
+        id: desktop.currentUser.id,
+        name: desktop.currentUser.displayName || desktop.currentUser.username,
+        dept: desktop.currentUser.deptName || '',
+        roleCode: desktop.currentUser.roles?.[0] || 'USER',
+        avatarLabel: buildAvatarLabel(desktop.currentUser.displayName || desktop.currentUser.username)
+      }]
+    } else {
+      users.value = []
+    }
+
+    if (!users.value.length) {
+      selectedUserId.value = null
+      return
+    }
+    if (!users.value.some(user => user.id === selectedUserId.value)) {
+      selectedUserId.value = users.value[0].id
+    }
+  } catch (error) {
+    console.error('加载记忆用户列表失败', error)
+    desktop.addToast(error instanceof Error ? error.message : '加载用户列表失败', 'error')
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+async function loadSelectedUserData() {
+  if (selectedUserId.value == null) {
+    return
+  }
+  loadingDetail.value = true
+  isEditingProfile.value = false
+  try {
+    const [profile, items] = await Promise.all([
+      memoryApi.getProfile(selectedUserId.value),
+      memoryApi.listItems(selectedUserId.value)
+    ])
+    profileMarkdown.value = profile.markdownContent || ''
+    profileDraft.value = profile.markdownContent || ''
+    memoryItems.value = Array.isArray(items) ? items : []
+  } catch (error) {
+    console.error('加载记忆详情失败', error)
+    desktop.addToast(error instanceof Error ? error.message : '加载记忆详情失败', 'error')
+    profileMarkdown.value = ''
+    profileDraft.value = ''
+    memoryItems.value = []
+  } finally {
+    loadingDetail.value = false
+  }
+}
+
+function startEditProfile() {
+  profileDraft.value = profileMarkdown.value
+  isEditingProfile.value = true
+}
+
+function cancelEditProfile() {
+  profileDraft.value = profileMarkdown.value
+  isEditingProfile.value = false
+}
+
+async function saveProfile() {
+  if (selectedUserId.value == null) {
+    return
+  }
+  savingProfile.value = true
+  try {
+    const profile = await memoryApi.saveProfile({
+      targetUserId: selectedUserId.value,
+      markdownContent: profileDraft.value
+    })
+    profileMarkdown.value = profile.markdownContent || ''
+    profileDraft.value = profile.markdownContent || ''
+    isEditingProfile.value = false
+    desktop.addToast('画像已保存', 'success')
+  } catch (error) {
+    console.error('保存画像失败', error)
+    desktop.addToast(error instanceof Error ? error.message : '保存画像失败', 'error')
+  } finally {
+    savingProfile.value = false
+  }
+}
+
+async function refreshSelectedUser() {
+  await loadSelectedUserData()
+}
+
+async function removeMemory(memoryId: number) {
+  if (selectedUserId.value == null) {
+    return
+  }
+  if (!window.confirm('确认删除这条长期记忆吗？')) {
+    return
+  }
+  try {
+    await memoryApi.deleteItem(memoryId, selectedUserId.value)
+    memoryItems.value = memoryItems.value.filter(item => item.id !== memoryId)
+    desktop.addToast('长期记忆已删除', 'success')
+  } catch (error) {
+    console.error('删除长期记忆失败', error)
+    desktop.addToast(error instanceof Error ? error.message : '删除长期记忆失败', 'error')
+  }
+}
+
+function normalizeMemoryType(memoryType: string | undefined) {
+  return (memoryType || '').trim().toLowerCase() || 'fact'
+}
+
+function roleLabel(roleCode: string) {
+  const labels: Record<string, string> = {
+    SUPER_ADMIN: '超级管理员',
+    ADMIN: '管理员',
+    LEADER: '高层领导',
+    DEPT_HEAD: '部门负责人',
+    USER: '普通用户'
+  }
+  return labels[roleCode] || roleCode || '未知角色'
+}
+
+function buildAvatarLabel(name: string) {
+  const normalizedName = (name || '').trim()
+  return normalizedName ? normalizedName.charAt(0).toUpperCase() : 'U'
+}
+
+function toImportance(value: number | undefined) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 0
+  }
+  if (value < 0) {
+    return 0
+  }
+  if (value > 1) {
+    return 1
+  }
+  return value
+}
+
+function importanceLevel(importance: number) {
+  if (importance >= 0.8) return 'high'
+  if (importance >= 0.6) return 'mid'
   return 'low'
+}
+
+function formatImportance(value: number | undefined) {
+  return `${Math.round(toImportance(value) * 100)}%`
+}
+
+function formatDate(value: string | undefined) {
+  if (!value) {
+    return '刚刚'
+  }
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return value
+  }
+  return parsed.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 </script>
 
@@ -319,14 +391,13 @@ function importanceLevel(imp: number): string {
   background: #0a0a14;
 }
 
-/* === Left Sidebar === */
 .mem-sidebar {
-  width: 240px;
-  min-width: 240px;
+  width: 260px;
+  min-width: 260px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.22);
 }
 
 .mem-sidebar-header {
@@ -357,7 +428,7 @@ function importanceLevel(imp: number): string {
 
 .mem-search-input {
   width: 100%;
-  height: 32px;
+  height: 34px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -365,46 +436,36 @@ function importanceLevel(imp: number): string {
   font-size: 12px;
   color: #fff;
   outline: none;
-  transition: border-color 200ms;
   box-sizing: border-box;
-}
-
-.mem-search-input:focus {
-  border-color: rgba(10, 132, 255, 0.4);
 }
 
 .mem-search-input::placeholder {
   color: rgba(255, 255, 255, 0.25);
 }
 
+.mem-search-input:focus {
+  border-color: rgba(10, 132, 255, 0.45);
+}
+
 .mem-search-wide {
-  height: 36px;
+  height: 38px;
   font-size: 13px;
 }
 
 .mem-user-list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 8px;
-}
-
-.mem-user-list::-webkit-scrollbar {
-  width: 3px;
-}
-
-.mem-user-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  padding: 4px 8px 10px;
 }
 
 .mem-user-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 10px;
+  padding: 10px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 150ms;
+  transition: background 150ms ease;
 }
 
 .mem-user-item:hover {
@@ -415,15 +476,17 @@ function importanceLevel(imp: number): string {
   background: rgba(10, 132, 255, 0.1);
 }
 
-.mem-user-avatar {
+.mem-user-avatar,
+.mem-detail-avatar {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 15px;
+  color: #fff;
   flex-shrink: 0;
 }
 
@@ -432,307 +495,238 @@ function importanceLevel(imp: number): string {
   min-width: 0;
 }
 
-.mem-user-name {
+.mem-user-name,
+.mem-detail-name {
   font-size: 13px;
   font-weight: 500;
   color: #fff;
 }
 
-.mem-user-meta {
-  display: flex;
-  gap: 6px;
+.mem-user-subtitle,
+.mem-detail-dept {
   margin-top: 3px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
 }
 
-.mem-tag {
+.mem-role-tag,
+.mem-type-badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(10, 132, 255, 0.12);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 4px;
 }
 
-.mem-tag.short {
-  color: #FFD60A;
-  background: rgba(255, 214, 10, 0.1);
-}
-
-.mem-tag.long {
-  color: #30D158;
-  background: rgba(48, 209, 88, 0.1);
-}
-
-/* === Right Main === */
 .mem-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow: hidden;
 }
 
 .mem-detail-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 18px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
 }
 
 .mem-detail-user {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.mem-detail-avatar {
-  font-size: 28px;
-}
-
-.mem-detail-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.mem-detail-dept {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 1px;
+  gap: 12px;
 }
 
 .mem-tabs {
   display: flex;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 3px;
-  border-radius: 8px;
+  gap: 8px;
 }
 
 .mem-tab {
-  padding: 5px 14px;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  padding: 8px 14px;
   cursor: pointer;
-  transition: all 150ms;
-}
-
-.mem-tab:hover {
-  color: rgba(255, 255, 255, 0.7);
 }
 
 .mem-tab.active {
-  background: rgba(10, 132, 255, 0.15);
-  color: #0A84FF;
+  background: rgba(10, 132, 255, 0.16);
+  color: #fff;
 }
 
-/* === Tab content === */
 .mem-tab-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
+  overflow: auto;
+  padding: 20px;
 }
 
-.mem-tab-content::-webkit-scrollbar {
-  width: 4px;
-}
-
-.mem-tab-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-/* === Short-term: MEMORY.md === */
 .mem-file-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  min-height: 100%;
 }
 
-.mem-file-header {
+.mem-file-header,
+.mem-long-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  gap: 12px;
+}
+
+.mem-file-header {
+  padding: 16px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .mem-file-name {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 10px;
   font-weight: 600;
-  color: #fff;
 }
 
-.mem-file-icon {
-  font-size: 16px;
-}
-
-.mem-file-actions {
+.mem-file-actions,
+.mem-long-toolbar-right,
+.mem-long-actions {
   display: flex;
-  gap: 6px;
-}
-
-.mem-btn {
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: none;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 150ms;
-}
-
-.mem-btn-ghost {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.mem-btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  align-items: center;
+  gap: 8px;
 }
 
 .mem-file-meta {
+  padding: 12px 18px 0;
   display: flex;
-  gap: 16px;
-  padding: 8px 16px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.3);
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
 }
 
 .mem-file-body {
-  padding: 16px;
+  padding: 18px;
 }
 
-.mem-file-body pre {
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+.mem-file-body pre,
+.mem-file-editor {
+  width: 100%;
+  min-height: 420px;
+  margin: 0;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
   line-height: 1.7;
   white-space: pre-wrap;
-  margin: 0;
-}
-
-/* === Long-term memory === */
-.mem-long-toolbar {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.mem-long-toolbar .mem-search-input {
-  flex: 1;
-}
-
-.mem-select {
-  height: 36px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0 12px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  color: #fff;
+  background: transparent;
+  border: none;
   outline: none;
+}
+
+.mem-file-editor {
+  resize: vertical;
+}
+
+.mem-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
   cursor: pointer;
 }
 
-.mem-select option {
-  background: #1a1a2e;
+.mem-btn.primary {
+  background: #0A84FF;
   color: #fff;
 }
 
+.mem-btn.mem-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.mem-btn.danger {
+  background: rgba(255, 69, 58, 0.14);
+  color: #fff;
+}
+
+.mem-select {
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 0 10px;
+}
+
 .mem-long-list {
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
 }
 
 .mem-long-item {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  transition: background 150ms;
-}
-
-.mem-long-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .mem-long-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   flex: 1;
-  min-width: 0;
-}
-
-.mem-type-badge {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .mem-type-badge.type-preference {
-  color: #0A84FF;
-  background: rgba(10, 132, 255, 0.12);
+  background: rgba(255, 214, 10, 0.14);
 }
 
 .mem-type-badge.type-fact {
-  color: #30D158;
-  background: rgba(48, 209, 88, 0.12);
+  background: rgba(10, 132, 255, 0.16);
 }
 
 .mem-type-badge.type-tool_config {
-  color: #FFD60A;
-  background: rgba(255, 214, 10, 0.12);
+  background: rgba(48, 209, 88, 0.18);
 }
 
 .mem-long-content {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.7;
 }
 
 .mem-long-right {
+  width: 180px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
+  gap: 10px;
 }
 
 .mem-importance {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .mem-importance-bar {
-  width: 50px;
-  height: 3px;
+  width: 96px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .mem-importance-fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: inherit;
+}
+
+.mem-importance-fill.imp-high {
   background: #30D158;
 }
 
@@ -740,47 +734,28 @@ function importanceLevel(imp: number): string {
   background: #FFD60A;
 }
 
-.mem-importance-fill.imp-high {
-  background: #FF453A;
+.mem-importance-fill.imp-low {
+  background: #FF9F0A;
 }
 
-.mem-importance-val {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
-  width: 30px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
+.mem-importance-val,
 .mem-long-date {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.48);
 }
 
+.mem-placeholder,
 .mem-empty {
-  text-align: center;
-  padding: 40px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.25);
-}
-
-/* === Placeholder === */
-.mem-placeholder {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  min-height: 220px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .mem-placeholder-icon {
-  font-size: 40px;
-  opacity: 0.3;
-}
-
-.mem-placeholder-text {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.25);
+  font-size: 42px;
+  margin-bottom: 10px;
 }
 </style>

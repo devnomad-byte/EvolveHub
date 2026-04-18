@@ -5,14 +5,14 @@ server:
   port: 8082
 
 spring:
-  # ----- DataSource (shared PostgreSQL with auth for RBAC) -----
+  # ----- DataSource (Docker Compose PostgreSQL, shared with auth for RBAC) -----
   datasource:
-    url: jdbc:postgresql://106.15.231.177:${DB_PORT:5432}/evolve_auth
-    username: admin
-    password: a774461674
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:evolvehub}
+    username: ${DB_USERNAME:evolvehub}
+    password: ${DB_PASSWORD:evolvehub123}
     driver-class-name: org.postgresql.Driver
 
-  # ----- Redis (database 0, shared with auth for Sa-Token session) -----
+  # ----- Redis (Docker Compose Redis, database 0 shared with auth for Sa-Token session) -----
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -20,21 +20,21 @@ spring:
       password: ${REDIS_PASSWORD:}
       database: 0
 
-# ----- S3  -----
+# ----- S3 / MinIO (Docker Compose MinIO) -----
 s3:
   enabled: true
   endpoint: ${S3_ENDPOINT:http://localhost:9000}
   region: ${S3_REGION:us-east-1}
-  access-key: ${S3_ACCESS_KEY:minioadmin}
-  secret-key: ${S3_SECRET_KEY:minioadmin}
+  access-key: ${S3_ACCESS_KEY:evolvehub}
+  secret-key: ${S3_SECRET_KEY:evolvehub123}
   bucket: ${S3_BUCKET:evolvehub}
   path-style-access-enabled: true
   auto-create-bucket: true
 
-# ----- Milvus (Zilliz Cloud) -----
+# ----- Milvus (Docker Compose Milvus Standalone) -----
 milvus:
-  uri: https://in05-310089dbc221c5a.serverless.aws-eu-central-1.cloud.zilliz.com
-  token: f21ffb509bf216f9447cb338bc5d7842e5884ef72fd1a59536337126e32be47202ce3942e1428aafe8149964370302f39fc19963
+  uri: ${MILVUS_URI:http://localhost:19530}
+  token: ${MILVUS_TOKEN:}
   collection-name: eh_chat_memory
   dimensions: 1536
 
