@@ -1,4 +1,4 @@
-import { ref, h, createApp } from 'vue'
+import { ref } from 'vue'
 
 export interface ConfirmOptions {
   title: string

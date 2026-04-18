@@ -5,8 +5,8 @@ import io.agentscope.core.tool.mcp.McpClientBuilder;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
-import org.evolve.aiplatform.service.ChatMemoryService;
-import org.evolve.aiplatform.service.UserProfileService;
+import org.evolve.aiplatform.memory.application.service.MemoryApi;
+import org.evolve.aiplatform.memory.application.tool.MemoryTools;
 import org.evolve.domain.resource.infra.McpConfigInfra;
 import org.evolve.domain.resource.infra.ResourceGrantInfra;
 import org.evolve.domain.resource.infra.SkillConfigInfra;
@@ -43,10 +43,7 @@ public class UserToolkitLoader {
     private ResourceGrantInfra resourceGrantInfra;
 
     @Resource
-    private ChatMemoryService chatMemoryService;
-
-    @Resource
-    private UserProfileService userProfileService;
+    private MemoryApi memoryApi;
 
     @Resource
     private ObjectMapper objectMapper;
@@ -62,39 +59,47 @@ public class UserToolkitLoader {
         Toolkit toolkit = new Toolkit();
 
         // 1. 注册记忆工具（所有用户都有）
-        MemoryTools memoryTools = new MemoryTools(chatMemoryService, userId, sessionId);
+        MemoryTools memoryTools = new MemoryTools(memoryApi, userId, sessionId);
         toolkit.registerTool(memoryTools);
         log.debug("已注册记忆工具: userId={}", userId);
 
         // 2. 注册用户画像工具（所有用户都有）
-        UserProfileTools profileTools = new UserProfileTools(userProfileService, userId);
+        UserProfileTools profileTools = new UserProfileTools(memoryApi, userId);
         toolkit.registerTool(profileTools);
         log.debug("已注册用户画像工具: userId={}", userId);
 
         // 3. 加载用户可用的 MCP 服务
-        List<McpConfigEntity> mcpConfigs = loadUserMcpConfigs(userId);
-        for (McpConfigEntity mcp : mcpConfigs) {
-            try {
-                McpClientWrapper client = buildMcpClient(mcp);
-                toolkit.registerMcpClient(client).block();
-                log.info("已注册 MCP 服务: name={}, protocol={}, userId={}", mcp.getName(), mcp.getProtocol(), userId);
-            } catch (Exception e) {
-                log.warn("注册 MCP 服务失败: name={}, error={}", mcp.getName(), e.getMessage());
+        try {
+            List<McpConfigEntity> mcpConfigs = loadUserMcpConfigs(userId);
+            for (McpConfigEntity mcp : mcpConfigs) {
+                try {
+                    McpClientWrapper client = buildMcpClient(mcp);
+                    toolkit.registerMcpClient(client).block();
+                    log.info("已注册 MCP 服务: name={}, protocol={}, userId={}", mcp.getName(), mcp.getProtocol(), userId);
+                } catch (Exception e) {
+                    log.warn("注册 MCP 服务失败: name={}, error={}", mcp.getName(), e.getMessage());
+                }
             }
+        } catch (Exception e) {
+            log.warn("加载 MCP 服务配置失败，跳过工具注册: userId={}, error={}", userId, e.getMessage());
         }
 
         // 4. 加载用户可用的 Skill 技能（Skill 暂按 MCP 协议注册，后续可扩展为原生 @Tool 注册）
-        List<SkillConfigEntity> skillConfigs = loadUserSkillConfigs(userId);
-        for (SkillConfigEntity skill : skillConfigs) {
-            try {
-                McpClientWrapper client = buildSkillAsClient(skill);
-                if (client != null) {
-                    toolkit.registerMcpClient(client).block();
-                    log.info("已注册 Skill 技能: name={}, userId={}", skill.getName(), userId);
+        try {
+            List<SkillConfigEntity> skillConfigs = loadUserSkillConfigs(userId);
+            for (SkillConfigEntity skill : skillConfigs) {
+                try {
+                    McpClientWrapper client = buildSkillAsClient(skill);
+                    if (client != null) {
+                        toolkit.registerMcpClient(client).block();
+                        log.info("已注册 Skill 技能: name={}, userId={}", skill.getName(), userId);
+                    }
+                } catch (Exception e) {
+                    log.warn("注册 Skill 技能失败: name={}, error={}", skill.getName(), e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("注册 Skill 技能失败: name={}, error={}", skill.getName(), e.getMessage());
             }
+        } catch (Exception e) {
+            log.warn("加载 Skill 配置失败，跳过技能注册: userId={}, error={}", userId, e.getMessage());
         }
 
         return toolkit;

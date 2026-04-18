@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { UserRole, AppNotification } from '../types'
+import type { AppNotification } from '../types'
 
 export interface LoginUser {
   id: number

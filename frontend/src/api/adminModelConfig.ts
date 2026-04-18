@@ -112,5 +112,10 @@ export const adminModelConfigApi = {
   /** 测试模型连接 */
   testConnection: (data: TestConnectionRequest) => {
     return http.post<TestConnectionResponse>(`/admin/model-config/test-connection`, data)
+  },
+
+  /** 批量测试 SYSTEM 公共模型连通性 */
+  batchTest: () => {
+    return http.post<{ total: number; passed: number; failed: number; results: Array<{ id: number; name: string; provider: string; enabled: number; status: string; message: string }> }>(`/admin/model-config/batch-test`)
   }
 }

@@ -2,6 +2,19 @@
   <div class="skill-editor-panel">
     <!-- 文件工具栏 -->
     <div class="file-toolbar">
+      <!-- 面包屑导航 -->
+      <div class="breadcrumb">
+        <button
+          v-for="(segment, idx) in pathSegments"
+          :key="idx"
+          class="breadcrumb-item"
+          @click="navigateTo(idx)"
+        >
+          <span v-if="idx > 0" class="breadcrumb-sep">/</span>
+          <span :class="{ active: idx === pathSegments.length - 1 }">{{ idx === 0 ? skillName : segment }}</span>
+        </button>
+      </div>
+      <span class="toolbar-divider"></span>
       <button class="btn btn-sm" @click="loadFiles">
         <RefreshCw :size="14" :class="{ spinning: loading }" /> 刷新
       </button>
@@ -58,7 +71,7 @@
     <div class="editor-statusbar">
       <span>{{ currentFile || 'SKILL.md' }}</span>
       <span v-if="isDirty" class="dirty">● 未保存</span>
-      <button class="btn btn-sm btn-primary" @click="saveContent" :disabled="!isDirty">保存</button>
+      <button class="btn btn-sm btn-primary" @click="() => saveContent()" :disabled="!isDirty">保存</button>
     </div>
 
     <!-- 上传对话框 -->
@@ -122,7 +135,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { RefreshCw, Upload, FolderPlus, Folder, X, FileText, Eye } from 'lucide-vue-next'
 import { marked } from 'marked'
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import * as monaco from 'monaco-editor'
 import 'monaco-editor/esm/vs/editor/editor.all.js'
 import '@/utils/monacoEnv'
 import { getLanguageFromFilename } from '@/utils/monacoLanguages'
@@ -147,6 +160,7 @@ const content = ref('')
 const originalContent = ref('')
 const isDirty = computed(() => content.value !== originalContent.value)
 const currentFile = ref('')
+const currentPath = ref('')          // 当前目录路径，如 "scripts/"，空字符串表示根目录
 const viewMode = ref<'edit' | 'preview'>('edit')
 const loading = ref(false)
 const showUploadDialog = ref(false)
@@ -168,6 +182,23 @@ const renderedContent = computed(() => {
   if (!content.value) return ''
   return marked(content.value, { breaks: true })
 })
+
+// 面包屑路径分段，如 "scripts/utils" → [根目录, scripts, utils]
+const pathSegments = computed(() => {
+  if (!currentPath.value) return ['.']
+  return currentPath.value.split('/').filter(Boolean)
+})
+
+// 导航到指定层级
+function navigateTo(idx: number) {
+  if (idx === 0) {
+    currentPath.value = ''
+  } else {
+    const segments = pathSegments.value.slice(1, idx)
+    currentPath.value = segments.join('/') + '/'
+  }
+  loadFiles()
+}
 
 // Define custom dark theme matching project colors
 monaco.editor.defineTheme('evolvehub-dark', {
@@ -260,7 +291,7 @@ watch(viewMode, async (mode) => {
 async function loadFiles() {
   loading.value = true
   try {
-    files.value = await adminSkillFileApi.listFiles(props.skillId)
+    files.value = await adminSkillFileApi.listFiles(props.skillId, currentPath.value)
   } catch (e) {
     console.error('加载文件列表失败', e)
   } finally {
@@ -269,18 +300,27 @@ async function loadFiles() {
 }
 
 async function loadContent() {
+  // 优先加载当前目录下的 SKILL.md，否则加载根目录的
+  const skillMdPath = currentPath.value ? currentPath.value + 'SKILL.md' : 'SKILL.md'
   try {
-    const blob = await adminSkillFileApi.downloadFile(props.skillId, 'SKILL.md')
+    const blob = await adminSkillFileApi.downloadFile(props.skillId, skillMdPath)
     const arrayBuffer = await blob.arrayBuffer()
     const text = new TextDecoder().decode(arrayBuffer)
     content.value = text
     originalContent.value = text
-    currentFile.value = 'SKILL.md'
+    currentFile.value = skillMdPath
   } catch (e) {
-    // 文件不存在，使用空内容
-    content.value = '# ' + props.skillName + '\n\n'
-    originalContent.value = content.value
-    currentFile.value = 'SKILL.md'
+    // 当前目录没有 SKILL.md，尝试根目录
+    if (!currentPath.value) {
+      content.value = '# ' + props.skillName + '\n\n'
+      originalContent.value = content.value
+      currentFile.value = 'SKILL.md'
+    } else {
+      // 子目录下没有 SKILL.md，清空内容
+      content.value = ''
+      originalContent.value = ''
+      currentFile.value = skillMdPath
+    }
   }
 
   // Update editor if already created
@@ -288,13 +328,21 @@ async function loadContent() {
 }
 
 async function selectFile(node: FileNode) {
-  if (node.type === 'folder') return
+  if (node.type === 'folder') {
+    // 文件夹：进入该目录
+    currentPath.value = node.path + '/'
+    await loadFiles()
+    await loadContent()
+    return
+  }
+  // 文件：加载内容
   if (isDirty.value) {
     await saveContent()
   }
-  currentFile.value = node.name
+  const filePath = node.path  // 已经是相对路径
+  currentFile.value = filePath
   try {
-    const blob = await adminSkillFileApi.downloadFile(props.skillId, node.path)
+    const blob = await adminSkillFileApi.downloadFile(props.skillId, filePath)
     const arrayBuffer = await blob.arrayBuffer()
     const text = new TextDecoder().decode(arrayBuffer)
     content.value = text
@@ -304,7 +352,7 @@ async function selectFile(node: FileNode) {
     originalContent.value = ''
   }
 
-  updateEditorContent(content.value, node.name)
+  updateEditorContent(content.value, filePath)
 }
 
 async function saveContent(skipScan = false) {
@@ -348,7 +396,9 @@ async function uploadFile() {
   if (!selectedFile.value) return
   uploading.value = true
   try {
-    await adminSkillFileApi.uploadFile(props.skillId, uploadPath.value, selectedFile.value)
+    // 上传路径 = 当前目录 + 用户输入的相对路径
+    const targetPath = currentPath.value + uploadPath.value
+    await adminSkillFileApi.uploadFile(props.skillId, targetPath, selectedFile.value)
     showUploadDialog.value = false
     uploadPath.value = ''
     selectedFile.value = null
@@ -364,7 +414,9 @@ async function uploadFile() {
 async function createFolder() {
   if (!newFolderName.value) return
   try {
-    await adminSkillFileApi.createFolder(props.skillId, newFolderName.value + '/')
+    // 创建在当前目录下
+    const targetPath = currentPath.value + newFolderName.value + '/'
+    await adminSkillFileApi.createFolder(props.skillId, targetPath)
     showNewFolderDialog.value = false
     newFolderName.value = ''
     await loadFiles()
@@ -399,6 +451,44 @@ function formatSize(bytes: number): string {
 .file-toolbar .btn.active {
   background: rgba(10, 132, 255, 0.2);
   color: #0A84FF;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  max-width: 300px;
+  overflow: hidden;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.breadcrumb-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.breadcrumb-item span:last-child.active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.breadcrumb-sep {
+  color: var(--text-disabled);
+  font-size: 12px;
 }
 
 .toolbar-divider {

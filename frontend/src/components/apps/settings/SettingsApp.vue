@@ -539,31 +539,6 @@ const SettingsIcon = () => h('svg', {
   h('path', { d: 'M12 22v-5' })
 ])
 
-// AI Model Icons
-const QwenIcon = () => h('svg', {
-  width: '32', height: '32', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-}, [
-  h('path', { d: 'M12 2L2 7l10 5 10-5-10-5 10-5v14l-2 2-6 6-6-6 6-6-6 6 6 6 6-6V6' }),
-  h('path', { d: 'M9 12l2 2 4-4' })
-])
-
-const GPTIcon = () => h('svg', {
-  width: '32', height: '32', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-}, [
-  h('path', { d: 'M12 2a10 10 0 1 0 10 10 10 10 0 0 0-10-10' }),
-  h('path', { d: 'M12 12m0 0a1 1 0 1 0-2 1 1 0 0 1 0 2 2 2 0 0 0 2 2' }),
-  h('path', { d: 'M8 12h8' }),
-  h('path', { d: 'M16 16l-4-4 4 4' })
-])
-
-const ClaudeIcon = () => h('svg', {
-  width: '32', height: '32', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-}, [
-  h('polygon', { points: '12 2 2 7 12 12 22 2 12 2 7 12 12 22 2 12 2 7' }),
-  h('path', { d: 'M12 12v-2' }),
-  h('path', { d: 'M8 12h8' })
-])
-
 // Navigation items
 const accountItems = [
   { id: 'profile', icon: UserIcon, label: '个人信息' },
@@ -736,9 +711,6 @@ watch(() => windowStore.pendingSettingsTab, (tab) => {
   }
 })
 
-// Model
-const selectedModel = ref('qwen')
-
 // ==================== My Models ====================
 const myModels = ref<any[]>([])
 const selectedModelId = ref<number | null>(null)
@@ -779,12 +751,6 @@ async function savePreferredModel() {
     isSavingModel.value = false
   }
 }
-
-const aiModels = [
-  { id: 'qwen', name: 'Qwen Max', desc: '通义千问旗舰模型', icon: QwenIcon },
-  { id: 'gpt4', name: 'GPT-4o', desc: 'OpenAI 最新模型', icon: GPTIcon },
-  { id: 'claude', name: 'Claude 3.5', desc: 'Anthropic 高性能模型', icon: ClaudeIcon }
-]
 
 // Validate password
 function validatePassword() {

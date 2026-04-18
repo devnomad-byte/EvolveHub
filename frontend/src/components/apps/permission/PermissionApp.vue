@@ -45,6 +45,7 @@
             :key="perm.id"
             :perm="perm"
             :selected-id="selectedPerm?.id ?? null"
+            :depth="0"
             @select="onPermSelect"
           />
         </div>
@@ -227,6 +228,8 @@ import { useDesktopStore } from '../../../stores/desktop'
 import { useConfirm } from '@/composables/useConfirm'
 import PermissionTreeNode from './PermissionTreeNode.vue'
 
+type PermissionTreeNodeData = PermissionInfo & { children: PermissionTreeNodeData[] }
+
 const desktop = useDesktopStore()
 const { confirm } = useConfirm()
 
@@ -254,9 +257,9 @@ const form = ref({
 
 // ==================== Computed ====================
 // Build permission tree from flat list
-const permTree = computed(() => {
-  const map = new Map<number, PermissionInfo & { children: PermissionInfo[] }>()
-  const roots: (PermissionInfo & { children: PermissionInfo[] })[] = []
+const permTree = computed<PermissionTreeNodeData[]>(() => {
+  const map = new Map<number, PermissionTreeNodeData>()
+  const roots: PermissionTreeNodeData[] = []
 
   // First pass: create node copies with children array
   for (const p of allPerms.value) {
@@ -281,19 +284,18 @@ const permTree = computed(() => {
   return roots.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
 })
 
-const filteredRootPerms = computed(() => {
+const filteredRootPerms = computed<PermissionTreeNodeData[]>(() => {
   if (!searchQuery.value.trim()) return permTree.value
   const q = searchQuery.value.toLowerCase()
-  const result: (PermissionInfo & { children: PermissionInfo[] })[] = []
-  function filterTree(nodes: (PermissionInfo & { children: PermissionInfo[] })[], parentMatch = false) {
-    for (const node of nodes) {
+  function filterTree(nodes: PermissionTreeNodeData[]): PermissionTreeNodeData[] {
+    return nodes.flatMap((node) => {
+      const childMatch = filterTree(node.children)
       const matches = node.permName.toLowerCase().includes(q)
-      const childMatch = filterTree(node.children, matches || parentMatch)
-      if (matches || childMatch.length > 0) {
-        result.push({ ...node, children: childMatch })
+      if (!matches && childMatch.length === 0) {
+        return []
       }
-    }
-    return result
+      return [{ ...node, children: childMatch }]
+    })
   }
   return filterTree(permTree.value)
 })

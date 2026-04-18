@@ -783,9 +783,11 @@ function openSkillEdit(item: SkillConfigInfo) {
   winStore.openApp('skill-edit')
 }
 
-function handleSkillInstalled(skillId: number) {
+function handleSkillInstalled(skillIds: number[]) {
   loadSkillList()
-  selectedSkillId.value = skillId
+  if (skillIds.length > 0) {
+    selectedSkillId.value = skillIds[0]
+  }
 }
 
 // Helpers
@@ -950,8 +952,9 @@ function skillGradient(type: string | undefined) {
   return gradients[type || ''] || 'linear-gradient(135deg, #667eea, #764ba2)'
 }
 
-function parseTags(tags: string | undefined) {
+function parseTags(tags: string[] | string | undefined) {
   if (!tags) return []
+  if (Array.isArray(tags)) return tags
   try {
     return JSON.parse(tags)
   } catch {

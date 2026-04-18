@@ -30,6 +30,10 @@
           <Plus :size="14" />
           添加模型
         </button>
+        <button v-if="isSuperAdmin && viewMode === 'type'" class="btn-batch-test" @click="handleBatchTest">
+          <Activity :size="14" />
+          批量测试
+        </button>
       </div>
     </div>
 
@@ -369,13 +373,95 @@
         </div>
       </div>
     </teleport>
+
+    <!-- Batch Test Dialog -->
+    <teleport to="body">
+      <div v-if="showBatchTestDialog" class="modal-overlay" @click.self="closeBatchTestDialog">
+        <div class="modal batch-test-modal">
+          <div class="modal-header">
+            <span class="modal-title">批量测试公共模型</span>
+            <button class="modal-close" @click="closeBatchTestDialog">
+              <X :size="16" />
+            </button>
+          </div>
+          <div class="modal-body">
+            <!-- Progress -->
+            <div v-if="isBatchTesting" class="batch-test-progress">
+              <div class="progress-header">
+                <span class="progress-text">测试进度: {{ batchTestResults.length }} / {{ batchTestTotal }}</span>
+                <span class="progress-percent">{{ Math.round((batchTestResults.length / batchTestTotal) * 100) }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: (batchTestResults.length / batchTestTotal * 100) + '%' }"></div>
+              </div>
+            </div>
+
+            <!-- Summary -->
+            <div v-if="!isBatchTesting && batchTestResults.length > 0" class="batch-test-summary">
+              <div class="summary-item passed">
+                <span class="summary-icon">✓</span>
+                <span class="summary-count">{{ batchTestPassed }}</span>
+                <span class="summary-label">通过</span>
+              </div>
+              <div class="summary-item failed">
+                <span class="summary-icon">✗</span>
+                <span class="summary-count">{{ batchTestFailed }}</span>
+                <span class="summary-label">失败</span>
+              </div>
+              <div class="summary-item skipped">
+                <span class="summary-icon">⊘</span>
+                <span class="summary-count">{{ batchTestSkipped }}</span>
+                <span class="summary-label">跳过</span>
+              </div>
+            </div>
+
+            <!-- Results List -->
+            <div class="batch-test-results">
+              <div
+                v-for="result in batchTestResults"
+                :key="result.id"
+                class="batch-test-row"
+                :class="result.status"
+              >
+                <div class="batch-test-row-left">
+                  <span class="batch-test-status-icon">
+                    <template v-if="result.status === 'passed'">✓</template>
+                    <template v-else-if="result.status === 'failed'">✗</template>
+                    <template v-else>⊘</template>
+                  </span>
+                  <div class="batch-test-info">
+                    <span class="batch-test-name">{{ result.name }}</span>
+                    <span class="batch-test-provider">{{ result.provider }}</span>
+                  </div>
+                </div>
+                <div class="batch-test-row-right">
+                  <span class="batch-test-status-label">{{ result.status === 'passed' ? '通过' : result.status === 'failed' ? '失败' : '跳过' }}</span>
+                  <span class="batch-test-message">{{ result.message }}</span>
+                </div>
+              </div>
+              <div v-if="batchTestResults.length === 0 && !isBatchTesting" class="batch-test-empty">
+                点击上方按钮开始测试
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="closeBatchTestDialog">
+              关闭
+            </button>
+            <button v-if="!isBatchTesting && batchTestResults.length > 0" class="btn btn-outline" @click="copyBatchTestResults">
+              复制结果
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue'
-import { Bot, Plus, X, Wifi } from 'lucide-vue-next'
-import { adminModelConfigApi, type ModelConfigInfo, type ModelConfigWithOwner, type CreateModelConfigRequest, type UpdateModelConfigRequest, type ModelScope } from '../../../api/adminModelConfig'
+import { Bot, Plus, X, Wifi, Activity } from 'lucide-vue-next'
+import { adminModelConfigApi, type ModelConfigInfo, type ModelConfigWithOwner, type CreateModelConfigRequest, type UpdateModelConfigRequest, type ModelScope, type ModelType } from '../../../api/adminModelConfig'
 import { adminModelProviderApi, type ModelProviderInfo } from '../../../api/adminModelProvider'
 import { deptApi, type DeptInfo } from '../../../api/dept'
 import { adminUserApi, type UserInfo } from '../../../api/adminUser'
@@ -477,15 +563,28 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const isSubmitting = ref(false)
 const isTesting = ref(false)
-const form = ref({
+
+interface ModelFormState {
+  id: number
+  name: string
+  provider: string
+  apiKey: string
+  baseUrl: string
+  enabled: number
+  modelType: ModelType
+  scope: ModelScope
+  deptId: number | null
+}
+
+const form = ref<ModelFormState>({
   id: 0,
   name: '',
   provider: '',
   apiKey: '',
   baseUrl: '',
   enabled: 1,
-  modelType: 'LLM' as const,
-  scope: 'SYSTEM' as ModelScope,
+  modelType: 'LLM',
+  scope: 'SYSTEM',
   deptId: null as number | null
 })
 
@@ -739,7 +838,7 @@ async function handleSubmit() {
         deptId: form.value.scope === 'DEPT' ? form.value.deptId : undefined
       }
       const result = await adminModelConfigApi.create(req)
-      modelId = result.id || result
+      modelId = result.id
       // Assign grants for USER scope
       if (form.value.scope === 'USER' && modelId) {
         for (const userId of selectedUserIds.value) {
@@ -802,6 +901,57 @@ async function toggleEnabled(model: ModelConfigInfo | ModelConfigWithOwner) {
   } catch (e: any) {
     desktop.addToast(e.message || '操作失败', 'error')
   }
+}
+
+// ==================== Batch Test ====================
+const showBatchTestDialog = ref(false)
+const isBatchTesting = ref(false)
+const batchTestResults = ref<Array<{ id: number; name: string; provider: string; enabled: number; status: string; message: string }>>([])
+const batchTestTotal = ref(0)
+
+const batchTestPassed = computed(() => batchTestResults.value.filter(r => r.status === 'passed').length)
+const batchTestFailed = computed(() => batchTestResults.value.filter(r => r.status === 'failed').length)
+const batchTestSkipped = computed(() => batchTestResults.value.filter(r => r.status === 'skipped').length)
+
+async function handleBatchTest() {
+  showBatchTestDialog.value = true
+  batchTestResults.value = []
+  isBatchTesting.value = true
+
+  try {
+    const res = await adminModelConfigApi.batchTest()
+    batchTestTotal.value = res.total
+    batchTestResults.value = res.results
+  } catch (e: any) {
+    desktop.addToast(e.message || '批量测试失败', 'error')
+  } finally {
+    isBatchTesting.value = false
+  }
+}
+
+function closeBatchTestDialog() {
+  showBatchTestDialog.value = false
+  isBatchTesting.value = false
+  batchTestResults.value = []
+  // Refresh model list to reflect enabled/disabled changes
+  loadModels()
+}
+
+function copyBatchTestResults() {
+  const lines = [
+    `批量测试结果：`,
+    `通过 ${batchTestPassed.value} / 失败 ${batchTestFailed.value} / 跳过 ${batchTestSkipped.value}`,
+    '',
+    ...batchTestResults.value.map(r => {
+      const statusText = r.status === 'passed' ? '✓ 通过' : r.status === 'failed' ? '✗ 失败' : '⊘ 跳过'
+      return `${statusText} - ${r.name} (${r.provider}): ${r.message}`
+    })
+  ]
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    desktop.addToast('结果已复制到剪贴板', 'success')
+  }).catch(() => {
+    desktop.addToast('复制失败', 'error')
+  })
 }
 
 // ==================== Init ====================
@@ -1595,3 +1745,256 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 </style>
+
+/* ========== Batch Test Button ========== */
+.btn-batch-test {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(48, 209, 88, 0.3);
+  border-radius: 6px;
+  background: rgba(48, 209, 88, 0.1);
+  color: #30D158;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-batch-test:hover {
+  background: rgba(48, 209, 88, 0.2);
+  border-color: rgba(48, 209, 88, 0.5);
+  transform: translateY(-1px);
+}
+
+/* ========== Batch Test Modal ========== */
+.batch-test-modal {
+  width: 650px;
+  max-height: 80vh;
+}
+
+.batch-test-progress {
+  margin-bottom: 16px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.progress-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: #30D158;
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #30D158, #34C759);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.batch-test-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.summary-item.passed .summary-icon {
+  background: rgba(48, 209, 88, 0.2);
+  color: #30D158;
+}
+
+.summary-item.failed .summary-icon {
+  background: rgba(255, 69, 58, 0.2);
+  color: #FF453A;
+}
+
+.summary-item.skipped .summary-icon {
+  background: rgba(142, 142, 147, 0.2);
+  color: #8E8E93;
+}
+
+.summary-count {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.batch-test-results {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.batch-test-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  gap: 12px;
+}
+
+.batch-test-row.passed {
+  border-color: rgba(48, 209, 88, 0.2);
+}
+
+.batch-test-row.failed {
+  border-color: rgba(255, 69, 58, 0.2);
+}
+
+.batch-test-row.skipped {
+  border-color: rgba(142, 142, 147, 0.15);
+  opacity: 0.7;
+}
+
+.batch-test-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.batch-test-status-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.batch-test-row.passed .batch-test-status-icon {
+  background: rgba(48, 209, 88, 0.2);
+  color: #30D158;
+}
+
+.batch-test-row.failed .batch-test-status-icon {
+  background: rgba(255, 69, 58, 0.2);
+  color: #FF453A;
+}
+
+.batch-test-row.skipped .batch-test-status-icon {
+  background: rgba(142, 142, 147, 0.15);
+  color: #8E8E93;
+}
+
+.batch-test-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.batch-test-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-test-provider {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.batch-test-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 280px;
+}
+
+.batch-test-status-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.batch-test-row.passed .batch-test-status-label {
+  color: #30D158;
+}
+
+.batch-test-row.failed .batch-test-status-label {
+  color: #FF453A;
+}
+
+.batch-test-row.failed .batch-test-message {
+  color: #FF6B6B;
+}
+
+.batch-test-row.skipped .batch-test-status-label {
+  color: #8E8E93;
+}
+
+.batch-test-message {
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  text-align: right;
+}
+
+.batch-test-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-disabled);
+  font-size: 13px;
+}
+</style>
+>>>>>>> Stashed changes

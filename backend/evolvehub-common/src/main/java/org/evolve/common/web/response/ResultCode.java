@@ -56,7 +56,8 @@ public enum ResultCode {
     INTERNAL_SERVER_ERROR(3008, "工具"),
 
     // ========== 安全扫描 4xxx ==========
-    SECURITY_SCAN_FAILED(4001, "安全扫描未通过");
+    SECURITY_SCAN_FAILED(4001, "安全扫描未通过"),
+    BAD_PARAM(4002,"");
 
     private final int code;
     private final String message;

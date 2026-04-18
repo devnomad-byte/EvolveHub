@@ -74,4 +74,8 @@ public class ChatAgentFactory {
                 .includeActingChunk(true)
                 .build();
     }
+
+    public ChatModelFactory getChatModelFactory() {
+        return chatModelFactory;
+    }
 }

@@ -60,11 +60,12 @@ public class SkillHubController {
 
     /**
      * 从 Hub 安装技能
+     * 返回安装的所有技能 ID（单个或多个）
      */
     @PostMapping("/install")
-    public Result<Long> install(@RequestBody InstallSkillFromHubRequest request) {
-        Long skillId = skillInstallService.installFromHub(
+    public Result<List<Long>> install(@RequestBody InstallSkillFromHubRequest request) {
+        List<Long> skillIds = skillInstallService.installFromHub(
                 request.hubName(), request.bundleUrl(), request.shouldSkipScan());
-        return Result.ok(skillId);
+        return Result.ok(skillIds);
     }
 }

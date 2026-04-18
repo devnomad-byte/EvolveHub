@@ -7,8 +7,13 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 /**
@@ -78,7 +83,8 @@ public class ModelConnectivityTester {
             return testOpenAICompatible(effectiveBaseUrl, apiKey);
         } catch (Exception e) {
             log.warn("模型连通性测试异常: provider={}, baseUrl={}", provider, effectiveBaseUrl, e);
-            return TestResult.fail("连接失败: " + e.getMessage());
+            String friendlyMessage = getFriendlyErrorMessage(e);
+            return TestResult.fail(friendlyMessage);
         }
     }
 
@@ -106,7 +112,7 @@ public class ModelConnectivityTester {
         if (response.getStatusCode().is2xxSuccessful()) {
             return TestResult.ok();
         }
-        return TestResult.fail("API 返回状态码: " + response.getStatusCode().value());
+        return TestResult.fail(httpStatusMessage(response.getStatusCode().value()));
     }
 
     /**
@@ -140,7 +146,70 @@ public class ModelConnectivityTester {
         if (response.getStatusCode().is2xxSuccessful()) {
             return TestResult.ok();
         }
-        return TestResult.fail("API 返回状态码: " + response.getStatusCode().value());
+        return TestResult.fail(httpStatusMessage(response.getStatusCode().value()));
+    }
+
+    /**
+     * 将 HTTP 状态码转换为用户友好的错误消息
+     */
+    private String httpStatusMessage(int statusCode) {
+        return switch (statusCode) {
+            case 401 -> "API密钥无效（401 Unauthorized）";
+            case 403 -> "API密钥权限不足（403 Forbidden），请检查是否具有访问权限";
+            case 404 -> "API地址错误（404 Not Found），请检查baseUrl是否正确";
+            case 429 -> "请求频率超限（429 Too Many Requests），请稍后重试";
+            default -> {
+                if (statusCode >= 500) {
+                    yield "API服务器错误（" + statusCode + "），可能是服务商问题";
+                } else {
+                    yield "API返回状态码: " + statusCode;
+                }
+            }
+        };
+    }
+
+    /**
+     * 将异常转换为用户友好的错误消息
+     */
+    private String getFriendlyErrorMessage(Exception e) {
+        if (e instanceof SocketTimeoutException) {
+            return "连接超时，请检查网络或API地址是否正确";
+        }
+        if (e instanceof UnknownHostException) {
+            return "无法解析服务器地址，请检查baseUrl是否正确";
+        }
+        if (e instanceof ResourceAccessException) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SocketTimeoutException) {
+                return "连接超时，请检查网络或API地址是否正确";
+            }
+            if (cause instanceof UnknownHostException) {
+                return "无法解析服务器地址，请检查baseUrl是否正确";
+            }
+            String msg = cause != null ? cause.getMessage() : e.getMessage();
+            if (msg != null && msg.contains("Connection refused")) {
+                return "连接被拒绝，请检查baseUrl和端口是否正确";
+            }
+            if (msg != null && msg.contains("Connect timed out")) {
+                return "连接超时，请检查网络或API地址是否正确";
+            }
+            return "网络连接失败，请检查网络和API地址";
+        }
+        if (e instanceof HttpClientErrorException) {
+            return httpStatusMessage(((HttpClientErrorException) e).getStatusCode().value());
+        }
+        if (e instanceof HttpServerErrorException) {
+            return httpStatusMessage(((HttpServerErrorException) e).getStatusCode().value());
+        }
+        // 去掉 Spring 的 I/O error 前缀，只留核心错误信息
+        String msg = e.getMessage();
+        if (msg != null) {
+            int idx = msg.indexOf(": ");
+            if (idx > 0) {
+                return msg.substring(idx + 2).trim();
+            }
+        }
+        return "连接失败: " + e.getClass().getSimpleName();
     }
 
     private String resolveBaseUrl(String provider, String baseUrl) {

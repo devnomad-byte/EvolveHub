@@ -37,7 +37,7 @@ public class UserProfileService {
      */
     private static final String CONTENT_TYPE = "text/markdown; charset=utf-8";
 
-    @Resource
+    @Resource(name = "aiS3Util")
     private S3Util s3Util;
 
     /**
@@ -113,4 +113,3 @@ public class UserProfileService {
         return String.format(PROFILE_KEY_TEMPLATE, userId);
     }
 }
-

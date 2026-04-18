@@ -1,4 +1,4 @@
-export type AppId = 'chat' | 'knowledge' | 'model' | 'users' | 'mcp' | 'memory' | 'settings' | 'dashboard' | 'pets' | 'dept' | 'role' | 'permission' | 'skill-editor' | 'mcp-editor' | 'mcp-create' | 'skill-edit' | 'desktopicon'
+export type AppId = 'chat' | 'knowledge' | 'model' | 'users' | 'mcp' | 'memory' | 'settings' | 'dashboard' | 'pets' | 'dept' | 'role' | 'permission' | 'skill-editor' | 'mcp-editor' | 'mcp-create' | 'skill-edit' | 'desktopicon' | 'chat-history' | 'token-usage' | 's3-browser' | 'env-var' | 'tool-guard' | 'file-guard' | 'security-scanner'
 
 export interface WindowState {
   id: string
@@ -53,6 +53,7 @@ export interface ChatMessage {
   content: string
   timestamp: string
   toolCalls?: ToolCall[]
+  isTyping?: boolean
 }
 
 export interface ToolCall {
@@ -67,6 +68,7 @@ export interface ChatSession {
   title: string
   time: string
   active: boolean
+  modelConfigId?: string
 }
 
 export interface KnowledgeBase {

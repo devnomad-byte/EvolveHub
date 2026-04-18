@@ -11,7 +11,7 @@ export interface ApiResponse<T = any> {
 // 创建 axios 实例
 const request = axios.create({
   baseURL: '/api',
-  timeout: 30000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -23,7 +23,7 @@ request.interceptors.request.use(
     // 从 localStorage 获取 token
     const token = localStorage.getItem('token')
     if (token) {
-      config.headers['satoken'] = token // Sa-Token 使用 satoken 作为 header
+      config.headers['Authorization'] = token
     }
     return config
   },
@@ -67,8 +67,17 @@ request.interceptors.response.use(
       handleUnauthorized()
     }
 
-    const message = error.response?.data?.message || error.message || '网络错误'
-    return Promise.reject(new Error(message))
+    // 尝试从响应体中提取 code 和 data（业务错误如安全扫描失败会返回 422 但 body 中有 code）
+    const responseData = error.response?.data
+    const code = responseData?.code
+    const data = responseData?.data
+    const message = responseData?.message || error.message || '网络错误'
+
+    const err: any = new Error(message)
+    err.code = code
+    err.data = data
+    err.status = error.response?.status
+    return Promise.reject(err)
   }
 )
 

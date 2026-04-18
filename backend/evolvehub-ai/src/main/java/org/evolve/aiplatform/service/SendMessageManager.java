@@ -13,14 +13,19 @@ import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import jakarta.annotation.Resource;
-import org.evolve.aiplatform.bean.entity.ChatMessageEntity;
-import org.evolve.aiplatform.bean.entity.ChatSessionEntity;
-import org.evolve.aiplatform.bean.entity.ChatTokenUsageEntity;
-import org.evolve.aiplatform.infra.ChatMessageInfra;
-import org.evolve.aiplatform.infra.ChatSessionInfra;
-import org.evolve.aiplatform.infra.ChatTokenUsageInfra;
+import org.evolve.aiplatform.memory.application.service.MemoryApi;
+import org.evolve.aiplatform.memory.domain.bean.dto.MemoryConversationContextDTO;
+import org.evolve.aiplatform.memory.domain.bean.dto.MemoryExtractionRequestDTO;
+import org.evolve.aiplatform.memory.domain.bean.dto.MemoryRoundDTO;
+import org.evolve.aiplatform.memory.domain.bean.vo.MemoryRecallResultVO;
+import org.evolve.domain.resource.model.ChatMessageEntity;
+import org.evolve.domain.resource.model.ChatSessionEntity;
+import org.evolve.domain.resource.infra.ChatMessageInfra;
+import org.evolve.domain.resource.infra.ChatSessionInfra;
+import org.evolve.domain.resource.infra.ChatTokenUsageInfra;
 import org.evolve.aiplatform.request.SendMessageRequest;
 import org.evolve.aiplatform.service.agent.ChatAgentFactory;
+import org.evolve.common.base.CurrentUserHolder;
 import org.evolve.common.web.exception.BusinessException;
 import org.evolve.domain.resource.infra.ModelConfigInfra;
 import org.evolve.domain.resource.model.ModelConfigEntity;
@@ -32,9 +37,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -119,16 +124,16 @@ public class SendMessageManager {
     private ChatMessageInfra chatMessageInfra;
 
     @Resource
-    private ChatTokenUsageInfra chatTokenUsageInfra;
-
-    @Resource
     private ModelConfigInfra modelConfigInfra;
 
     @Resource
-    private ChatAgentFactory chatAgentFactory;
+    private ChatTokenUsageInfra chatTokenUsageInfra;
 
     @Resource
-    private ChatMemoryService chatMemoryService;
+    private org.evolve.domain.rbac.infra.UsersInfra usersInfra;  // ⭐ 新增：获取用户部门信息
+
+    @Resource
+    private ChatAgentFactory chatAgentFactory;
 
     @Resource
     private ContextSummaryService contextSummaryService;
@@ -137,7 +142,7 @@ public class SendMessageManager {
     private ChatContextCacheService chatContextCacheService;
 
     @Resource
-    private UserProfileService userProfileService;
+    private MemoryApi memoryApi;
 
     @Resource
     private ObjectMapper objectMapper;
@@ -170,11 +175,19 @@ public class SendMessageManager {
             session.setUserId(currentUserId);
             session.setModelConfigId(request.modelConfigId());
             session.setSysPrompt(request.sysPrompt());
+
+            // ⭐ 新增：设置部门ID，从当前用户信息中获取
+            var currentUser = usersInfra.getUserById(currentUserId);
+            if (currentUser != null && currentUser.getDeptId() != null) {
+                session.setDeptId(currentUser.getDeptId());
+            }
+
             session.setTotalPromptTokens(0);
             session.setTotalCompletionTokens(0);
             session.setTotalTokens(0);
             session.setMessageCount(0);
             chatSessionInfra.save(session);
+            memoryApi.getMemoryProfile(currentUserId);
         } else {
             // 校验已有会话归属
             session = chatSessionInfra.getByIdAndUserId(request.sessionId(), currentUserId);
@@ -195,6 +208,7 @@ public class SendMessageManager {
         userMsg.setRole("user");
         userMsg.setContent(request.content());
         chatMessageInfra.save(userMsg);
+        appendConversationMemory(session, modelConfig, userMsg);
 
         // 创建 SSE，异步执行流式推送
         SseEmitter emitter = new SseEmitter(120_000L);
@@ -210,7 +224,19 @@ public class SendMessageManager {
             }
         }
 
-        executor.execute(() -> doStreamChat(emitter, session, modelConfig, userMsg));
+        executor.execute(() -> {
+            Long previousUserId = CurrentUserHolder.getUserId();
+            try {
+                CurrentUserHolder.set(currentUserId);
+                doStreamChat(emitter, session, modelConfig, userMsg);
+            } finally {
+                if (previousUserId == null) {
+                    CurrentUserHolder.clear();
+                } else {
+                    CurrentUserHolder.set(previousUserId);
+                }
+            }
+        });
         return emitter;
     }
 
@@ -233,16 +259,10 @@ public class SendMessageManager {
 
         try {
             // 5. 加载历史消息并组装上下文
-            List<String> memories = Collections.emptyList();
-            try {
-                memories = chatMemoryService.retrieve(session.getUserId(), userMsg.getContent());
-            } catch (Exception e) {
-                log.warn("长期记忆检索失败，继续对话", e);
-            }
             List<Msg> messages = buildContextMessages(session, userMsg);
 
             // 6. 构建系统提示词（含长期记忆 + 用户画像）
-            String sysPrompt = buildEnrichedSysPrompt(session, memories);
+            String sysPrompt = buildEnrichedSysPrompt(session, userMsg.getContent());
 
             // 7. 构建 Agent（含 Model + Toolkit + sysPrompt）
             ReActAgent agent = chatAgentFactory.createAgent(
@@ -269,13 +289,17 @@ public class SendMessageManager {
                             // 10. 更新会话统计（token 由 Agent 内部管理，此处暂记 0）
                             chatSessionInfra.incrementTokenUsage(session.getId(), 0, 0, 0, 2);
 
+                            // 10.5. 记录Token消费日报（暂时记录为0，后续从Agent响应中获取实际token数）
+                            var currentUser = usersInfra.getUserById(session.getUserId());
+                            Long deptId = currentUser != null ? currentUser.getDeptId() : null;
+                            chatTokenUsageInfra.incrementUsage(session.getUserId(), session.getModelConfigId(),
+                                    java.time.LocalDate.now(), deptId, 1, 0, 0, 0);
+
                             // 11. 首轮自动生成标题
                             autoGenerateTitle(session);
 
-                            // 12. 异步提取并保存长期记忆
-                            chatMemoryService.extractAndSaveAsync(
-                                    session.getUserId(), session.getId(), modelConfig,
-                                    userMsg.getContent(), fullResponse.toString());
+                            // 12. 回写 memory 会话与长期记忆
+                            persistConversationMemory(session, modelConfig, userMsg, fullResponse.toString());
 
                             // 13. 异步压缩上下文摘要（短期记忆压缩）
                             contextSummaryService.compressIfNeededAsync(session, modelConfig);
@@ -450,27 +474,70 @@ public class SendMessageManager {
      * 该提示词传给 ReActAgent，由 Agent 内部作为 SYSTEM 消息注入，避免与 messages 中的内容重复。
      * </p>
      */
-    private String buildEnrichedSysPrompt(ChatSessionEntity session, List<String> memories) {
+    private String buildEnrichedSysPrompt(ChatSessionEntity session, String query) {
         String sysPrompt = (session.getSysPrompt() != null && !session.getSysPrompt().isBlank())
                 ? session.getSysPrompt() : DEFAULT_SYS_PROMPT;
 
+        MemoryConversationContextDTO context = null;
+        try {
+            context = memoryApi.buildConversationContext(session.getUserId(), String.valueOf(session.getId()), query, 3);
+        } catch (Exception exception) {
+            log.warn("构建 Memory 上下文失败，继续使用基础系统提示词: sessionId={}", session.getId(), exception);
+        }
+
         // 注入长期记忆
-        if (memories != null && !memories.isEmpty()) {
+        List<MemoryRecallResultVO> recalledMemories = context == null ? List.of() : context.getRecalledMemories();
+        if (recalledMemories != null && !recalledMemories.isEmpty()) {
             StringBuilder memoryBlock = new StringBuilder();
             memoryBlock.append("\n\n以下是你对该用户的了解（长期记忆），请在回答时参考：\n");
-            for (int i = 0; i < memories.size(); i++) {
-                memoryBlock.append(i + 1).append(". ").append(memories.get(i)).append("\n");
+            int displayIndex = 1;
+            for (MemoryRecallResultVO recalledMemory : recalledMemories) {
+                if (recalledMemory == null || recalledMemory.getContent() == null || recalledMemory.getContent().isBlank()) {
+                    continue;
+                }
+                memoryBlock.append(displayIndex++).append(". ").append(recalledMemory.getContent()).append("\n");
             }
-            sysPrompt = sysPrompt + memoryBlock;
+            if (displayIndex > 1) {
+                sysPrompt = sysPrompt + memoryBlock;
+            }
         }
 
         // 注入用户画像（MEMORY.md）
-        String userProfile = userProfileService.getProfile(session.getUserId());
+        String userProfile = context == null ? null : context.getProfileMarkdown();
         if (userProfile != null && !userProfile.isBlank()) {
             sysPrompt = sysPrompt + "\n\n以下是该用户的个人画像：\n" + userProfile;
         }
 
-        return sysPrompt;
+        return appendRecentRounds(sysPrompt, context);
+    }
+
+    private String appendRecentRounds(String sysPrompt, MemoryConversationContextDTO context) {
+        if (context == null) {
+            return sysPrompt;
+        }
+        StringBuilder builder = new StringBuilder(sysPrompt);
+        if (context.getActiveSummaries() != null && !context.getActiveSummaries().isEmpty()) {
+            builder.append("\n\n以下是当前激活的历史摘要：\n");
+            context.getActiveSummaries().stream()
+                    .filter(Objects::nonNull)
+                    .filter(summary -> summary.getContent() != null && !summary.getContent().isBlank())
+                    .forEach(summary -> builder.append("- ").append(summary.getContent()).append("\n"));
+        }
+        if (context.getRecentRounds() != null && !context.getRecentRounds().isEmpty()) {
+            builder.append("\n\n以下是最近的对话回合：\n");
+            for (MemoryRoundDTO round : context.getRecentRounds()) {
+                if (round == null) {
+                    continue;
+                }
+                if (round.getUserMessage() != null && !round.getUserMessage().isBlank()) {
+                    builder.append("用户：").append(round.getUserMessage()).append("\n");
+                }
+                if (round.getAssistantMessage() != null && !round.getAssistantMessage().isBlank()) {
+                    builder.append("助手：").append(round.getAssistantMessage()).append("\n");
+                }
+            }
+        }
+        return builder.toString();
     }
 
     /**
@@ -533,30 +600,6 @@ public class SendMessageManager {
     }
 
     /**
-     * 更新 Token 消费日报（upsert 逻辑）
-     */
-    private void updateTokenUsage(Long userId, Long modelConfigId,
-                                   int promptTokens, int completionTokens, int totalTokens) {
-        LocalDate today = LocalDate.now();
-        ChatTokenUsageEntity usage = chatTokenUsageInfra.getByUserAndModelAndDate(
-                userId, modelConfigId, today);
-        if (usage != null) {
-            chatTokenUsageInfra.incrementUsage(usage.getId(),
-                    promptTokens, completionTokens, totalTokens);
-        } else {
-            ChatTokenUsageEntity newUsage = new ChatTokenUsageEntity();
-            newUsage.setUserId(userId);
-            newUsage.setModelConfigId(modelConfigId);
-            newUsage.setUsageDate(today);
-            newUsage.setRequestCount(1);
-            newUsage.setPromptTokens(promptTokens);
-            newUsage.setCompletionTokens(completionTokens);
-            newUsage.setTotalTokens(totalTokens);
-            chatTokenUsageInfra.save(newUsage);
-        }
-    }
-
-    /**
      * 首轮对话自动生成会话标题（截取助手回复前 30 个字符）
      */
     private void autoGenerateTitle(ChatSessionEntity session) {
@@ -580,5 +623,77 @@ public class SendMessageManager {
                 }
             }
         }
+    }
+
+    /**
+     * 追加用户消息到 memory 会话工作区
+     *
+     * @param session 当前会话
+     * @param modelConfig 模型配置
+     * @param userMsg 用户消息
+     * @author TellyJiang
+     * @since 2026-04-18
+     */
+    private void appendConversationMemory(ChatSessionEntity session, ModelConfigEntity modelConfig, ChatMessageEntity userMsg) {
+        try {
+            memoryApi.appendMemorySession(
+                    session.getUserId(),
+                    String.valueOf(session.getId()),
+                    userMsg.getContent(),
+                    modelConfig.getName()
+            );
+        } catch (Exception exception) {
+            log.warn("追加会话记忆失败，不影响主对话流程: sessionId={}", session.getId(), exception);
+        }
+    }
+
+    /**
+     * 在回合结束时回写 memory 的短期与长期记忆
+     *
+     * @param session 当前会话
+     * @param modelConfig 模型配置
+     * @param userMsg 用户消息
+     * @param assistantReply 助手回复
+     * @author TellyJiang
+     * @since 2026-04-18
+     */
+    private void persistConversationMemory(ChatSessionEntity session, ModelConfigEntity modelConfig,
+                                           ChatMessageEntity userMsg, String assistantReply) {
+        Long previousUserId = CurrentUserHolder.getUserId();
+        try {
+            CurrentUserHolder.set(session.getUserId());
+            try {
+                memoryApi.commitConversationRound(
+                        session.getUserId(),
+                        String.valueOf(session.getId()),
+                        userMsg.getContent(),
+                        assistantReply,
+                        modelConfig.getName()
+                );
+            } catch (Exception exception) {
+                log.warn("提交会话记忆失败，不影响主对话流程: sessionId={}", session.getId(), exception);
+            }
+            try {
+                memoryApi.extractMemoryFromConversationAsync(new MemoryExtractionRequestDTO(
+                        session.getUserId(),
+                        session.getId(),
+                        modelConfig.getName(),
+                        "用户：" + safeText(userMsg.getContent()) + System.lineSeparator()
+                                + "助手：" + safeText(assistantReply)
+                ));
+            } catch (Exception exception) {
+                log.warn("异步提取长期记忆失败，不影响主对话流程: sessionId={}", session.getId(), exception);
+            }
+        } finally {
+            if (previousUserId == null) {
+                CurrentUserHolder.clear();
+            } else {
+                CurrentUserHolder.set(previousUserId);
+            }
+        }
+    }
+
+    private String safeText(String text) {
+        return text == null ? "" : text;
     }
 }

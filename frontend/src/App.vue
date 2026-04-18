@@ -4,6 +4,7 @@
     <DesktopView v-else />
     <ToastContainer />
     <ConfirmDialog />
+    <AlertDialog />
   </div>
 </template>
 
@@ -13,6 +14,7 @@ import LoginScreen from './components/login/LoginScreen.vue'
 import DesktopView from './components/desktop/DesktopView.vue'
 import ToastContainer from './components/feedback/ToastContainer.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
+import AlertDialog from './components/common/AlertDialog.vue'
 
 const desktop = useDesktopStore()
 </script>

@@ -204,6 +204,90 @@ export const appDefinitions: Record<string, AppDefinition> = {
     minHeight: 380,
     dockOrder: -1,
     roles: ['SUPER_ADMIN']
+  },
+  'chat-history': {
+    id: 'chat-history',
+    name: '对话历史',
+    icon: 'MessageSquareText',
+    gradient: 'linear-gradient(135deg, #0A84FF, #5AC8FA)',
+    defaultWidth: 1200,
+    defaultHeight: 750,
+    minWidth: 900,
+    minHeight: 550,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN', 'ADMIN']
+  },
+  'token-usage': {
+    id: 'token-usage',
+    name: '用量统计',
+    icon: 'BarChart3',
+    gradient: 'linear-gradient(135deg, #FF9F0A, #FF6B00)',
+    defaultWidth: 1200,
+    defaultHeight: 750,
+    minWidth: 900,
+    minHeight: 550,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN', 'ADMIN']
+  },
+  's3-browser': {
+    id: 's3-browser',
+    name: '文件管理',
+    icon: 'HardDrive',
+    gradient: 'linear-gradient(135deg, #64D2FF, #5AC8FA)',
+    defaultWidth: 1100,
+    defaultHeight: 700,
+    minWidth: 800,
+    minHeight: 500,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'env-var': {
+    id: 'env-var',
+    name: '环境变量',
+    icon: 'Settings',
+    gradient: 'linear-gradient(135deg, #30D158, #0A84FF)',
+    defaultWidth: 900,
+    defaultHeight: 600,
+    minWidth: 700,
+    minHeight: 450,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'tool-guard': {
+    id: 'tool-guard',
+    name: 'Tool Guard',
+    icon: 'Shield',
+    gradient: 'linear-gradient(135deg, #FF453A, #BF5AF2)',
+    defaultWidth: 1100,
+    defaultHeight: 720,
+    minWidth: 900,
+    minHeight: 560,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'file-guard': {
+    id: 'file-guard',
+    name: 'File Guard',
+    icon: 'FileSearch',
+    gradient: 'linear-gradient(135deg, #FF453A, #FF6B6B)',
+    defaultWidth: 950,
+    defaultHeight: 650,
+    minWidth: 700,
+    minHeight: 450,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'security-scanner': {
+    id: 'security-scanner',
+    name: 'Security Scanner',
+    icon: 'Scan',
+    gradient: 'linear-gradient(135deg, #BF5AF2, #FF453A)',
+    defaultWidth: 1100,
+    defaultHeight: 720,
+    minWidth: 900,
+    minHeight: 560,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
   }
 }
 

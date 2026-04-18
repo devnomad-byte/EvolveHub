@@ -1,0 +1,151 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: evolvehub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: evolvehub
+      POSTGRES_USER: evolvehub
+      POSTGRES_PASSWORD: evolvehub123
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - evolvehub-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolvehub -d evolvehub"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - evolvehub-network
+
+  redis:
+    image: redis:8-alpine
+    container_name: evolvehub-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - evolvehub-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - evolvehub-network
+
+  minio:
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    container_name: evolvehub-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: evolvehub
+      MINIO_ROOT_PASSWORD: evolvehub123
+      TZ: Asia/Shanghai
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - evolvehub-minio-data:/data
+    networks:
+      - evolvehub-network
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-07-21T05-28-08Z
+    container_name: evolvehub-minio-init
+    depends_on:
+      - minio
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        until mc alias set local http://minio:9000 evolvehub evolvehub123;
+        do
+          sleep 2;
+        done;
+        mc mb --ignore-existing local/evolvehub;
+        mc mb --ignore-existing local/milvus;
+        exit 0;
+    restart: "no"
+    networks:
+      - evolvehub-network
+
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.18
+    container_name: evolvehub-milvus-etcd
+    restart: unless-stopped
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    command:
+      - etcd
+      - -advertise-client-urls=http://127.0.0.1:2379,http://milvus-etcd:2379
+      - -listen-client-urls=http://0.0.0.0:2379
+      - --data-dir=/etcd
+    volumes:
+      - evolvehub-etcd-data:/etcd
+    networks:
+      - evolvehub-network
+
+  milvus:
+    image: milvusdb/milvus:v2.5.10
+    container_name: evolvehub-milvus
+    restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+      milvus-etcd:
+        condition: service_started
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY_ID: evolvehub
+      MINIO_SECRET_ACCESS_KEY: evolvehub123
+      TZ: Asia/Shanghai
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    volumes:
+      - evolvehub-milvus-data:/var/lib/milvus
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:9091/healthz >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - evolvehub-network
+
+  attu:
+    image: zilliz/attu:v2.5
+    container_name: evolvehub-attu
+    restart: unless-stopped
+    profiles:
+      - debug
+    depends_on:
+      milvus:
+        condition: service_started
+    environment:
+      MILVUS_URL: milvus:19530
+    ports:
+      - "8000:3000"
+    networks:
+      - evolvehub-network
+
+networks:
+  evolvehub-network:
+    driver: bridge
+
+volumes:
+  evolvehub-postgres-data:
+  evolvehub-redis-data:
+  evolvehub-minio-data:
+  evolvehub-etcd-data:
+  evolvehub-milvus-data:

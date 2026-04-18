@@ -195,13 +195,12 @@ public class SecurityScanner {
     // ==================== 公开扫描方法 ====================
 
     /**
-     * 判断扫描结果是否可以跳过（仅 MEDIUM/LOW 可以被用户忽略）
-     * 与 QwenPaw 的 is_safe 逻辑一致：有 CRITICAL/HIGH 就不能跳过
+     * 判断扫描结果是否可以跳过
+     * 所有级别（包括 CRITICAL）均可被 force-proceed 忽略
      */
     public boolean canBypass(SecurityScanResult result) {
         if (result == null || result.isPassed()) return true;
-        String maxSev = result.getMaxSeverity();
-        return !"CRITICAL".equals(maxSev) && !"HIGH".equals(maxSev);
+        return true; // 所有级别均可 bypass，只要用户确认
     }
 
     /**

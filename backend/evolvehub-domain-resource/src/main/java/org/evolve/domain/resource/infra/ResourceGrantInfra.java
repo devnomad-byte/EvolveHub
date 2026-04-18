@@ -129,12 +129,7 @@ public class ResourceGrantInfra extends ServiceImpl<ResourceGrantInfra.ResourceG
     public List<Long> listVisibleGrantedResourceIds(Long userId, Long deptId, String resourceType) {
         return this.lambdaQuery()
                 .eq(ResourceGrantEntity::getResourceType, resourceType)
-                .and(wrapper -> {
-                    wrapper.eq(ResourceGrantEntity::getUserId, userId);
-                    if (deptId != null) {
-                        wrapper.or().eq(ResourceGrantEntity::getDeptId, deptId);
-                    }
-                })
+                .eq(ResourceGrantEntity::getUserId, userId)
                 .list()
                 .stream()
                 .map(ResourceGrantEntity::getResourceId)

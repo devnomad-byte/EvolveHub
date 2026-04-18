@@ -15,6 +15,11 @@
 DROP TABLE IF EXISTS eh_chat_token_usage CASCADE;
 DROP TABLE IF EXISTS eh_chat_message     CASCADE;
 DROP TABLE IF EXISTS eh_chat_session     CASCADE;
+DROP TABLE IF EXISTS eh_agent_memory_record CASCADE;
+DROP TABLE IF EXISTS eh_agent_memory_object CASCADE;
+DROP TABLE IF EXISTS eh_agent_memory_profile CASCADE;
+DROP TABLE IF EXISTS eh_agent_memory_session_meta CASCADE;
+DROP TABLE IF EXISTS user_memory         CASCADE;
 DROP TABLE IF EXISTS eh_resource_grant   CASCADE;
 DROP TABLE IF EXISTS eh_api_key          CASCADE;
 DROP TABLE IF EXISTS eh_mcp_config       CASCADE;
@@ -466,7 +471,206 @@ CREATE INDEX idx_chat_message_session_id  ON eh_chat_message(session_id);
 CREATE INDEX idx_chat_message_create_time ON eh_chat_message(create_time);
 
 -- ----------------------------------------------------------------------------
--- 十六、Token 消费日报表 (eh_chat_token_usage)
+-- 十六、Memory 长期记忆主表 (eh_agent_memory_record)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE eh_agent_memory_record (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id VARCHAR(64),
+    dept_id BIGINT,
+    message_id VARCHAR(64),
+    memory_key VARCHAR(128) NOT NULL,
+    memory_type VARCHAR(32),
+    source_kind VARCHAR(32) NOT NULL,
+    memory_kind VARCHAR(32),
+    role VARCHAR(32),
+    model_config_id BIGINT,
+    embedding_model_id BIGINT,
+    vector_doc_id VARCHAR(128),
+    object_id BIGINT,
+    round_start_no INTEGER,
+    round_end_no INTEGER,
+    archive_object_id BIGINT,
+    excerpt TEXT,
+    importance NUMERIC(5, 3) DEFAULT 0.000,
+    last_access_time TIMESTAMP,
+    last_activated_round_no INTEGER,
+    sleep_after_round_no INTEGER,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX uk_eh_agent_memory_record_user_source_key
+    ON eh_agent_memory_record (user_id, source_kind, memory_key)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_record_user_source_update
+    ON eh_agent_memory_record (user_id, source_kind, update_time DESC)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_record_user_session_kind
+    ON eh_agent_memory_record (user_id, session_id, memory_kind)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_record_user_vector_doc
+    ON eh_agent_memory_record (user_id, vector_doc_id)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_record_user_memory_key
+    ON eh_agent_memory_record (user_id, memory_key)
+    WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 十七、Memory 对象索引表 (eh_agent_memory_object)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE eh_agent_memory_object (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id VARCHAR(64),
+    object_type VARCHAR(64) NOT NULL,
+    bucket VARCHAR(128) NOT NULL,
+    object_key VARCHAR(512) NOT NULL,
+    content_type VARCHAR(128),
+    checksum VARCHAR(128),
+    size_bytes BIGINT,
+    version_no INTEGER DEFAULT 1,
+    source_record_id BIGINT,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX uk_eh_agent_memory_object_object_key
+    ON eh_agent_memory_object (object_key)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_object_user_session
+    ON eh_agent_memory_object (user_id, session_id)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_object_source_record
+    ON eh_agent_memory_object (source_record_id)
+    WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 十八、Memory 用户画像索引表 (eh_agent_memory_profile)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE eh_agent_memory_profile (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    profile_object_id BIGINT,
+    profile_summary TEXT,
+    name VARCHAR(128),
+    department VARCHAR(128),
+    preferred_language VARCHAR(64),
+    preferred_model VARCHAR(128),
+    tool_preference VARCHAR(256),
+    last_extracted_time TIMESTAMP,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX uk_eh_agent_memory_profile_user_id
+    ON eh_agent_memory_profile (user_id)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_profile_profile_object
+    ON eh_agent_memory_profile (profile_object_id)
+    WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 十九、Memory 会话元数据表 (eh_agent_memory_session_meta)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE eh_agent_memory_session_meta (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id VARCHAR(64) NOT NULL,
+    session_key VARCHAR(128) NOT NULL,
+    model_name VARCHAR(128),
+    message_count INTEGER NOT NULL DEFAULT 0,
+    last_summary_object_id BIGINT,
+    transcript_object_id BIGINT,
+    current_round_no INTEGER NOT NULL DEFAULT 0,
+    last_compacted_round_no INTEGER NOT NULL DEFAULT 0,
+    last_snapshot_object_id BIGINT,
+    status VARCHAR(32),
+    expire_time TIMESTAMP,
+    last_message_time TIMESTAMP,
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+CREATE UNIQUE INDEX uk_eh_agent_memory_session_meta_user_session
+    ON eh_agent_memory_session_meta (user_id, session_id)
+    WHERE deleted = 0;
+
+CREATE UNIQUE INDEX uk_eh_agent_memory_session_meta_session_key
+    ON eh_agent_memory_session_meta (session_key)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_session_meta_user_status
+    ON eh_agent_memory_session_meta (user_id, status)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_eh_agent_memory_session_meta_expire_time
+    ON eh_agent_memory_session_meta (expire_time)
+    WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 二十、用户结构化记忆表 (user_memory)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE user_memory (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    dept_id BIGINT,
+    memory_key VARCHAR(128) NOT NULL,
+    memory_type VARCHAR(32) NOT NULL,
+    content TEXT NOT NULL,
+    importance NUMERIC(5, 3) DEFAULT 0.000,
+    vector_doc_id VARCHAR(128),
+    session_id VARCHAR(64),
+    create_by BIGINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE user_memory IS '用户结构化记忆表';
+COMMENT ON COLUMN user_memory.user_id IS '用户 ID';
+COMMENT ON COLUMN user_memory.dept_id IS '部门 ID';
+COMMENT ON COLUMN user_memory.memory_key IS '记忆键，同一用户下唯一';
+COMMENT ON COLUMN user_memory.memory_type IS '记忆类型：preference/fact/tool_config';
+COMMENT ON COLUMN user_memory.content IS '结构化记忆内容';
+COMMENT ON COLUMN user_memory.importance IS '重要性评分，范围 0~1';
+COMMENT ON COLUMN user_memory.vector_doc_id IS 'Milvus 向量文档 ID';
+COMMENT ON COLUMN user_memory.session_id IS '来源会话 ID';
+
+CREATE UNIQUE INDEX uk_user_memory_user_key
+    ON user_memory (user_id, memory_key)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_user_memory_user_type_update
+    ON user_memory (user_id, memory_type, update_time DESC)
+    WHERE deleted = 0;
+
+CREATE INDEX idx_user_memory_user_vector_doc
+    ON user_memory (user_id, vector_doc_id)
+    WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 二十一、Token 消费日报表 (eh_chat_token_usage)
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE eh_chat_token_usage (
