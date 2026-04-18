@@ -30,8 +30,9 @@ export const adminSkillHubApi = {
 
   /**
    * 安装技能
+   * 返回所有安装的技能 ID（单个或多个）
    */
-  install(hubName: string, bundleUrl: string, skipScan = false): Promise<number> {
-    return http.post<number>('/admin/skill-config/hub/install', { hubName, bundleUrl, skipScan })
+  install(hubName: string, bundleUrl: string, skipScan = false): Promise<number[]> {
+    return http.post<number[]>('/admin/skill-config/hub/install', { hubName, bundleUrl, skipScan })
   }
 }

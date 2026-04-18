@@ -3,6 +3,7 @@ package org.evolve.admin.hub.adapter;
 import org.evolve.admin.hub.SkillHubAdapter;
 import org.evolve.admin.hub.model.HubSearchResult;
 import org.evolve.admin.hub.model.HubSkillBundle;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,7 +23,14 @@ public class ClawHubAdapter implements SkillHubAdapter {
     private static final String HUB_NAME = "ClawHub";
     private static final String API_BASE = "https://api.clawhub.ai/v1";
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public ClawHubAdapter() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);
+        factory.setReadTimeout(60000);
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     @Override
     public String getHubName() {

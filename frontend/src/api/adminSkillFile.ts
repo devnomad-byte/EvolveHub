@@ -10,8 +10,10 @@ export interface FileNode {
 }
 
 export const adminSkillFileApi = {
-  listFiles(skillId: number): Promise<FileNode[]> {
-    return http.get<FileNode[]>(`/admin/skill-config/${skillId}/files`)
+  listFiles(skillId: number, path = ''): Promise<FileNode[]> {
+    return http.get<FileNode[]>(`/admin/skill-config/${skillId}/files`, {
+      params: { path }
+    })
   },
 
   uploadFile(skillId: number, path: string, file: File, skipScan = false): Promise<void> {

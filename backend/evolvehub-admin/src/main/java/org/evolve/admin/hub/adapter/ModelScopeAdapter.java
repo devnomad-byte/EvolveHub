@@ -1,8 +1,10 @@
 package org.evolve.admin.hub.adapter;
 
+import lombok.extern.slf4j.Slf4j;
 import org.evolve.admin.hub.SkillHubAdapter;
 import org.evolve.admin.hub.model.HubSearchResult;
 import org.evolve.admin.hub.model.HubSkillBundle;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -10,6 +12,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+@Slf4j
 @Component
 public class ModelScopeAdapter implements SkillHubAdapter {
 
@@ -18,7 +21,14 @@ public class ModelScopeAdapter implements SkillHubAdapter {
     // Skill detail URL format: https://modelscope.cn/api/v1/skills/@{owner}/{skill_name}
     // Search page URL format: https://modelscope.cn/skills/@{owner}/{skill_name}
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public ModelScopeAdapter() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);   // 10s connection timeout
+        factory.setReadTimeout(60000);       // 60s read timeout
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     @Override
     public String getHubName() {
@@ -74,6 +84,10 @@ public class ModelScopeAdapter implements SkillHubAdapter {
 
     @Override
     public HubSkillBundle downloadBundle(String bundleUrl) {
+        // 清理 URL（去除首尾空格）
+        if (bundleUrl != null) {
+            bundleUrl = bundleUrl.trim();
+        }
         // bundleUrl 格式: https://modelscope.cn/skills/@owner/skill-name
         // 1. 解析 URL 获取 owner 和 skill_name
         // 2. 调用 GET /api/v1/skills/@{owner}/{skill_name} 获取详情
@@ -89,7 +103,9 @@ public class ModelScopeAdapter implements SkillHubAdapter {
 
         // 调用 ModelScope API 获取详情
         String detailUrl = API_BASE + "/skills/@" + owner + "/" + skillName;
+        log.info("[ModelScope] 开始获取技能详情: {}", detailUrl);
         Map<String, Object> detail = restTemplate.getForObject(detailUrl, Map.class);
+        log.info("[ModelScope] 获取详情完成: {}", detail != null ? "有数据" : "null");
 
         if (detail == null || !"200".equals(String.valueOf(detail.get("Code")))) {
             throw new RuntimeException("Failed to get skill detail from ModelScope");
@@ -116,19 +132,21 @@ public class ModelScopeAdapter implements SkillHubAdapter {
         if (sourceUrl != null && sourceUrl.contains("github.com")) {
             try {
                 String githubZipUrl = convertGitHubToArchiveUrl(sourceUrl);
-                if (githubZipUrl != null) {
-                    byte[] zipData = restTemplate.getForObject(githubZipUrl, byte[].class);
-                    if (zipData != null) {
-                        return parseZipBundle(bundle, zipData, skillDisplayName);
-                    }
+                log.info("[ModelScope] GitHub zip URL: {}", githubZipUrl);
+                byte[] zipData = restTemplate.getForObject(githubZipUrl, byte[].class);
+                log.info("[ModelScope] GitHub zip 下载完成，大小: {} bytes", zipData != null ? zipData.length : 0);
+                if (zipData != null) {
+                    return parseZipBundle(bundle, zipData, skillDisplayName);
                 }
             } catch (Exception e) {
+                log.warn("[ModelScope] GitHub 下载失败: {}", e.getMessage());
                 // GitHub 下载失败，尝试使用 ReadMeContent
             }
         }
 
         // 如果没有 GitHub 源或下载失败，使用 ReadMeContent 作为 SKILL.md
         if (readmeContent != null && !readmeContent.isEmpty()) {
+            log.info("[ModelScope] 使用 ReadMeContent 作为 SKILL.md，长度: {}", readmeContent.length());
             Map<String, byte[]> files = new HashMap<>();
             files.put("SKILL.md", readmeContent.getBytes(StandardCharsets.UTF_8));
             bundle.setFiles(files);

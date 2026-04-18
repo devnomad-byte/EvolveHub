@@ -1,13 +1,56 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { WindowState, AppId } from '../types'
 import { appDefinitions } from '../types/apps'
 
+const STORAGE_KEY = 'evolvehub_windows'
+
 let nextZIndex = 100
 
+function loadFromStorage(): { windows: Record<string, WindowState>, activeId: string | null, maxZ: number } | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      return {
+        windows: parsed.windows || {},
+        activeId: parsed.activeId || null,
+        maxZ: parsed.maxZ || 100
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null
+}
+
+function saveToStorage(windows: Record<string, WindowState>, activeId: string | null, maxZ: number) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      windows,
+      activeId,
+      maxZ
+    }))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export const useWindowStore = defineStore('window', () => {
-  const windows = ref<Record<string, WindowState>>({})
-  const activeWindowId = ref<string | null>(null)
+  // 页面加载时从 localStorage 恢复窗口状态
+  const restored = loadFromStorage()
+  const windows = ref<Record<string, WindowState>>(restored?.windows || {})
+  // 恢复时重置最大化状态和位置，确保窗口在可见范围内
+  Object.values(windows.value).forEach(w => {
+    w.isMaximized = false
+    // 确保窗口位置至少距离顶部 40px，否则重置到居中
+    if (w.y < 40) {
+      w.x = Math.max(40, (window.innerWidth - w.width) / 2)
+      w.y = Math.max(40, (window.innerHeight - w.height) / 2 - 40)
+    }
+  })
+  const activeWindowId = ref<string | null>(restored?.activeId || null)
+  nextZIndex = restored?.maxZ || 100
 
   // 设置应用的指定标签页（跨组件通信用）
   const pendingSettingsTab = ref<string | null>(null)
@@ -30,6 +73,13 @@ export const useWindowStore = defineStore('window', () => {
 
   const allWindows = computed(() =>
     windowList.value.filter(w => w.isOpen)
+  )
+
+  // 持久化到 localStorage
+  watch(
+    [windows, activeWindowId, () => nextZIndex],
+    () => saveToStorage(windows.value, activeWindowId.value, nextZIndex),
+    { deep: true }
   )
 
   function openApp(appId: AppId) {
