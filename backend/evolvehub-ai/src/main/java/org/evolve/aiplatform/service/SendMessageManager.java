@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Event;
 import io.agentscope.core.agent.EventType;
+import io.agentscope.core.model.ChatResponse;
 import io.agentscope.core.agent.StreamOptions;
 import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
@@ -19,24 +20,43 @@ import org.evolve.aiplatform.bean.entity.ChatTokenUsageEntity;
 import org.evolve.aiplatform.infra.ChatMessageInfra;
 import org.evolve.aiplatform.infra.ChatSessionInfra;
 import org.evolve.aiplatform.infra.ChatTokenUsageInfra;
+import org.evolve.aiplatform.memory.application.service.MemoryApi;
+import org.evolve.aiplatform.memory.domain.bean.dto.MemoryConversationContextDTO;
+import org.evolve.aiplatform.memory.domain.bean.dto.MemoryExtractionRequestDTO;
+import org.evolve.aiplatform.memory.domain.bean.dto.MemoryRoundDTO;
 import org.evolve.aiplatform.request.SendMessageRequest;
 import org.evolve.aiplatform.service.agent.ChatAgentFactory;
+import org.evolve.common.base.CurrentUserHolder;
 import org.evolve.common.web.exception.BusinessException;
-import org.evolve.domain.resource.infra.ModelConfigInfra;
 import org.evolve.domain.resource.model.ModelConfigEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 发送对话消息业务处理器
@@ -56,6 +76,14 @@ public class SendMessageManager {
      * 上下文消息最大加载条数
      */
     private static final int MAX_CONTEXT_MESSAGES = 20;
+
+    /**
+     * 长期记忆召回默认条数
+     */
+    private static final int DEFAULT_MEMORY_TOP_K = 5;
+    private static final long MEMORY_CONTEXT_TIMEOUT_SECONDS = 5L;
+    private static final int DIRECT_CHAT_CONNECT_TIMEOUT_MS = 5_000;
+    private static final int DIRECT_CHAT_READ_TIMEOUT_MS = 60_000;
 
     /**
      * 默认系统提示词
@@ -122,22 +150,13 @@ public class SendMessageManager {
     private ChatTokenUsageInfra chatTokenUsageInfra;
 
     @Resource
-    private ModelConfigInfra modelConfigInfra;
+    private AvailableModelSupport availableModelSupport;
 
     @Resource
     private ChatAgentFactory chatAgentFactory;
 
     @Resource
-    private ChatMemoryService chatMemoryService;
-
-    @Resource
-    private ContextSummaryService contextSummaryService;
-
-    @Resource
-    private ChatContextCacheService chatContextCacheService;
-
-    @Resource
-    private UserProfileService userProfileService;
+    private MemoryApi memoryApi;
 
     @Resource
     private ObjectMapper objectMapper;
@@ -157,15 +176,13 @@ public class SendMessageManager {
         boolean isNewSession = (request.sessionId() == null);
 
         ChatSessionEntity session;
+        ModelConfigEntity modelConfig;
         if (isNewSession) {
             // 自动创建新会话
             if (request.modelConfigId() == null) {
                 throw new BusinessException("新建会话时 modelConfigId 不能为空");
             }
-            ModelConfigEntity modelConfig = modelConfigInfra.getModelConfigById(request.modelConfigId());
-            if (modelConfig == null || modelConfig.getEnabled() == 0) {
-                throw new BusinessException("模型配置不可用");
-            }
+            modelConfig = availableModelSupport.requireAvailableChatModel(currentUserId, request.modelConfigId());
             session = new ChatSessionEntity();
             session.setUserId(currentUserId);
             session.setModelConfigId(request.modelConfigId());
@@ -181,12 +198,19 @@ public class SendMessageManager {
             if (session == null) {
                 throw new BusinessException("会话不存在或无权操作");
             }
-        }
-
-        // 校验模型配置
-        ModelConfigEntity modelConfig = modelConfigInfra.getModelConfigById(session.getModelConfigId());
-        if (modelConfig == null || modelConfig.getEnabled() == 0) {
-            throw new BusinessException("模型配置不可用");
+            if (session.getModelConfigId() == null) {
+                if (request.modelConfigId() == null) {
+                    throw new BusinessException("当前会话未绑定模型，请先选择模型");
+                }
+                modelConfig = availableModelSupport.requireAvailableChatModel(currentUserId, request.modelConfigId());
+                ChatSessionEntity bindingSession = new ChatSessionEntity();
+                bindingSession.setId(session.getId());
+                bindingSession.setModelConfigId(modelConfig.getId());
+                chatSessionInfra.updateById(bindingSession);
+                session.setModelConfigId(modelConfig.getId());
+            } else {
+                modelConfig = availableModelSupport.requireAvailableChatModel(currentUserId, session.getModelConfigId());
+            }
         }
 
         // 保存用户消息
@@ -232,17 +256,25 @@ public class SendMessageManager {
         StringBuilder fullResponse = new StringBuilder();
 
         try {
-            // 5. 加载历史消息并组装上下文
-            List<String> memories = Collections.emptyList();
-            try {
-                memories = chatMemoryService.retrieve(session.getUserId(), userMsg.getContent());
-            } catch (Exception e) {
-                log.warn("长期记忆检索失败，继续对话", e);
-            }
-            List<Msg> messages = buildContextMessages(session, userMsg);
+            MemoryConversationContextDTO memoryContext = buildConversationContextWithTimeout(emitter, session, userMsg);
+            List<Msg> messages = buildContextMessages(session, userMsg, memoryContext);
 
             // 6. 构建系统提示词（含长期记忆 + 用户画像）
-            String sysPrompt = buildEnrichedSysPrompt(session, memories);
+            String sysPrompt = buildEnrichedSysPrompt(session, memoryContext);
+
+            if (shouldUseDirectModelStream(modelConfig)) {
+                doDirectProviderChat(
+                        emitter,
+                        session,
+                        modelConfig,
+                        userMsg,
+                        messages,
+                        buildDirectSysPrompt(memoryContext),
+                        fullResponse,
+                        startTime
+                );
+                return;
+            }
 
             // 7. 构建 Agent（含 Model + Toolkit + sysPrompt）
             ReActAgent agent = chatAgentFactory.createAgent(
@@ -253,15 +285,8 @@ public class SendMessageManager {
             agent.stream(messages, streamOptions)
                     .doOnNext(event -> handleEvent(emitter, event, fullResponse))
                     .doOnComplete(() -> {
+                        long durationMs = System.currentTimeMillis() - startTime;
                         try {
-                            long durationMs = System.currentTimeMillis() - startTime;
-                            // 发送完成事件
-                            emitter.send(SseEmitter.event()
-                                    .data(objectMapper.writeValueAsString(Map.of(
-                                            "type", "done",
-                                            "durationMs", durationMs))));
-                            emitter.complete();
-
                             // 9. 保存助手消息
                             saveAssistantMessage(session, modelConfig, fullResponse.toString(),
                                     new int[]{0, 0, 0}, "stop", (int) durationMs);
@@ -272,15 +297,36 @@ public class SendMessageManager {
                             // 11. 首轮自动生成标题
                             autoGenerateTitle(session);
 
-                            // 12. 异步提取并保存长期记忆
-                            chatMemoryService.extractAndSaveAsync(
-                                    session.getUserId(), session.getId(), modelConfig,
-                                    userMsg.getContent(), fullResponse.toString());
-
-                            // 13. 异步压缩上下文摘要（短期记忆压缩）
-                            contextSummaryService.compressIfNeededAsync(session, modelConfig);
+                            // 12. 提交完整对话回合，并异步提取长期记忆
+                            withUserContext(session.getUserId(), () -> memoryApi.commitConversationRound(
+                                    session.getUserId(),
+                                    String.valueOf(session.getId()),
+                                    userMsg.getContent(),
+                                    fullResponse.toString(),
+                                    modelConfig.getName()
+                            ));
+                            withUserContext(session.getUserId(), () -> {
+                                memoryApi.extractMemoryFromConversationAsync(new MemoryExtractionRequestDTO(
+                                        session.getUserId(),
+                                        session.getId(),
+                                        modelConfig.getName(),
+                                        buildRoundTranscript(userMsg.getContent(), fullResponse.toString())
+                                ));
+                                return null;
+                            });
+                        } catch (Exception e) {
+                            log.warn("对话回合记忆落库失败: sessionId={}", session.getId(), e);
+                            sendMemoryWarning(emitter, "本轮记忆写入失败，对话结果已返回");
+                        }
+                        try {
+                            emitter.send(SseEmitter.event()
+                                    .data(objectMapper.writeValueAsString(Map.of(
+                                            "type", "done",
+                                            "durationMs", durationMs))));
+                            emitter.complete();
                         } catch (IOException e) {
                             log.error("SSE 完成事件发送失败", e);
+                            emitter.completeWithError(e);
                         }
                     })
                     .doOnError(error -> {
@@ -309,6 +355,198 @@ public class SendMessageManager {
             }
             emitter.completeWithError(e);
         }
+    }
+
+    private void doDirectProviderChat(SseEmitter emitter,
+                                      ChatSessionEntity session,
+                                      ModelConfigEntity modelConfig,
+                                      ChatMessageEntity userMsg,
+                                      List<Msg> messages,
+                                      String sysPrompt,
+                                      StringBuilder fullResponse,
+                                      long startTime) {
+        try {
+            String content = streamDirectCompletion(modelConfig, messages, sysPrompt, chunk -> {
+                if (chunk == null || chunk.isEmpty()) {
+                    return;
+                }
+                fullResponse.append(chunk);
+                try {
+                    emitter.send(SseEmitter.event()
+                            .data(objectMapper.writeValueAsString(Map.of("type", "chunk", "content", chunk))));
+                } catch (IOException ioException) {
+                    throw new RuntimeException(ioException);
+                }
+            });
+            if (content != null && fullResponse.isEmpty()) {
+                fullResponse.append(content);
+            }
+            finalizeConversation(emitter, session, modelConfig, userMsg, fullResponse, startTime);
+        } catch (Exception exception) {
+            log.error("直连模型对话异常", exception);
+            handleStreamingError(emitter, exception);
+        }
+    }
+
+    private String streamDirectCompletion(ModelConfigEntity modelConfig,
+                                          List<Msg> messages,
+                                          String sysPrompt,
+                                          Consumer<String> onChunk) throws Exception {
+        List<Map<String, String>> payloadMessages = new ArrayList<>();
+        payloadMessages.add(Map.of("role", "system", "content", sysPrompt));
+        for (Msg msg : messages) {
+            if (msg == null || msg.getRole() == null) {
+                continue;
+            }
+            String content = extractTextFromMsg(msg);
+            if (content == null || content.isBlank()) {
+                continue;
+            }
+            payloadMessages.add(Map.of(
+                    "role", toOpenAiRole(msg.getRole()),
+                    "content", content
+            ));
+        }
+
+        String url = normalizeChatCompletionUrl(modelConfig.getBaseUrl());
+        String requestBody = objectMapper.writeValueAsString(Map.of(
+                "model", modelConfig.getName(),
+                "messages", payloadMessages,
+                "stream", true
+        ));
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(DIRECT_CHAT_CONNECT_TIMEOUT_MS))
+                .build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofMillis(DIRECT_CHAT_READ_TIMEOUT_MS))
+                .header("Authorization", "Bearer " + modelConfig.getApiKey())
+                .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() >= 400) {
+            String errorBody = new String(response.body().readAllBytes(), StandardCharsets.UTF_8);
+            throw new IllegalStateException("模型接口调用失败: " + errorBody);
+        }
+        StringBuilder fullResponse = new StringBuilder();
+        StringBuilder fallbackBody = new StringBuilder();
+        try (InputStream inputStream = response.body();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                if (!line.startsWith("data:")) {
+                    fallbackBody.append(line);
+                    continue;
+                }
+                String payload = line.substring(5).trim();
+                if ("[DONE]".equals(payload)) {
+                    break;
+                }
+                String chunk = extractDirectStreamChunk(payload);
+                if (chunk == null) {
+                    fallbackBody.append(payload);
+                    continue;
+                }
+                fullResponse.append(chunk);
+                onChunk.accept(chunk);
+            }
+        }
+        if (!fullResponse.isEmpty()) {
+            return fullResponse.toString();
+        }
+        if (!fallbackBody.isEmpty()) {
+            return extractDirectCompletionText(fallbackBody.toString());
+        }
+        return "";
+    }
+
+    private String extractDirectStreamChunk(String payload) throws IOException {
+        Map<?, ?> body = objectMapper.readValue(payload, Map.class);
+        Object choicesObject = body.get("choices");
+        if (!(choicesObject instanceof List<?> choices) || choices.isEmpty()) {
+            return null;
+        }
+        Object firstChoice = choices.get(0);
+        if (!(firstChoice instanceof Map<?, ?> choiceMap)) {
+            return null;
+        }
+        Object deltaObject = choiceMap.get("delta");
+        if (deltaObject instanceof Map<?, ?> deltaMap) {
+            Object contentObject = deltaMap.get("content");
+            if (contentObject != null) {
+                return String.valueOf(contentObject);
+            }
+        }
+        Object messageObject = choiceMap.get("message");
+        if (messageObject instanceof Map<?, ?> messageMap) {
+            Object contentObject = messageMap.get("content");
+            if (contentObject != null) {
+                return String.valueOf(contentObject);
+            }
+        }
+        return null;
+    }
+
+    private void finalizeConversation(SseEmitter emitter,
+                                      ChatSessionEntity session,
+                                      ModelConfigEntity modelConfig,
+                                      ChatMessageEntity userMsg,
+                                      StringBuilder fullResponse,
+                                      long startTime) {
+        long durationMs = System.currentTimeMillis() - startTime;
+        try {
+            saveAssistantMessage(session, modelConfig, fullResponse.toString(),
+                    new int[]{0, 0, 0}, "stop", (int) durationMs);
+            chatSessionInfra.incrementTokenUsage(session.getId(), 0, 0, 0, 2);
+            autoGenerateTitle(session);
+
+            withUserContext(session.getUserId(), () -> memoryApi.commitConversationRound(
+                    session.getUserId(),
+                    String.valueOf(session.getId()),
+                    userMsg.getContent(),
+                    fullResponse.toString(),
+                    modelConfig.getName()
+            ));
+            withUserContext(session.getUserId(), () -> {
+                memoryApi.extractMemoryFromConversationAsync(new MemoryExtractionRequestDTO(
+                        session.getUserId(),
+                        session.getId(),
+                        modelConfig.getName(),
+                        buildRoundTranscript(userMsg.getContent(), fullResponse.toString())
+                ));
+                return null;
+            });
+        } catch (Exception e) {
+            log.warn("直接模型对话回合记忆落库失败: sessionId={}", session.getId(), e);
+            sendMemoryWarning(emitter, "本轮记忆写入失败，对话结果已返回");
+        }
+        try {
+            emitter.send(SseEmitter.event()
+                    .data(objectMapper.writeValueAsString(Map.of(
+                            "type", "done",
+                            "durationMs", durationMs))));
+            emitter.complete();
+        } catch (IOException e) {
+            log.error("SSE 发送直接模型完成事件失败", e);
+            emitter.completeWithError(e);
+        }
+    }
+
+    private void handleStreamingError(SseEmitter emitter, Throwable error) {
+        log.error("流式对话异常", error);
+        try {
+            emitter.send(SseEmitter.event()
+                    .data(objectMapper.writeValueAsString(Map.of(
+                            "type", "error",
+                            "message", error.getMessage() != null ? error.getMessage() : "Agent 调用失败"))));
+        } catch (IOException e) {
+            log.error("SSE 错误事件发送失败", e);
+        }
+        emitter.completeWithError(error);
     }
 
     /**
@@ -450,12 +688,18 @@ public class SendMessageManager {
      * 该提示词传给 ReActAgent，由 Agent 内部作为 SYSTEM 消息注入，避免与 messages 中的内容重复。
      * </p>
      */
-    private String buildEnrichedSysPrompt(ChatSessionEntity session, List<String> memories) {
+    private String buildEnrichedSysPrompt(ChatSessionEntity session, MemoryConversationContextDTO memoryContext) {
         String sysPrompt = (session.getSysPrompt() != null && !session.getSysPrompt().isBlank())
                 ? session.getSysPrompt() : DEFAULT_SYS_PROMPT;
 
         // 注入长期记忆
-        if (memories != null && !memories.isEmpty()) {
+        List<String> memories = memoryContext == null || memoryContext.getRecalledMemories() == null
+                ? Collections.emptyList()
+                : memoryContext.getRecalledMemories().stream()
+                .map(result -> result.getContent())
+                .filter(content -> content != null && !content.isBlank())
+                .toList();
+        if (!memories.isEmpty()) {
             StringBuilder memoryBlock = new StringBuilder();
             memoryBlock.append("\n\n以下是你对该用户的了解（长期记忆），请在回答时参考：\n");
             for (int i = 0; i < memories.size(); i++) {
@@ -465,7 +709,7 @@ public class SendMessageManager {
         }
 
         // 注入用户画像（MEMORY.md）
-        String userProfile = userProfileService.getProfile(session.getUserId());
+        String userProfile = memoryContext == null ? null : memoryContext.getProfileMarkdown();
         if (userProfile != null && !userProfile.isBlank()) {
             sysPrompt = sysPrompt + "\n\n以下是该用户的个人画像：\n" + userProfile;
         }
@@ -479,21 +723,62 @@ public class SendMessageManager {
      * 注意：系统提示词由 ReActAgent 内部注入，此处不再重复添加。
      * </p>
      */
-    private List<Msg> buildContextMessages(ChatSessionEntity session, ChatMessageEntity userMsg) {
+    private List<Msg> buildContextMessages(ChatSessionEntity session,
+                                           ChatMessageEntity userMsg,
+                                           MemoryConversationContextDTO memoryContext) {
+        if (memoryContext == null) {
+            return buildFallbackContextMessages(session);
+        }
+
         List<Msg> messages = new ArrayList<>();
 
-        // 注入上下文摘要（短期记忆压缩，优先从 Redis 读取）
-        String contextSummary = chatContextCacheService.getSummary(session.getUserId(), session.getId());
-        if (contextSummary != null && !contextSummary.isBlank()) {
+        String summaryContent = memoryContext.getActiveSummaries() == null
+                ? ""
+                : memoryContext.getActiveSummaries().stream()
+                .map(summary -> summary.getContent())
+                .filter(content -> content != null && !content.isBlank())
+                .reduce((left, right) -> left + "\n- " + right)
+                .map(content -> "- " + content)
+                .orElse("");
+        if (!summaryContent.isBlank()) {
             messages.add(Msg.builder()
                     .role(MsgRole.SYSTEM)
-                    .textContent("以下是之前对话的摘要，帮助你理解上下文：\n" + contextSummary)
+                    .textContent("以下是当前会话仍在生效的历史摘要，请结合它继续对话：\n" + summaryContent)
                     .build());
         }
 
-        // 历史消息（不包含刚保存的用户消息，因为它是最新一条）
-        List<ChatMessageEntity> history = chatMessageInfra.listRecentMessages(
-                session.getId(), MAX_CONTEXT_MESSAGES);
+        if (memoryContext.getRecentRounds() != null) {
+            for (MemoryRoundDTO round : memoryContext.getRecentRounds()) {
+                if (round.getUserMessage() != null && !round.getUserMessage().isBlank()) {
+                    messages.add(Msg.builder()
+                            .role(MsgRole.USER)
+                            .textContent(round.getUserMessage())
+                            .build());
+                }
+                if (round.getAssistantMessage() != null && !round.getAssistantMessage().isBlank()) {
+                    messages.add(Msg.builder()
+                            .role(MsgRole.ASSISTANT)
+                            .textContent(round.getAssistantMessage())
+                            .build());
+                }
+            }
+        }
+        if (userMsg.getContent() != null && !userMsg.getContent().isBlank()) {
+            messages.add(Msg.builder()
+                    .role(MsgRole.USER)
+                    .textContent(userMsg.getContent())
+                    .build());
+        }
+
+        return messages;
+    }
+
+    /**
+     * 构建数据库回退上下文
+     */
+    private List<Msg> buildFallbackContextMessages(ChatSessionEntity session) {
+        List<Msg> messages = new ArrayList<>();
+        List<ChatMessageEntity> history = chatMessageInfra.listRecentMessages(session.getId(), MAX_CONTEXT_MESSAGES);
         for (ChatMessageEntity msg : history) {
             MsgRole role = switch (msg.getRole()) {
                 case "user" -> MsgRole.USER;
@@ -502,15 +787,150 @@ public class SendMessageManager {
                 case "tool" -> MsgRole.TOOL;
                 default -> MsgRole.USER;
             };
-            if (msg.getContent() != null) {
+            if (msg.getContent() != null && !msg.getContent().isBlank()) {
                 messages.add(Msg.builder()
                         .role(role)
                         .textContent(msg.getContent())
                         .build());
             }
         }
-
         return messages;
+    }
+
+    private String buildRoundTranscript(String userMessage, String assistantMessage) {
+        return "用户说：" + (userMessage == null ? "" : userMessage)
+                + "\n\n助手回复：" + (assistantMessage == null ? "" : assistantMessage);
+    }
+
+    private void sendMemoryWarning(SseEmitter emitter, String message) {
+        try {
+            emitter.send(SseEmitter.event()
+                    .data(objectMapper.writeValueAsString(Map.of(
+                            "type", "memory_warning",
+                            "message", message
+                    ))));
+        } catch (IOException ioException) {
+            log.warn("SSE 发送记忆告警失败", ioException);
+        }
+    }
+
+    private MemoryConversationContextDTO buildConversationContextWithTimeout(SseEmitter emitter,
+                                                                             ChatSessionEntity session,
+                                                                             ChatMessageEntity userMsg) {
+        try {
+            return CompletableFuture
+                    .supplyAsync(() -> withUserContext(session.getUserId(), () -> memoryApi.buildConversationContext(
+                            session.getUserId(),
+                            String.valueOf(session.getId()),
+                            userMsg.getContent(),
+                            DEFAULT_MEMORY_TOP_K
+                    )))
+                    .orTimeout(MEMORY_CONTEXT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .join();
+        } catch (CompletionException exception) {
+            Throwable cause = exception.getCause() == null ? exception : exception.getCause();
+            log.warn("记忆上下文构建失败，回退到基础消息上下文: sessionId={}", session.getId(), cause);
+            sendMemoryWarning(emitter, "记忆上下文加载失败，本轮按基础上下文继续");
+            return null;
+        } catch (Exception exception) {
+            log.warn("记忆上下文构建超时，回退到基础消息上下文: sessionId={}", session.getId(), exception);
+            sendMemoryWarning(emitter, "记忆上下文加载超时，本轮按基础上下文继续");
+            return null;
+        }
+    }
+
+    private boolean shouldUseDirectModelStream(ModelConfigEntity modelConfig) {
+        String provider = modelConfig.getProvider();
+        String baseUrl = modelConfig.getBaseUrl();
+        String modelName = modelConfig.getName();
+        return (provider != null && provider.contains("阿里"))
+                || (baseUrl != null && baseUrl.contains("dashscope.aliyuncs.com"))
+                || (modelName != null && modelName.toLowerCase().startsWith("qwen"));
+    }
+
+    private String normalizeChatCompletionUrl(String baseUrl) {
+        String normalized = baseUrl == null ? "" : baseUrl.trim();
+        if (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        if (normalized.endsWith("/chat/completions")) {
+            return normalized;
+        }
+        return normalized + "/chat/completions";
+    }
+
+    private String buildDirectSysPrompt(MemoryConversationContextDTO memoryContext) {
+        StringBuilder builder = new StringBuilder("""
+                你是 EvolveHub 智能助手。
+                默认使用中文，回答简洁直接。
+                如果用户要求只返回一句或固定文本，严格照做，不要补充解释。
+                """);
+        if (memoryContext != null && memoryContext.getProfileMarkdown() != null && !memoryContext.getProfileMarkdown().isBlank()) {
+            builder.append("\n\n用户画像：\n").append(memoryContext.getProfileMarkdown());
+        }
+        if (memoryContext != null && memoryContext.getRecalledMemories() != null && !memoryContext.getRecalledMemories().isEmpty()) {
+            builder.append("\n\n长期记忆：\n");
+            memoryContext.getRecalledMemories().forEach(item -> {
+                if (item != null && item.getContent() != null && !item.getContent().isBlank()) {
+                    builder.append("- ").append(item.getContent()).append('\n');
+                }
+            });
+        }
+        return builder.toString();
+    }
+
+    private String extractDirectCompletionText(String responseBody) throws IOException {
+        Map<?, ?> payload = objectMapper.readValue(responseBody, Map.class);
+        Object choicesObject = payload.get("choices");
+        if (!(choicesObject instanceof List<?> choices) || choices.isEmpty()) {
+            return "";
+        }
+        Object firstChoice = choices.get(0);
+        if (!(firstChoice instanceof Map<?, ?> choiceMap)) {
+            return "";
+        }
+        Object messageObject = choiceMap.get("message");
+        if (!(messageObject instanceof Map<?, ?> messageMap)) {
+            return "";
+        }
+        Object contentObject = messageMap.get("content");
+        return contentObject == null ? "" : String.valueOf(contentObject);
+    }
+
+    private String toOpenAiRole(MsgRole role) {
+        return switch (role) {
+            case SYSTEM -> "system";
+            case ASSISTANT -> "assistant";
+            case TOOL -> "tool";
+            default -> "user";
+        };
+    }
+
+    private String extractTextFromResponse(ChatResponse response) {
+        if (response == null || response.getContent() == null) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (ContentBlock block : response.getContent()) {
+            if (block instanceof TextBlock textBlock) {
+                builder.append(textBlock.getText());
+            }
+        }
+        return builder.isEmpty() ? null : builder.toString();
+    }
+
+    private <T> T withUserContext(Long userId, Supplier<T> action) {
+        Long previousUserId = CurrentUserHolder.getUserId();
+        try {
+            CurrentUserHolder.set(userId);
+            return action.get();
+        } finally {
+            if (previousUserId == null) {
+                CurrentUserHolder.clear();
+            } else {
+                CurrentUserHolder.set(previousUserId);
+            }
+        }
     }
 
     /**

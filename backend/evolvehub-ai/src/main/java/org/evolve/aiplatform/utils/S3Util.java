@@ -34,7 +34,7 @@ import java.util.List;
  * MinIO 场景下的 S3 工具类。
  */
 @Slf4j
-@Component
+@Component("aiS3Util")
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "s3", name = "enabled", havingValue = "true")
 public class S3Util {

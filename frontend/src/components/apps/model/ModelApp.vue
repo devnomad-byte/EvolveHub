@@ -375,7 +375,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue'
 import { Bot, Plus, X, Wifi } from 'lucide-vue-next'
-import { adminModelConfigApi, type ModelConfigInfo, type ModelConfigWithOwner, type CreateModelConfigRequest, type UpdateModelConfigRequest, type ModelScope } from '../../../api/adminModelConfig'
+import { adminModelConfigApi, type ModelConfigInfo, type ModelConfigWithOwner, type CreateModelConfigRequest, type UpdateModelConfigRequest, type ModelScope, type ModelType } from '../../../api/adminModelConfig'
 import { adminModelProviderApi, type ModelProviderInfo } from '../../../api/adminModelProvider'
 import { deptApi, type DeptInfo } from '../../../api/dept'
 import { adminUserApi, type UserInfo } from '../../../api/adminUser'
@@ -477,15 +477,28 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const isSubmitting = ref(false)
 const isTesting = ref(false)
-const form = ref({
+
+interface ModelFormState {
+  id: number
+  name: string
+  provider: string
+  apiKey: string
+  baseUrl: string
+  enabled: number
+  modelType: ModelType
+  scope: ModelScope
+  deptId: number | null
+}
+
+const form = ref<ModelFormState>({
   id: 0,
   name: '',
   provider: '',
   apiKey: '',
   baseUrl: '',
   enabled: 1,
-  modelType: 'LLM' as const,
-  scope: 'SYSTEM' as ModelScope,
+  modelType: 'LLM',
+  scope: 'SYSTEM',
   deptId: null as number | null
 })
 
@@ -739,7 +752,7 @@ async function handleSubmit() {
         deptId: form.value.scope === 'DEPT' ? form.value.deptId : undefined
       }
       const result = await adminModelConfigApi.create(req)
-      modelId = result.id || result
+      modelId = result.id
       // Assign grants for USER scope
       if (form.value.scope === 'USER' && modelId) {
         for (const userId of selectedUserIds.value) {

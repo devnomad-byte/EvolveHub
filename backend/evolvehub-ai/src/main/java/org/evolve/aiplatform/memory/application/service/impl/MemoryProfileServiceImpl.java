@@ -47,7 +47,7 @@ class MemoryProfileServiceImpl implements MemoryProfileService {
     @Resource
     private MemoryMarkdownRenderer memoryMarkdownRenderer;
 
-    @Resource
+    @Resource(name = "aiS3Util")
     private S3Util s3Util;
 
     /**

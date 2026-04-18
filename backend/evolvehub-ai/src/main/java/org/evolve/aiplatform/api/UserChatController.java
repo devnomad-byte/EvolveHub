@@ -9,12 +9,13 @@ import org.evolve.aiplatform.request.ListMessagesRequest;
 import org.evolve.aiplatform.request.SendMessageRequest;
 import org.evolve.aiplatform.request.TokenUsageQueryRequest;
 import org.evolve.aiplatform.request.UpdateSessionRequest;
+import org.evolve.aiplatform.memory.application.service.MemoryApi;
+import org.evolve.aiplatform.memory.domain.bean.vo.MemoryManagedItemVO;
 import org.evolve.aiplatform.service.DeleteSessionManager;
 import org.evolve.aiplatform.service.ListMessagesManager;
 import org.evolve.aiplatform.service.ListSessionsManager;
 import org.evolve.aiplatform.service.SendMessageManager;
 import org.evolve.aiplatform.service.TokenUsageManager;
-import org.evolve.aiplatform.service.ChatMemoryService;
 import org.evolve.aiplatform.service.UpdateSessionManager;
 import org.evolve.common.web.page.PageRequest;
 import org.evolve.common.web.page.PageResponse;
@@ -58,7 +59,7 @@ public class UserChatController {
     private TokenUsageManager tokenUsageManager;
 
     @Resource
-    private ChatMemoryService chatMemoryService;
+    private MemoryApi memoryApi;
 
     /**
      * 分页查询当前用户的会话列表
@@ -152,7 +153,10 @@ public class UserChatController {
     @GetMapping("/memories")
     public Result<List<String>> listMemories() {
         Long userId = cn.dev33.satoken.stp.StpUtil.getLoginIdAsLong();
-        return Result.ok(chatMemoryService.listUserMemories(userId));
+        List<String> memories = memoryApi.listManagedMemories(userId).stream()
+                .map(MemoryManagedItemVO::getContent)
+                .toList();
+        return Result.ok(memories);
     }
 
     /**
@@ -163,7 +167,11 @@ public class UserChatController {
      */
     @DeleteMapping("/memories/{docId}")
     public Result<Void> deleteMemory(@PathVariable String docId) {
-        chatMemoryService.deleteMemory(docId);
+        try {
+            memoryApi.deleteManagedMemory(cn.dev33.satoken.stp.StpUtil.getLoginIdAsLong(), Long.valueOf(docId));
+        } catch (NumberFormatException e) {
+            throw new org.evolve.common.web.exception.BusinessException("记忆标识无效");
+        }
         return Result.ok();
     }
 }

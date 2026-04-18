@@ -23,12 +23,18 @@ public class UpdateSessionManager extends BaseManager<UpdateSessionRequest, Void
     @Resource
     private ChatSessionInfra chatSessionInfra;
 
+    @Resource
+    private AvailableModelSupport availableModelSupport;
+
     @Override
     protected void check(UpdateSessionRequest request) {
         Long currentUserId = StpUtil.getLoginIdAsLong();
         ChatSessionEntity session = chatSessionInfra.getByIdAndUserId(request.id(), currentUserId);
         if (session == null) {
             throw new BusinessException("会话不存在或无权操作");
+        }
+        if (request.modelConfigId() != null) {
+            availableModelSupport.requireAvailableChatModel(currentUserId, request.modelConfigId());
         }
     }
 
@@ -41,6 +47,9 @@ public class UpdateSessionManager extends BaseManager<UpdateSessionRequest, Void
         }
         if (request.sysPrompt() != null) {
             entity.setSysPrompt(request.sysPrompt());
+        }
+        if (request.modelConfigId() != null) {
+            entity.setModelConfigId(request.modelConfigId());
         }
         chatSessionInfra.updateById(entity);
         return null;

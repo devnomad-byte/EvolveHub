@@ -1,10 +1,9 @@
 package org.evolve.aiplatform.infra;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.apache.ibatis.annotations.Mapper;
 import org.evolve.aiplatform.bean.entity.ChatSessionEntity;
+import org.evolve.aiplatform.infra.mapper.ChatSessionMapper;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -15,10 +14,7 @@ import org.springframework.stereotype.Repository;
  * @date 2026/4/14
  */
 @Repository
-public class ChatSessionInfra extends ServiceImpl<ChatSessionInfra.ChatSessionMapper, ChatSessionEntity> {
-
-    @Mapper
-    interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {}
+public class ChatSessionInfra extends ServiceImpl<ChatSessionMapper, ChatSessionEntity> {
 
     /**
      * 按用户分页查询会话列表（按更新时间倒序）

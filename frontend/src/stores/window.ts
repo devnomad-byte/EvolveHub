@@ -18,6 +18,9 @@ export const useWindowStore = defineStore('window', () => {
   // 传递给 mcp-editor 窗口的参数
   const pendingMcpToEdit = ref<{ mcpId: number | null, mcpName: string } | null>(null)
 
+  // 传递给 chat 窗口的待定位会话 ID
+  const pendingChatSessionId = ref<string | null>(null)
+
   const windowList = computed(() => Object.values(windows.value))
 
   const openWindows = computed(() =>
@@ -130,6 +133,7 @@ export const useWindowStore = defineStore('window', () => {
     pendingSettingsTab,
     pendingSkillToEdit,
     pendingMcpToEdit,
+    pendingChatSessionId,
     openApp,
     closeWindow,
     closeByAppId,

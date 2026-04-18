@@ -7,6 +7,7 @@ import org.evolve.aiplatform.memory.application.service.MemoryVectorService;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryExtractionRequestDTO;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryExtractionResultDTO;
 import org.evolve.aiplatform.memory.domain.bean.dto.MemoryStructuredItemDTO;
+import org.evolve.aiplatform.memory.domain.constant.MemoryConstants;
 import org.evolve.aiplatform.memory.framework.agentscope.algorithm.MemoryExtractionAlgorithm;
 import org.evolve.common.base.CurrentUserHolder;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 记忆提取服务实现
@@ -89,13 +91,33 @@ class MemoryExtractionServiceImpl implements MemoryExtractionService {
     }
 
     private MemoryStructuredItemDTO persistExtractedItem(MemoryExtractionRequestDTO request, MemoryStructuredItemDTO item) {
-        MemoryStructuredItemDTO vectorItem = memoryVectorService.saveConversationMemory(
+        MemoryStructuredItemDTO normalizedItem = new MemoryStructuredItemDTO(
                 request.getUserId(),
-                request.getSessionId(),
+                item.getMemoryKey() == null || item.getMemoryKey().isBlank()
+                        ? buildMemoryKey(request.getSessionId(), item.getContent())
+                        : item.getMemoryKey(),
+                item.getMemoryType() == null || item.getMemoryType().isBlank()
+                        ? MemoryConstants.MEMORY_TYPE_FACT
+                        : item.getMemoryType(),
                 item.getContent(),
                 item.getImportance()
         );
-        memoryStructuredService.upsertMemoryStructuredItem(item);
-        return vectorItem;
+        try {
+            MemoryStructuredItemDTO vectorItem = memoryVectorService.saveConversationMemory(
+                    request.getUserId(),
+                    request.getSessionId(),
+                    normalizedItem.getContent(),
+                    normalizedItem.getImportance()
+            );
+            memoryStructuredService.upsertMemoryStructuredItem(normalizedItem);
+            return vectorItem;
+        } catch (Exception exception) {
+            return memoryStructuredService.upsertMemoryStructuredItem(normalizedItem);
+        }
+    }
+
+    private String buildMemoryKey(Long sessionId, String content) {
+        String sessionKey = sessionId == null ? "global" : String.valueOf(sessionId);
+        return sessionKey + "-extract-" + UUID.nameUUIDFromBytes(String.valueOf(content).getBytes());
     }
 }

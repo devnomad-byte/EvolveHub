@@ -12,6 +12,10 @@ export { adminSkillFileApi, type FileNode } from './adminSkillFile'
 export { deptApi } from './dept'
 export { menuApi } from './menu'
 export { desktopIconApi } from './desktopIcon'
+export { availableResourceApi } from './availableResource'
+export { chatApi } from './chat'
+export { memoryApi } from './memory'
+export { userModelConfigApi } from './userModelConfig'
 
 // 导出类型
 export type { LoginRequest, LoginResponse, CurrentUserResponse, ChangePasswordRequest } from './auth'

@@ -17,7 +17,12 @@ import org.springframework.context.annotation.Configuration;
  * @author zhao
  */
 @Configuration
-@MapperScan({"org.evolve.common", "org.evolve.domain"})
+@MapperScan({
+        "org.evolve.common",
+        "org.evolve.domain",
+        "org.evolve.aiplatform.infra.mapper",
+        "org.evolve.aiplatform.memory.infrastructure.mapper"
+})
 public class MybatisPlusConfig {
 
     /**

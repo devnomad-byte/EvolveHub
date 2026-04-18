@@ -66,7 +66,7 @@ class MemorySessionServiceImpl implements MemorySessionService {
     @Resource(name = "memoryVectorServiceImpl")
     private MemoryVectorService memoryVectorService;
 
-    @Resource
+    @Resource(name = "aiS3Util")
     private S3Util s3Util;
 
     @Override
