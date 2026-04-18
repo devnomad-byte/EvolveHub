@@ -1216,7 +1216,44 @@ ALTER TABLE eh_chat_message ADD CONSTRAINT fk_message_session
     FOREIGN KEY (session_id) REFERENCES eh_chat_session(id) ON DELETE CASCADE;
 
 -- ----------------------------------------------------------------------------
--- 三、权限数据插入
+-- 三、用户结构化记忆表 (user_memory)
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS user_memory (
+    id            BIGINT PRIMARY KEY,
+    user_id       BIGINT       NOT NULL,
+    dept_id       BIGINT,
+    memory_key    VARCHAR(128) NOT NULL,
+    memory_type   VARCHAR(32)  NOT NULL,
+    content       TEXT         NOT NULL,
+    importance    NUMERIC(5, 3) DEFAULT 0.000,
+    vector_doc_id VARCHAR(128),
+    session_id    VARCHAR(64),
+    create_by     BIGINT,
+    create_time   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    update_time   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    deleted       INTEGER      DEFAULT 0
+);
+
+COMMENT ON TABLE user_memory IS '用户结构化记忆表';
+COMMENT ON COLUMN user_memory.user_id IS '用户ID';
+COMMENT ON COLUMN user_memory.dept_id IS '部门ID';
+COMMENT ON COLUMN user_memory.memory_key IS '记忆键，同一用户下唯一';
+COMMENT ON COLUMN user_memory.memory_type IS '记忆类型：preference/fact/tool_config';
+COMMENT ON COLUMN user_memory.content IS '结构化记忆内容';
+COMMENT ON COLUMN user_memory.importance IS '重要性评分，范围0~1';
+COMMENT ON COLUMN user_memory.vector_doc_id IS 'Milvus向量文档ID';
+COMMENT ON COLUMN user_memory.session_id IS '来源会话ID';
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_user_memory_user_key
+    ON user_memory(user_id, memory_key) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_user_memory_user_type_update
+    ON user_memory(user_id, memory_type, update_time DESC) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_user_memory_user_vector_doc
+    ON user_memory(user_id, vector_doc_id) WHERE deleted = 0;
+
+-- ----------------------------------------------------------------------------
+-- 四、权限数据插入
 -- ----------------------------------------------------------------------------
 
 INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
@@ -1257,7 +1294,7 @@ VALUES
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 四、测试数据
+-- 五、测试数据
 -- ----------------------------------------------------------------------------
 
 INSERT INTO eh_chat_session (id, user_id, title, model_config_id, sys_prompt, total_prompt_tokens, total_completion_tokens, total_tokens, message_count, dept_id, create_by, create_time, update_time, deleted)
@@ -1341,7 +1378,7 @@ src/main/java/com/example/redis/
 ON CONFLICT DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 五、用户对话统计视图
+-- 六、用户对话统计视图
 -- ----------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW v_user_chat_stats AS
@@ -1364,7 +1401,7 @@ GROUP BY u.id, u.username, u.nickname, u.dept_id, d.dept_name;
 COMMENT ON VIEW v_user_chat_stats IS '用户对话统计视图，用于管理员对话历史功能的用户列表展示';
 
 -- ============================================================================
--- 六、Token消费统计表 (eh_chat_token_usage)
+-- 七、Token消费统计表 (eh_chat_token_usage)
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS eh_chat_token_usage (
@@ -1413,7 +1450,7 @@ ALTER TABLE eh_chat_token_usage ADD CONSTRAINT fk_token_usage_dept
     FOREIGN KEY (dept_id) REFERENCES eh_dept(id) ON DELETE SET NULL;
 
 -- ============================================================================
--- 七、用量统计菜单权限
+-- 八、用量统计菜单权限
 -- ============================================================================
 
 -- 用量统计 MENU
