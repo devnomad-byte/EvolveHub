@@ -3,11 +3,11 @@
 <!-- Header Wave -->
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:FF6B6B,50:4ECDC4,100:45B7D1&height=120&section=header&text=&fontSize=0" width="100%" alt="header"/>
 
-<!-- Logo -->
+<!-- Logo with Glow Effect -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/logo.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/logo.svg">
-  <img src="docs/logo.svg" alt="EvolveHub Logo" width="180" height="180">
+  <img src="docs/logo.svg" alt="EvolveHub Logo" width="200" height="200" style="filter: drop-shadow(0 0 30px rgba(78, 205, 196, 0.6));">
 </picture>
 
 <br/>
@@ -22,16 +22,35 @@
   <img src="https://readme-typing-svg.demolab.com?font=Noto+Sans+SC&size=18&duration=4000&pause=1000&color=FF6B6B&center=true&vCenter=true&multiline=true&repeat=true&width=500&height=40&lines=Enterprise+AI+Intelligent+Platform" alt="subtitle"/>
 </p>
 
+<!-- Tagline -->
+<p>
+
+```
+╭───────────────────────────────────────────────────────────╮
+│  ✦  Enterprise AI Platform  ✦  Zero-Code  ✦  Ready  ✦  │
+╰───────────────────────────────────────────────────────────╯
+```
+
 **Enterprise AI Conversational Platform · Ready to Use · Zero Code**
 
+</p>
+
 <br/>
-<br/>
+
+<!-- Stats Badges -->
+<p>
+  <img src="https://img.shields.io/github/stars/devnomad-byte/EvolveHub?style=for-the-badge&logo=github" alt="Stars"/>
+  <img src="https://img.shields.io/github/forks/devnomad-byte/EvolveHub?style=for-the-badge&logo=github" alt="Forks"/>
+  <img src="https://img.shields.io/github/watchers/devnomad-byte/EvolveHub?style=for-the-badge&logo=github" alt="Watchers"/>
+</p>
 
 <!-- Badge Wall -->
 <p>
   <img src="https://img.shields.io/badge/Platform-Enterprise-4ECDC4?style=for-the-badge&logo=probot&logoColor=white" alt="Enterprise Platform"/>
   <img src="https://img.shields.io/badge/Java-21%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21+"/>
+  <img src="https://img.shields.io/badge/Spring_Boot-3.5.9-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3.5"/>
   <img src="https://img.shields.io/badge/MCP-Compatible-6DB33F?style=for-the-badge" alt="MCP Compatible"/>
+  <img src="https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white" alt="Vue.js 3"/>
   <img src="https://img.shields.io/badge/License-MIT-FF6B6B?style=for-the-badge" alt="License"/>
 </p>
 
@@ -48,7 +67,13 @@
 
 ---
 
-## 🎯 What is EvolveHub?
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--                      SECTION DIVIDER                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **What is EvolveHub?** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
 <div align="center">
 
@@ -65,13 +90,24 @@
 
 ### 🪄 One Sentence Summary
 
+```
+╭═══════════════════════════════════════════════════════════╮
+║                                                           ║
+║   ⚡ Configure and use. Connect everything.              ║
+║   🚀 Let AI understand and operate your enterprise.        ║
+║                                                           ║
+╰═══════════════════════════════════════════════════════════╯
+```
+
 **Configure and use. Connect everything. Let AI understand and operate your enterprise systems.**
 
 </div>
 
 ---
 
-## ✨ Core Capabilities
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Core Capabilities** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
@@ -81,6 +117,15 @@
 
 ### 🔌 Plug & Play
 <img src="https://img.shields.io/badge/Zero-Code-9B59B6?style=flat-square" alt="Zero Code"/>
+
+```
+╭────────────────────────────────────────╮
+│  📦 Ready to Use                        │
+│  🔗 MCP Protocol                       │
+│  🤝 A2A Protocol                      │
+│  ⚡ Skills Extension                   │
+╰────────────────────────────────────────╯
+```
 
 - 📦 **Ready to Use** — No development needed, configure and go
 - 🔗 **MCP Protocol** — Compatible with ModelScope MCP ecosystem
@@ -98,6 +143,15 @@
 
 ### 🧠 Intelligent Evolution
 <img src="https://img.shields.io/badge/AI-Evolving-E74C3C?style=flat-square" alt="AI Evolving"/>
+
+```
+╭────────────────────────────────────────╮
+│  🧬 Memory Evolution                   │
+│  ⚡ Strategy Iteration                 │
+│  🤝 Collaborative Emergence           │
+│  📊 Knowledge Accumulation           │
+╰────────────────────────────────────────╯
+```
 
 - 🧬 **Memory Evolution** — AI understands your business better over time
 - ⚡ **Strategy Iteration** — Auto-optimizes conversation strategies
@@ -118,7 +172,27 @@
 
 ---
 
-## 🏗️ Platform Architecture
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Screenshots** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
+| Login | Desktop Management |
+|:------:|:------------------:|
+| <img src="docs/imgs/login.png" width="100%" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"> | <img src="docs/imgs/Desktop_Management_Interface.png" width="100%" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"> |
+
+| Super Admin Backend |
+|:-------------------:|
+| <img src="docs/imgs/Super_Admin_Backend_Interface.png" width="80%" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"> |
+
+</div>
+
+---
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Platform Architecture** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
@@ -172,25 +246,26 @@ graph TB
 
 ---
 
-## 🚀 Use Cases
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Use Cases** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
-| Scenario | Description | Benefit |
-|:--------:|:------------|:-------:|
-| 💬 **Smart Customer Service** | AI understands business, auto-queries orders, handles tickets | 80% efficiency boost |
-| 📊 **Data Assistant** | Natural language database queries, report generation | Zero SQL barrier |
-| 🔧 **Ops Assistant** | AI executes operations, auto-troubleshoots | 70% faster response |
-| 📋 **Workflow Approval** | Intelligent approval understanding, decision support | 3x faster approval |
-| 🎓 **Training Tutor** | Q&A based on enterprise knowledge base | 60% lower training cost |
+| 💬 Smart Customer Service | 📊 Data Assistant | 🔧 Ops Assistant | 📋 Workflow Approval | 🎓 Training Tutor |
+|:------------------------:|:----------------:|:----------------:|:-------------------:|:----------------:|
+| AI understands business, auto-queries orders, handles tickets | Natural language database queries, report generation | AI executes operations, auto-troubleshoots | Intelligent approval understanding, decision support | Q&A based on enterprise knowledge base |
+| **80% efficiency boost** | **Zero SQL barrier** | **70% faster response** | **3x faster approval** | **60% lower cost** |
 
 </div>
 
 ---
 
-## 🔌 Integration Methods
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
-### Method 1: MCP Protocol
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Integration Methods** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+### 🔹 Method 1: MCP Protocol
 
 Simply configure your MCP service endpoint, platform auto-discovers and loads tools:
 
@@ -205,7 +280,7 @@ mcp:
         token: "${ERP_API_TOKEN}"
 ```
 
-### Method 2: A2A Protocol
+### 🔹 Method 2: A2A Protocol
 
 Register your Agent to A2A network for multi-agent collaboration:
 
@@ -219,7 +294,7 @@ a2a:
       capability: "Inventory Management"
 ```
 
-### Method 3: Skills Packages
+### 🔹 Method 3: Skills Packages
 
 Import pre-built enterprise skill packages for instant business capabilities:
 
@@ -233,7 +308,33 @@ skills:
 
 ---
 
-## 🆚 Comparison with Traditional Solutions
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Personal AI vs Enterprise** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
+| Dimension | Personal AI Assistant | **EvolveHub Enterprise** |
+|:---------:|:--------------------:|:------------------------:|
+| 🎯 **Focus** | Personal productivity | Enterprise intelligence |
+| 👥 **Use Case** | Solo conversations, document handling | Team collaboration, business system integration |
+| 🔐 **Access Control** | Basic | 🟢 Full RBAC + Data permissions |
+| 🏢 **Multi-tenancy** | Not supported | 🟢 Department/Project-level isolation |
+| 🔌 **Enterprise Integration** | Chat only | 🟢 Seamless MCP/A2A integration |
+| 📊 **Knowledge Base** | Personal documents | 🟢 Enterprise KB + Vector search |
+| 🔒 **Data Security** | Local or cloud | 🟢 Private deployment, full control |
+| 📈 **Audit & Compliance** | None | 🟢 Operation audit, permission tracking |
+| 🚀 **Deployment** | Local install | 🟢 Docker/K8s one-click deploy |
+
+</div>
+
+> 💡 Personal AI assistants are great for individual productivity; EvolveHub is designed for enterprise management with **access control**, **multi-tenancy**, **business system integration**, and **compliance audit** capabilities, making AI the true **enterprise intelligence hub**.
+
+---
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Comparison with Traditional AI Development** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
@@ -249,19 +350,20 @@ skills:
 
 ---
 
-## 📦 Deployment Options
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Deployment Options** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
-| Deployment Mode | Use Case | Features |
-|:---------------:|:--------:|:--------:|
-| 🐳 **Docker** | Quick trial, test environments | One-click startup |
-| ☸️ **Kubernetes** | Production, high availability | Elastic scaling |
-| 🏢 **On-Premise** | Data-sensitive, compliance | Full control |
+| 🐳 Docker | ☸️ Kubernetes | 🏢 On-Premise |
+|:---------:|:-------------:|:-------------:|
+| Quick trial, test environments | Production, high availability | Data-sensitive, compliance |
+| **One-click startup** | **Elastic scaling** | **Full control** |
 
 </div>
 
-### Docker Quick Start
+### 🚀 Docker Quick Start
 
 ```bash
 # Pull image
@@ -275,42 +377,59 @@ docker run -d \
   evolvehub/server:latest
 
 # Visit http://localhost:8080 to start using
+# Default admin: admin / admin123
 ```
 
 ---
 
-## 📈 Roadmap
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ECDC4'}}}%%
-timeline
-    title EvolveHub Roadmap
-    section Phase 1
-        Core Platform Release
-        : MCP Protocol Support
-        : Basic Conversation
-    section Phase 2
-        Enterprise Enhancement
-        : A2A Multi-Agent
-        : Skills Marketplace
-    section Phase 3
-        Intelligence Upgrade
-        : Memory Evolution
-        : Strategy Iteration
-        : Knowledge Graph
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Default Account** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
 ```
+╭───────────────────────────────────────────╮
+│  🏆  Super Admin                         │
+│  ─────────────────────                   │
+│  👤  admin                               │
+│  🔑  admin123                           │
+╰───────────────────────────────────────────╯
+```
+
+</div>
 
 ---
 
-## 🤝 Join the Community
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Star History** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=devnomad-byte/EvolveHub&type=Timeline)](https://star-history.com/#devnomad-byte/EvolveHub&Timeline)
+
+</div>
+
+---
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Join the Community** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
 ### 📱 Scan to Join DingTalk Group
 
-<img src="docs/imgs/dingtalk_qr_code.png" alt="DingTalk QR Code" width="200">
+<img src="docs/imgs/dingtalk_qr_code.png" alt="DingTalk QR Code" width="200" style="border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
 
 *Product Inquiry · Technical Discussion · Feedback*
+
+<br/>
+
+### 👥 Contributors
+
+[![Contributors](https://contrib.rocks/image?repo=devnomad-byte/EvolveHub)](https://github.com/devnomad-byte/EvolveHub/graphs/contributors)
 
 <br/>
 
@@ -318,19 +437,21 @@ timeline
 
 ---
 
-## 📄 License
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-</div>
+<br/>
 
----
-
-<div align="center">
-
-**Made with ❤️ by the EvolveHub Team**
+```
+╭───────────────────────────────────────────────────────────╮
+│                                                           │
+│        ✦ ✦ ✦  Made with ❤️ by EvolveHub Team  ✦ ✦ ✦    │
+│                                                           │
+╰───────────────────────────────────────────────────────────╯
+```
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:45B7D1,50:4ECDC4,100:FF6B6B&height=100&section=footer" width="100%" alt="footer"/>
 
