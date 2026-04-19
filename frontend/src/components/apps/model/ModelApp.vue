@@ -1744,7 +1744,6 @@ onMounted(async () => {
   color: var(--text-disabled);
   flex-shrink: 0;
 }
-</style>
 
 /* ========== Batch Test Button ========== */
 .btn-batch-test {
@@ -1997,4 +1996,3 @@ onMounted(async () => {
   font-size: 13px;
 }
 </style>
->>>>>>> Stashed changes

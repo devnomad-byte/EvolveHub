@@ -1,7 +1,7 @@
 <template>
   <div class="desktop-icon" @click="$emit('open')" @dblclick="$emit('open')">
     <div class="icon-image" :style="{ background: gradient }">
-      <component :is="iconComponent" :size="28" color="#fff" />
+      <component :is="iconComponent" :size="32" color="#fff" />
     </div>
     <div class="icon-label">{{ name }}</div>
   </div>
@@ -24,7 +24,7 @@ import {
   Shrink, Focus, Crosshair, MousePointer, Hand, GripVertical, MoreHorizontal,
   Menu, Circle, Navigation, Compass, Flame, Leaf, Lightbulb, Rocket, Sparkles,
   Tent, TreeDeciduous, Umbrella, Sunrise, Sunset, Moon, Sun, Droplet, Waves,
-  Wind, Snowflake, Thermometer, Archive, Cog, Sliders
+  Wind, Snowflake, Thermometer, Archive, Cog, Sliders, LayoutGrid
 } from 'lucide-vue-next'
 import type { AppId } from '../../types'
 
@@ -53,7 +53,7 @@ const iconMap: Record<string, ReturnType<typeof MessageSquare>> = {
   Shrink, Focus, Crosshair, MousePointer, Hand, GripVertical, MoreHorizontal,
   Menu, Circle, Navigation, Compass, Flame, Leaf, Lightbulb, Rocket, Sparkles,
   Tent, TreeDeciduous, Umbrella, Sunrise, Sunset, Moon, Sun, Droplet, Waves,
-  Wind, Snowflake, Thermometer, Archive, Cog, Sliders
+  Wind, Snowflake, Thermometer, Archive, Cog, Sliders, LayoutGrid
 }
 
 const iconComponent = computed(() => {
@@ -63,38 +63,70 @@ const iconComponent = computed(() => {
 
 <style scoped>
 .desktop-icon {
+  width: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  padding: 16px 12px;
+  border-radius: 18px;
   cursor: pointer;
-  transition: transform 150ms ease;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.desktop-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(0, 245, 255, 0.12), rgba(255, 0, 255, 0.08));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.desktop-icon:hover::before {
+  opacity: 1;
+}
+
+.desktop-icon:hover {
+  border-color: rgba(0, 245, 255, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 245, 255, 0.15);
 }
 
 .desktop-icon:active {
-  transform: scale(0.92);
+  transform: scale(0.95);
 }
 
 .icon-image {
   width: 64px;
   height: 64px;
-  border-radius: 22%;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 200ms var(--ease-spring), box-shadow 200ms ease;
+  position: relative;
+  z-index: 1;
+  transition: transform 200ms ease;
 }
 
 .desktop-icon:hover .icon-image {
   transform: scale(1.08);
-  box-shadow: 0 0 20px rgba(10, 132, 255, 0.3);
 }
 
 .icon-label {
-  font-size: 12px;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
   text-align: center;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 </style>

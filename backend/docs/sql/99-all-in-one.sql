@@ -2064,9 +2064,9 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS eh_security_scanner_whitelist (
     id          BIGINT PRIMARY KEY,
-    skill_name  VARCHAR(255) NOT NULL COMMENT '技能名称',
-    content_hash VARCHAR(128) NOT NULL COMMENT '内容哈希（SHA-256）',
-    added_by    BIGINT COMMENT '添加人',
+    skill_name  VARCHAR(255) NOT NULL,
+    content_hash VARCHAR(128) NOT NULL,
+    added_by    BIGINT,
     create_by   BIGINT,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -2086,13 +2086,13 @@ CREATE INDEX IF NOT EXISTS idx_whitelist_hash  ON eh_security_scanner_whitelist(
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS eh_security_scanner_blocked_history (
     id           BIGINT PRIMARY KEY,
-    skill_name   VARCHAR(255) NOT NULL COMMENT '技能名称',
-    action       VARCHAR(20) NOT NULL COMMENT '操作类型：BLOCKED/WARNED',
-    content_hash VARCHAR(128) COMMENT '文件内容哈希',
-    max_severity VARCHAR(20) COMMENT '最高严重级别：CRITICAL/HIGH/MEDIUM/LOW',
-    findings     TEXT COMMENT '发现的问题详情，JSON数组',
-    user_id      BIGINT COMMENT '操作用户',
-    user_nickname VARCHAR(100) COMMENT '操作用户昵称',
+    skill_name   VARCHAR(255) NOT NULL,
+    action       VARCHAR(20) NOT NULL,
+    content_hash VARCHAR(128),
+    max_severity VARCHAR(20),
+    findings     TEXT,
+    user_id      BIGINT,
+    user_nickname VARCHAR(100),
     create_by    BIGINT,
     create_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -2116,9 +2116,9 @@ CREATE INDEX IF NOT EXISTS idx_blocked_history_user    ON eh_security_scanner_bl
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS eh_security_scanner_config (
     id          BIGINT PRIMARY KEY,
-    enabled     INTEGER DEFAULT 1 COMMENT '整体开关（1=启用，0=禁用）',
-    mode        VARCHAR(20) DEFAULT 'block' COMMENT '扫描模式：block/warn/off',
-    timeout     INTEGER DEFAULT 30 COMMENT '扫描超时时间（秒）',
+    enabled     INTEGER DEFAULT 1,
+    mode        VARCHAR(20) DEFAULT 'block',
+    timeout     INTEGER DEFAULT 30,
     create_by   BIGINT,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -2169,5 +2169,381 @@ VALUES
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- ============================================================================
+-- 4.4 Cron 定时任务
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. 定时任务定义表 (eh_cron_job)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_cron_job (
+    id                    BIGINT PRIMARY KEY,
+    name                 VARCHAR(128) NOT NULL,
+    description          VARCHAR(512),
+    enabled              INTEGER DEFAULT 1,
+    cron_expression      VARCHAR(64) NOT NULL,
+    timezone             VARCHAR(64) DEFAULT 'Asia/Shanghai',
+    task_type            VARCHAR(16) DEFAULT 'agent',
+    prompt_template      TEXT,
+    target_user_id       BIGINT,
+    target_session_id     BIGINT,
+    timeout_seconds      INTEGER DEFAULT 300,
+    max_retries          INTEGER DEFAULT 3,
+    misfire_grace_seconds INTEGER DEFAULT 60,
+    max_concurrency      INTEGER DEFAULT 1,
+    last_run_time        TIMESTAMP,
+    next_run_time        TIMESTAMP,
+    last_run_status      VARCHAR(32),
+    last_run_error       TEXT,
+    dept_id              BIGINT,
+    create_by            BIGINT,
+    create_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted              INTEGER DEFAULT 0
+);
+
+COMMENT ON TABLE eh_cron_job IS '定时任务定义表';
+COMMENT ON COLUMN eh_cron_job.name IS '任务名称';
+COMMENT ON COLUMN eh_cron_job.description IS '任务描述';
+COMMENT ON COLUMN eh_cron_job.enabled IS '是否启用（1=启用，0=禁用）';
+COMMENT ON COLUMN eh_cron_job.cron_expression IS 'cron 表达式，支持5/4/3字段，周字段支持0-7或mon-sun';
+COMMENT ON COLUMN eh_cron_job.timezone IS '时区';
+COMMENT ON COLUMN eh_cron_job.task_type IS '任务类型：agent=AI对话，text=发送文本';
+COMMENT ON COLUMN eh_cron_job.prompt_template IS '执行时的prompt模板，支持{{current_date}}等变量';
+COMMENT ON COLUMN eh_cron_job.target_user_id IS '目标用户ID，执行时加载该用户上下文';
+COMMENT ON COLUMN eh_cron_job.target_session_id IS '目标会话ID，不填则创建新会话';
+COMMENT ON COLUMN eh_cron_job.timeout_seconds IS '执行超时时间（秒）';
+COMMENT ON COLUMN eh_cron_job.max_retries IS '最大重试次数';
+COMMENT ON COLUMN eh_cron_job.misfire_grace_seconds IS 'misfire宽限秒数';
+COMMENT ON COLUMN eh_cron_job.max_concurrency IS '同一任务最大并发执行数';
+COMMENT ON COLUMN eh_cron_job.last_run_time IS '上次执行时间';
+COMMENT ON COLUMN eh_cron_job.next_run_time IS '下次执行时间';
+COMMENT ON COLUMN eh_cron_job.last_run_status IS '上次执行状态：SUCCESS/ERROR/TIMEOUT/CANCELLED';
+COMMENT ON COLUMN eh_cron_job.last_run_error IS '上次执行错误信息';
+COMMENT ON COLUMN eh_cron_job.dept_id IS '所属部门（数据权限）';
+COMMENT ON COLUMN eh_cron_job.create_by IS '创建者';
+
+CREATE INDEX IF NOT EXISTS idx_cron_enabled ON eh_cron_job(enabled);
+CREATE INDEX IF NOT EXISTS idx_cron_target_user ON eh_cron_job(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_cron_create_by ON eh_cron_job(create_by);
+CREATE INDEX IF NOT EXISTS idx_cron_dept ON eh_cron_job(dept_id);
+CREATE INDEX IF NOT EXISTS idx_cron_deleted ON eh_cron_job(deleted);
+
+-- ----------------------------------------------------------------------------
+-- 2. 定时任务执行历史表 (eh_cron_job_history)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_cron_job_history (
+    id                  BIGINT PRIMARY KEY,
+    job_id              BIGINT NOT NULL,
+    start_time          TIMESTAMP NOT NULL,
+    end_time            TIMESTAMP,
+    status              VARCHAR(32) NOT NULL,
+    trigger_type        VARCHAR(32) NOT NULL,
+    session_id          VARCHAR(64),
+    prompt_content      TEXT,
+    response_content    TEXT,
+    error_message       TEXT,
+    prompt_tokens       INTEGER,
+    completion_tokens   INTEGER,
+    total_tokens        INTEGER,
+    deleted             SMALLINT DEFAULT 0,
+    create_by           BIGINT,
+    create_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE eh_cron_job_history IS '定时任务执行历史表';
+COMMENT ON COLUMN eh_cron_job_history.job_id IS '关联任务ID';
+COMMENT ON COLUMN eh_cron_job_history.start_time IS '执行开始时间';
+COMMENT ON COLUMN eh_cron_job_history.end_time IS '执行结束时间';
+COMMENT ON COLUMN eh_cron_job_history.status IS '执行状态：RUNNING/SUCCESS/ERROR/TIMEOUT/CANCELLED';
+COMMENT ON COLUMN eh_cron_job_history.trigger_type IS '触发类型：SCHEDULED/MANUAL';
+COMMENT ON COLUMN eh_cron_job_history.session_id IS '关联的会话ID';
+COMMENT ON COLUMN eh_cron_job_history.prompt_content IS '实际发送的prompt';
+COMMENT ON COLUMN eh_cron_job_history.response_content IS 'AI回复内容（截断）';
+COMMENT ON COLUMN eh_cron_job_history.error_message IS '错误信息';
+COMMENT ON COLUMN eh_cron_job_history.prompt_tokens IS 'prompt token消耗';
+COMMENT ON COLUMN eh_cron_job_history.completion_tokens IS 'completion token消耗';
+COMMENT ON COLUMN eh_cron_job_history.total_tokens IS 'total token消耗';
+
+CREATE INDEX IF NOT EXISTS idx_cron_history_job ON eh_cron_job_history(job_id);
+CREATE INDEX IF NOT EXISTS idx_cron_history_trigger ON eh_cron_job_history(trigger_type);
+CREATE INDEX IF NOT EXISTS idx_cron_history_status ON eh_cron_job_history(status);
+CREATE INDEX IF NOT EXISTS idx_cron_history_time ON eh_cron_job_history(create_time);
+
+-- ----------------------------------------------------------------------------
+-- Cron 定时任务菜单和权限
+-- ----------------------------------------------------------------------------
+-- 桌面图标菜单 (ID=66)
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES (66, 0, '定时任务', 'app:cron', 'MENU', '/app/cron', 'Clock', 22, 1, NOW(), NOW(), 'linear-gradient(135deg, #30D158, #34C759)', 1100, 720, 800, 500, -1, 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- 按钮权限 (ID=67, 68, 69)
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (67, 0, '查看任务', 'cron:list', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (68, 0, '管理任务', 'cron:manage', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (69, 0, '执行任务', 'cron:execute', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 角色权限分配
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 66, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 67, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 68, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 69, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 66, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 67, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 68, NOW(), NOW()),
+    (nextval('seq_role_permission'), 4, 69, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ============================================================================
+-- 桌面管理器 (Desktop Manager)
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. 桌面分类表 (eh_desktop_category)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_desktop_category (
+    id                  BIGINT PRIMARY KEY,
+    name                VARCHAR(64) NOT NULL,
+    icon                VARCHAR(32) DEFAULT '📁',
+    color               VARCHAR(8) DEFAULT '#0A84FF',
+    sort                INT DEFAULT 0,
+    status              SMALLINT DEFAULT 1,
+    create_by           BIGINT,
+    create_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted             SMALLINT DEFAULT 0
+);
+
+COMMENT ON TABLE eh_desktop_category IS '桌面分类表';
+COMMENT ON COLUMN eh_desktop_category.name IS '分类名称';
+COMMENT ON COLUMN eh_desktop_category.icon IS '分类图标';
+COMMENT ON COLUMN eh_desktop_category.color IS '主题色';
+COMMENT ON COLUMN eh_desktop_category.sort IS '排序';
+COMMENT ON COLUMN eh_desktop_category.status IS '状态：1启用 0禁用';
+
+CREATE INDEX IF NOT EXISTS idx_category_sort ON eh_desktop_category(sort);
+CREATE INDEX IF NOT EXISTS idx_category_status ON eh_desktop_category(status);
+CREATE INDEX IF NOT EXISTS idx_category_deleted ON eh_desktop_category(deleted);
+
+-- ----------------------------------------------------------------------------
+-- 2. 桌面图标配置表 (eh_desktop_icon)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_desktop_icon (
+    id                  BIGINT PRIMARY KEY,
+    perm_id             BIGINT NOT NULL UNIQUE,
+    category_id         BIGINT,
+    is_desktop          SMALLINT DEFAULT 0,
+    sort                INT DEFAULT 0,
+    create_by           BIGINT,
+    create_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted             SMALLINT DEFAULT 0,
+    CONSTRAINT fk_icon_category FOREIGN KEY (category_id)
+        REFERENCES eh_desktop_category(id) ON DELETE SET NULL
+);
+
+COMMENT ON TABLE eh_desktop_icon IS '桌面图标配置表';
+COMMENT ON COLUMN eh_desktop_icon.perm_id IS '关联权限表ID';
+COMMENT ON COLUMN eh_desktop_icon.category_id IS '所属分类ID';
+COMMENT ON COLUMN eh_desktop_icon.is_desktop IS '是否显示在桌面：1是 0否';
+COMMENT ON COLUMN eh_desktop_icon.sort IS '在分类内的排序';
+
+CREATE INDEX IF NOT EXISTS idx_icon_category ON eh_desktop_icon(category_id);
+CREATE INDEX IF NOT EXISTS idx_icon_desktop ON eh_desktop_icon(is_desktop);
+CREATE INDEX IF NOT EXISTS idx_icon_perm ON eh_desktop_icon(perm_id);
+CREATE INDEX IF NOT EXISTS idx_icon_deleted ON eh_desktop_icon(deleted);
+
+-- ----------------------------------------------------------------------------
+-- 3. 桌面管理器菜单权限 (ID=72) + 按钮权限 (ID=70, 71)
+-- ----------------------------------------------------------------------------
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (72, 0, '整理桌面', 'app:desktop-manager', 'MENU', '/app/desktop-manager', 'LayoutGrid', 25, 1, NOW(), NOW(), 'linear-gradient(135deg, #00f5ff, #ff00ff)', 1100, 720, 800, 500, -1, 1),
+    (70, 0, '查看桌面配置', 'desktop:view', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (71, 0, '管理桌面配置', 'desktop:manage', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- 超级管理员（SUPER_ADMIN）- 全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 70, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 71, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- 普通管理员（ADMIN）- 仅查看权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 4, 70, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 4. 默认分类数据
+-- ----------------------------------------------------------------------------
+INSERT INTO eh_desktop_category (id, name, icon, color, sort, status, create_by, create_time, update_time, deleted)
+VALUES
+    (1, 'AI 助手', '🤖', '#0A84FF', 1, 1, 1, NOW(), NOW(), 0),
+    (2, '系统管理', '⚙️', '#636366', 2, 1, 1, NOW(), NOW(), 0),
+    (3, '安全中心', '🔒', '#FF453A', 3, 1, 1, NOW(), NOW(), 0),
+    (4, '数据分析', '📊', '#FF9F0A', 4, 1, 1, NOW(), NOW(), 0),
+    (5, '个人', '👤', '#BF5AF2', 5, 1, 1, NOW(), NOW(), 0),
+    (6, '未分类', '📁', '#8E8E93', 99, 1, 1, NOW(), NOW(), 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 5. 默认图标分类配置
+-- ----------------------------------------------------------------------------
+-- 格式: (id, perm_id, category_id, is_desktop, sort)
+--
+-- AI 助手 (category_id=1): AI对话(9), 知识库(10), 模型管理(11), 记忆管理(14)
+-- 系统管理 (category_id=2): 用户管理(12), 技能管理(13), 部门管理(18), 图标管理(19), 角色管理(26), 权限管理(27), S3文件管理(35), 环境变量(39), 定时任务(66), Agent运行时配置(73)
+-- 安全中心 (category_id=3): Tool Guard(44), File Guard(52), Security Scanner(58)
+-- 数据分析 (category_id=4): 数据大屏(16), 用量统计(32)
+-- 个人 (category_id=5): 宠物管理(17), 个人设置(15)
+
+INSERT INTO eh_desktop_icon (id, perm_id, category_id, is_desktop, sort, create_by, create_time, update_time, deleted)
+VALUES
+    -- AI 助手 - 默认桌面图标 (is_desktop=1)
+    (1,  9,  1, 1, 1,  1, NOW(), NOW(), 0),   -- AI 对话
+    (2,  10, 1, 1, 2,  1, NOW(), NOW(), 0),   -- 知识库
+    (3,  11, 1, 1, 3,  1, NOW(), NOW(), 0),   -- 模型管理
+    (4,  14, 1, 1, 4,  1, NOW(), NOW(), 0),   -- 记忆管理
+
+    -- 系统管理
+    (5,  12, 2, 0, 1,  1, NOW(), NOW(), 0),   -- 用户管理
+    (6,  13, 2, 0, 2,  1, NOW(), NOW(), 0),   -- 技能管理
+    (7,  18, 2, 0, 3,  1, NOW(), NOW(), 0),   -- 部门管理
+    (8,  19, 2, 0, 4,  1, NOW(), NOW(), 0),   -- 图标管理
+    (9,  26, 2, 0, 5,  1, NOW(), NOW(), 0),   -- 角色管理
+    (10, 27, 2, 0, 6,  1, NOW(), NOW(), 0),   -- 权限管理
+    (11, 35, 2, 0, 7,  1, NOW(), NOW(), 0),   -- S3文件管理
+    (12, 39, 2, 0, 8,  1, NOW(), NOW(), 0),   -- 环境变量
+    (13, 66, 2, 1, 5,  1, NOW(), NOW(), 0),   -- 定时任务（也设为桌面图标）
+
+    -- 安全中心
+    (14, 44, 3, 0, 1,  1, NOW(), NOW(), 0),   -- Tool Guard
+    (15, 52, 3, 0, 2,  1, NOW(), NOW(), 0),   -- File Guard
+    (16, 58, 3, 0, 3,  1, NOW(), NOW(), 0),   -- Security Scanner
+
+    -- 数据分析
+    (17, 16, 4, 0, 1,  1, NOW(), NOW(), 0),   -- 数据大屏
+    (18, 32, 4, 0, 2,  1, NOW(), NOW(), 0),   -- 用量统计
+
+    -- 个人
+    (19, 17, 5, 0, 1,  1, NOW(), NOW(), 0),   -- 宠物管理
+    (20, 15, 5, 0, 2,  1, NOW(), NOW(), 0)    -- 个人设置
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
 -- 执行完成！现在实体类和数据库表已完全对齐
+-- ============================================================================
+
+-- =============================================================================
+-- 第九部分：Agent 运行时配置 (agent-runtime-config)
+-- =============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. 全局运行时配置表
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_agent_runtime_config (
+    id                  BIGINT PRIMARY KEY,
+    config_key          VARCHAR(64) NOT NULL UNIQUE,
+    config_value        TEXT,
+    description         VARCHAR(255),
+    update_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted             SMALLINT DEFAULT 0,
+    create_by           BIGINT,
+    create_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE eh_agent_runtime_config IS 'Agent运行时配置表';
+COMMENT ON COLUMN eh_agent_runtime_config.config_key IS '配置键';
+COMMENT ON COLUMN eh_agent_runtime_config.config_value IS '配置值(JSON)';
+
+-- ----------------------------------------------------------------------------
+-- 2. 运行时配置变更历史表
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS eh_agent_runtime_config_history (
+    id                  BIGINT PRIMARY KEY,
+    operator_id         BIGINT,
+    operator_name       VARCHAR(64),
+    config_key          VARCHAR(64) NOT NULL,
+    old_value           TEXT,
+    new_value           TEXT,
+    change_reason       VARCHAR(255),
+    create_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted             SMALLINT DEFAULT 0,
+    create_by           BIGINT,
+    update_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE eh_agent_runtime_config_history IS '运行时配置变更历史表';
+COMMENT ON COLUMN eh_agent_runtime_config_history.operator_id IS '操作人ID';
+COMMENT ON COLUMN eh_agent_runtime_config_history.operator_name IS '操作人姓名';
+COMMENT ON COLUMN eh_agent_runtime_config_history.config_key IS '配置键';
+COMMENT ON COLUMN eh_agent_runtime_config_history.old_value IS '旧值';
+COMMENT ON COLUMN eh_agent_runtime_config_history.new_value IS '新值';
+COMMENT ON COLUMN eh_agent_runtime_config_history.change_reason IS '变更原因';
+COMMENT ON COLUMN eh_agent_runtime_config_history.deleted IS '删除标记';
+
+CREATE INDEX IF NOT EXISTS idx_config_history_key ON eh_agent_runtime_config_history(config_key);
+CREATE INDEX IF NOT EXISTS idx_config_history_time ON eh_agent_runtime_config_history(create_time);
+
+-- ----------------------------------------------------------------------------
+-- 3. 权限数据 (ID=73, 74, 75)
+-- ----------------------------------------------------------------------------
+INSERT INTO eh_permission (id, parent_id, perm_name, perm_code, perm_type, path, icon, sort, status, create_time, update_time, gradient, default_width, default_height, min_width, min_height, dock_order, is_desktop_icon)
+VALUES
+    (73, 0, 'Agent运行时配置', 'agent-config', 'MENU', '/app/agent-runtime-config', 'Settings2', 26, 1, NOW(), NOW(), 'linear-gradient(135deg, #30D158, #00C7BE)', 900, 650, 700, 500, -1, 1),
+    (74, 73, '查看配置', 'agent-config:list', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (75, 73, '管理配置', 'agent-config:update', 'BUTTON', NULL, NULL, 0, 1, NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, NULL, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- SUPER_ADMIN - 全部权限
+INSERT INTO eh_role_permission (id, role_id, permission_id, create_time, update_time)
+VALUES
+    (nextval('seq_role_permission'), 1, 73, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 74, NOW(), NOW()),
+    (nextval('seq_role_permission'), 1, 75, NOW(), NOW())
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 4. 默认配置值初始化
+-- ----------------------------------------------------------------------------
+INSERT INTO eh_agent_runtime_config (id, config_key, config_value, description, update_time, deleted)
+VALUES
+    (1, 'llm_retry', '{"llm_retry_enabled":true,"llm_max_retries":3,"llm_backoff_base":1.0,"llm_backoff_cap":10.0,"llm_max_concurrent":10,"llm_max_qpm":600,"llm_rate_limit_pause":5.0,"llm_rate_limit_jitter":1.0,"llm_acquire_timeout":300.0}', 'LLM重试与限流配置', NOW(), 0),
+    (2, 'context_compact', '{"token_count_model":"default","token_count_use_mirror":false,"token_count_estimate_divisor":4.0,"context_compact_enabled":true,"memory_compact_ratio":0.75,"memory_reserve_ratio":0.1,"compact_with_thinking_block":true}', '上下文压缩配置', NOW(), 0),
+    (3, 'tool_result_compact', '{"enabled":true,"recent_n":2,"old_max_bytes":3000,"recent_max_bytes":50000,"retention_days":5}', '工具结果压缩配置', NOW(), 0),
+    (4, 'memory_summary', '{"memory_summary_enabled":true,"memory_prompt_enabled":true,"dream_cron":"0 23 * * *","force_memory_search":false,"force_max_results":1,"force_min_score":0.3,"force_memory_search_timeout":10.0,"rebuild_memory_index_on_start":false,"recursive_file_watcher":false}', '记忆摘要配置', NOW(), 0),
+    (5, 'embedding', '{"backend":"openai","api_key":"","base_url":"","model_name":"","dimensions":1024,"enable_cache":true,"use_dimensions":false,"max_cache_size":3000,"max_input_length":8192,"max_batch_size":10}', 'Embedding模型配置', NOW(), 0),
+    (6, 'runtime_basic', '{"max_iters":100,"auto_continue_on_text_only":false,"max_input_length":131072,"history_max_length":10000}', '基础运行时配置', NOW(), 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 5. 初始历史记录写入
+-- ----------------------------------------------------------------------------
+INSERT INTO eh_agent_runtime_config_history (id, operator_id, operator_name, config_key, old_value, new_value, change_reason, create_time, deleted, create_by, update_time)
+VALUES
+    (1, 1, '系统', 'llm_retry', NULL, '{"llm_retry_enabled":true,"llm_max_retries":3,"llm_backoff_base":1.0,"llm_backoff_cap":10.0,"llm_max_concurrent":10,"llm_max_qpm":600,"llm_rate_limit_pause":5.0,"llm_rate_limit_jitter":1.0,"llm_acquire_timeout":300.0}', '系统初始化', NOW(), 0, 1, NOW()),
+    (2, 1, '系统', 'context_compact', NULL, '{"token_count_model":"default","token_count_use_mirror":false,"token_count_estimate_divisor":4.0,"context_compact_enabled":true,"memory_compact_ratio":0.75,"memory_reserve_ratio":0.1,"compact_with_thinking_block":true}', '系统初始化', NOW(), 0, 1, NOW()),
+    (3, 1, '系统', 'tool_result_compact', NULL, '{"enabled":true,"recent_n":2,"old_max_bytes":3000,"recent_max_bytes":50000,"retention_days":5}', '系统初始化', NOW(), 0, 1, NOW()),
+    (4, 1, '系统', 'memory_summary', NULL, '{"memory_summary_enabled":true,"memory_prompt_enabled":true,"dream_cron":"0 23 * * *","force_memory_search":false,"force_max_results":1,"force_min_score":0.3,"force_memory_search_timeout":10.0,"rebuild_memory_index_on_start":false,"recursive_file_watcher":false}', '系统初始化', NOW(), 0, 1, NOW()),
+    (5, 1, '系统', 'embedding', NULL, '{"backend":"openai","api_key":"","base_url":"","model_name":"","dimensions":1024,"enable_cache":true,"use_dimensions":false,"max_cache_size":3000,"max_input_length":8192,"max_batch_size":10}', '系统初始化', NOW(), 0, 1, NOW()),
+    (6, 1, '系统', 'runtime_basic', NULL, '{"max_iters":100,"auto_continue_on_text_only":false,"max_input_length":131072,"history_max_length":10000}', '系统初始化', NOW(), 0, 1, NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- 6. 添加桌面图标 - Agent运行时配置 (ID=73)
+-- ----------------------------------------------------------------------------
+INSERT INTO eh_desktop_icon (id, perm_id, category_id, is_desktop, sort, create_by, create_time, update_time, deleted)
+VALUES (21, 73, 2, 0, 9, 1, NOW(), NOW(), 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- 执行完成
 -- ============================================================================
