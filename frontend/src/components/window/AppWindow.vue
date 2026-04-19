@@ -44,6 +44,9 @@
         <ToolGuardApp v-else-if="windowState.appId === 'tool-guard'" />
         <FileGuardApp v-else-if="windowState.appId === 'file-guard'" />
         <SecurityScannerApp v-else-if="windowState.appId === 'security-scanner'" />
+        <CronApp v-else-if="windowState.appId === 'cron'" />
+        <DesktopManagerApp v-else-if="windowState.appId === 'desktop-manager'" />
+        <AgentRuntimeConfigApp v-else-if="windowState.appId === 'agent-config'" />
       </div>
 
       <!-- Resize handles -->
@@ -82,6 +85,9 @@ import EnvVarApp from '../apps/envVar/EnvVarApp.vue'
 import ToolGuardApp from '../apps/toolGuard/ToolGuardApp.vue'
 import FileGuardApp from '../apps/fileGuard/FileGuardApp.vue'
 import SecurityScannerApp from '../apps/securityScanner/SecurityScannerApp.vue'
+import CronApp from '../apps/cron/CronApp.vue'
+import DesktopManagerApp from '../apps/desktop/DesktopManagerApp.vue'
+import AgentRuntimeConfigApp from '../apps/agentRuntimeConfig/AgentRuntimeConfigApp.vue'
 
 const props = defineProps<{
   windowState: WindowState

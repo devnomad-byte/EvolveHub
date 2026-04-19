@@ -1,37 +1,56 @@
 <div align="center">
 
-<!-- 顶部装饰线 -->
+<!-- Header Wave -->
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:FF6B6B,50:4ECDC4,100:45B7D1&height=120&section=header&text=&fontSize=0" width="100%" alt="header"/>
 
-<!-- Logo -->
+<!-- Logo with Glow Effect -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/logo.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/logo.svg">
-  <img src="docs/logo.svg" alt="EvolveHub Logo" width="180" height="180">
+  <img src="docs/logo.svg" alt="EvolveHub Logo" width="200" height="200" style="filter: drop-shadow(0 0 30px rgba(78, 205, 196, 0.6));">
 </picture>
 
 <br/>
 
-<!-- 动态标题 -->
+<!-- Animated Title -->
 <h1>
   <img src="https://readme-typing-svg.demolab.com?font=Orbitron&size=42&duration=3000&pause=1000&color=4ECDC4&center=true&vCenter=true&multiline=true&repeat=true&width=600&height=100&lines=EvolveHub+%F0%9F%A7%AC" alt="EvolveHub"/>
 </h1>
 
-<!-- 副标题 -->
+<!-- Subtitle -->
 <p>
   <img src="https://readme-typing-svg.demolab.com?font=Noto+Sans+SC&size=18&duration=4000&pause=1000&color=FF6B6B&center=true&vCenter=true&multiline=true&repeat=true&width=500&height=40&lines=%E4%BC%81%E4%B8%9A%E7%BA%A7+AI+%E6%99%BA%E8%83%BD%E4%B8%AD%E5%8F%B0" alt="subtitle"/>
 </p>
 
+<!-- Tagline -->
+<p>
+
+```
+╭───────────────────────────────────────────────────────────╮
+│  ✦  企业级 AI 平台  ✦  零代码  ✦  开箱即用  ✦          │
+╰───────────────────────────────────────────────────────────╯
+```
+
 **企业级 AI 智能对话平台 · 开箱即用 · 无需编码**
 
-<br/>
+</p>
+
 <br/>
 
-<!-- 徽章墙 -->
+<!-- Stats Badges -->
+<p>
+  <img src="https://img.shields.io/github/stars/devnomad-byte/EvolveHub?style=for-the-badge&logo=github" alt="Stars"/>
+  <img src="https://img.shields.io/github/forks/devnomad-byte/EvolveHub?style=for-the-badge&logo=github" alt="Forks"/>
+  <img src="https://img.shields.io/github/watchers/devnomad-byte/EvolveHub?style=for-the-badge&logo=github" alt="Watchers"/>
+</p>
+
+<!-- Badge Wall -->
 <p>
   <img src="https://img.shields.io/badge/Platform-Enterprise-4ECDC4?style=for-the-badge&logo=probot&logoColor=white" alt="Enterprise Platform"/>
   <img src="https://img.shields.io/badge/Java-21%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21+"/>
+  <img src="https://img.shields.io/badge/Spring_Boot-3.5.9-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3.5"/>
   <img src="https://img.shields.io/badge/MCP-Compatible-6DB33F?style=for-the-badge" alt="MCP Compatible"/>
+  <img src="https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white" alt="Vue.js 3"/>
   <img src="https://img.shields.io/badge/License-MIT-FF6B6B?style=for-the-badge" alt="License"/>
 </p>
 
@@ -41,14 +60,16 @@
   </a>
 </p>
 
-<!-- 底部装饰线 -->
+<!-- Footer Wave -->
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:45B7D1,50:4ECDC4,100:FF6B6B&height=80&section=footer" width="100%" alt="footer"/>
 
 </div>
 
 ---
 
-## 🎯 什么是 EvolveHub？
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **什么是 EvolveHub？** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
 <div align="center">
 
@@ -65,13 +86,24 @@
 
 ### 🪄 一句话概括
 
-**配置即用，连接一切，让 AI 理解并操作您的企业系统**
+```
+╭═══════════════════════════════════════════════════════════╮
+║                                                           ║
+║   ⚡ 配置即用，连接一切。                                ║
+║   🚀 让 AI 理解并操作您的企业系统。                       ║
+║                                                           ║
+╰═══════════════════════════════════════════════════════════╯
+```
+
+**配置即用，连接一切，让 AI 理解并操作您的企业系统。**
 
 </div>
 
 ---
 
-## ✨ 核心能力
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **核心能力** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
@@ -81,6 +113,15 @@
 
 ### 🔌 即插即用
 <img src="https://img.shields.io/badge/Zero-Code-9B59B6?style=flat-square" alt="Zero Code"/>
+
+```
+╭────────────────────────────────────────╮
+│  📦 开箱即用                            │
+│  🔗 MCP 协议                          │
+│  🤝 A2A 协议                          │
+│  ⚡ Skills 扩展                       │
+╰────────────────────────────────────────╯
+```
 
 - 📦 **开箱即用** — 无需开发，配置即可使用
 - 🔗 **MCP 协议** — 兼容 ModelScope MCP 生态
@@ -98,6 +139,15 @@
 
 ### 🧠 智能进化
 <img src="https://img.shields.io/badge/AI-Evolving-E74C3C?style=flat-square" alt="AI Evolving"/>
+
+```
+╭────────────────────────────────────────╮
+│  🧬 记忆进化                            │
+│  ⚡ 策略迭代                            │
+│  🤝 协作涌现                            │
+│  📊 知识沉淀                            │
+╰────────────────────────────────────────╯
+```
 
 - 🧬 **记忆进化** — AI 越用越懂您的业务
 - ⚡ **策略迭代** — 自动优化对话策略
@@ -118,14 +168,34 @@
 
 ---
 
-## 🏗️ 平台架构
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **界面预览** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
+| 登录界面 | 桌面管理 |
+|:------:|:------------------:|
+| <img src="docs/imgs/login.png" width="100%" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"> | <img src="docs/imgs/Desktop_Management_Interface.png" width="100%" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"> |
+
+| 超级管理员后台 |
+|:-------------------:|
+| <img src="docs/imgs/Super_Admin_Backend_Interface.png" width="80%" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"> |
+
+</div>
+
+---
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **平台架构** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
 ```mermaid
 graph TB
     subgraph "👤 用户交互层"
-        A[💬 Web Chat]
+        A[💬 Web 对话]
         B[📱 移动端]
         C[🔌 API 接入]
     end
@@ -172,25 +242,26 @@ graph TB
 
 ---
 
-## 🚀 使用场景
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **使用场景** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
-| 场景 | 描述 | 收益 |
-|:----:|:-----|:----:|
-| 💬 **智能客服** | AI 理解业务，自动查询订单、处理工单 | 效率提升 80% |
-| 📊 **数据助手** | 自然语言查询数据库，生成报表 | 零 SQL 门槛 |
-| 🔧 **运维助手** | AI 执行运维操作，自动排查故障 | 响应时间 -70% |
-| 📋 **流程审批** | 智能理解审批内容，辅助决策 | 审批加速 3x |
-| 🎓 **培训导师** | 基于企业知识库的智能问答 | 培训成本 -60% |
+| 💬 智能客服 | 📊 数据助手 | 🔧 运维助手 | 📋 流程审批 | 🎓 培训导师 |
+|:--------:|:----------------:|:----------------:|:-------------------:|:----------------:|
+| AI 理解业务，自动查询订单、处理工单 | 自然语言查询数据库，生成报表 | AI 执行运维操作，自动排查故障 | 智能理解审批内容，辅助决策 | 基于企业知识库的智能问答 |
+| **效率提升 80%** | **零 SQL 门槛** | **响应时间 -70%** | **审批加速 3x** | **培训成本 -60%** |
 
 </div>
 
 ---
 
-## 🔌 接入方式
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
-### 方式一：MCP 协议
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **接入方式** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+### 🔹 方式一：MCP 协议
 
 只需配置您的 MCP 服务端点，平台自动发现并加载工具：
 
@@ -205,7 +276,7 @@ mcp:
         token: "${ERP_API_TOKEN}"
 ```
 
-### 方式二：A2A 协议
+### 🔹 方式二：A2A 协议
 
 注册您的 Agent 到 A2A 网络，实现多智能体协作：
 
@@ -219,7 +290,7 @@ a2a:
       capability: "库存管理"
 ```
 
-### 方式三：Skills 技能包
+### 🔹 方式三：Skills 技能包
 
 导入预置的企业技能包，快速获得业务能力：
 
@@ -233,12 +304,38 @@ skills:
 
 ---
 
-## 🆚 对比传统方案
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **个人助手 vs 企业级平台** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
+| 维度 | 个人 AI 助手 | **EvolveHub 企业版** |
+|:---------:|:--------------------:|:------------------------:|
+| 🎯 **定位** | 个人效率工具 | 企业级智能平台 |
+| 👥 **使用场景** | 单人对话、文档处理 | 团队协作、业务系统对接 |
+| 🔐 **权限管理** | 简单 | 🟢 完整 RBAC + 数据权限 |
+| 🏢 **多租户** | 不支持 | 🟢 部门/项目级隔离 |
+| 🔌 **企业系统对接** | 仅对话 | 🟢 MCP/A2A 无缝集成 |
+| 📊 **知识库** | 个人文档 | 🟢 企业知识库 + 向量检索 |
+| 🔒 **数据安全** | 本地或云端 | 🟢 私有化部署，数据自主可控 |
+| 📈 **审计合规** | 无 | 🟢 操作审计、权限追溯 |
+| 🚀 **部署方式** | 本地安装 | 🟢 Docker/K8s 一键部署 |
+
+</div>
+
+> 💡 个人 AI 助手适合个人效率提升；EvolveHub 专为企业管理场景设计，提供**权限管控**、**多租户隔离**、**业务系统集成**、**合规审计**等企业级能力，让 AI 成为真正的**企业智能中枢**。
+
+---
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **对比传统 AI 开发** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
 | 维度 | 传统 AI 开发 | **EvolveHub** |
-|:----:|:------------:|:-------------:|
+|:---------:|:--------------------------:|:-------------:|
 | 开发成本 | 🔴 高（需 AI 工程师） | 🟢 零代码配置 |
 | 部署周期 | 🔴 周/月级 | 🟢 分钟级 |
 | 业务适配 | 🔴 需定制开发 | 🟢 MCP/A2A 即插即用 |
@@ -249,19 +346,20 @@ skills:
 
 ---
 
-## 📦 部署方式
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **部署方式** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
-| 部署模式 | 适用场景 | 特点 |
-|:--------:|:--------:|:----:|
-| 🐳 **Docker** | 快速体验、测试环境 | 一键启动 |
-| ☸️ **Kubernetes** | 生产环境、高可用 | 弹性伸缩 |
-| 🏢 **私有化部署** | 数据敏感、合规要求 | 完全自主可控 |
+| 🐳 Docker | ☸️ Kubernetes | 🏢 私有化部署 |
+|:---------:|:-------------:|:-------------:|
+| 快速体验、测试环境 | 生产环境、高可用 | 数据敏感、合规要求 |
+| **一键启动** | **弹性伸缩** | **完全自主可控** |
 
 </div>
 
-### Docker 快速启动
+### 🚀 Docker 快速启动
 
 ```bash
 # 拉取镜像
@@ -275,42 +373,59 @@ docker run -d \
   evolvehub/server:latest
 
 # 访问 http://localhost:8080 开始使用
+# 默认管理员：admin / admin123
 ```
 
 ---
 
-## 📈 功能路线
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ECDC4'}}}%%
-timeline
-    title EvolveHub 发展路线
-    section Phase 1
-        核心平台发布
-        : MCP 协议支持
-        : 基础对话能力
-    section Phase 2
-        企业能力增强
-        : A2A 多智能体
-        : Skills 市场
-    section Phase 3
-        智能化升级
-        : 记忆进化
-        : 策略迭代
-        : 知识图谱
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **默认账号** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
 ```
+╭───────────────────────────────────────────╮
+│  🏆  超级管理员                           │
+│  ─────────────────────                   │
+│  👤  admin                               │
+│  🔑  admin123                           │
+╰───────────────────────────────────────────╯
+```
+
+</div>
 
 ---
 
-## 🤝 加入社区
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **Star 历史** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
+
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=devnomad-byte/EvolveHub&type=Timeline)](https://star-history.com/#devnomad-byte/EvolveHub&Timeline)
+
+</div>
+
+---
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
+
+<img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;"> &nbsp; **加入社区** &nbsp; <img src="https://raw.githubusercontent.com/TarikulEnergySpotlight/TarikulEnergySpotlight/refs/heads/main/assets/sparkle.gif" width="24" height="24" style="vertical-align: middle;">
 
 <div align="center">
 
 ### 📱 扫码加入钉钉交流群
 
-<img src="docs/imgs/dingtalk_qr_code.png" alt="钉钉群二维码" width="200">
+<img src="docs/imgs/dingtalk_qr_code.png" alt="钉钉群二维码" width="200" style="border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
 
 *产品咨询 · 技术交流 · 问题反馈*
+
+<br/>
+
+### 👥 贡献者
+
+[![Contributors](https://contrib.rocks/image?repo=devnomad-byte/EvolveHub)](https://github.com/devnomad-byte/EvolveHub/graphs/contributors)
 
 <br/>
 
@@ -318,19 +433,21 @@ timeline
 
 ---
 
-## 📄 许可证
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="divider">
 
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-</div>
+<br/>
 
----
-
-<div align="center">
-
-**Made with ❤️ by the EvolveHub Team**
+```
+╭───────────────────────────────────────────────────────────╮
+│                                                           │
+│        ✦ ✦ ✦  Made with ❤️ by EvolveHub Team  ✦ ✦ ✦    │
+│                                                           │
+╰───────────────────────────────────────────────────────────╯
+```
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:45B7D1,50:4ECDC4,100:FF6B6B&height=100&section=footer" width="100%" alt="footer"/>
 
