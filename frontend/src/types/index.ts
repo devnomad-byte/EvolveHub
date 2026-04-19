@@ -1,4 +1,4 @@
-export type AppId = 'chat' | 'knowledge' | 'model' | 'users' | 'mcp' | 'memory' | 'settings' | 'dashboard' | 'pets' | 'dept' | 'role' | 'permission' | 'skill-editor' | 'mcp-editor' | 'mcp-create' | 'skill-edit' | 'desktopicon' | 'chat-history' | 'token-usage' | 's3-browser' | 'env-var' | 'tool-guard' | 'file-guard' | 'security-scanner'
+export type AppId = 'chat' | 'knowledge' | 'model' | 'users' | 'mcp' | 'memory' | 'settings' | 'dashboard' | 'pets' | 'dept' | 'role' | 'permission' | 'skill-editor' | 'mcp-editor' | 'mcp-create' | 'skill-edit' | 'desktopicon' | 'chat-history' | 'token-usage' | 's3-browser' | 'env-var' | 'tool-guard' | 'file-guard' | 'security-scanner' | 'cron' | 'desktop-manager' | 'agent-config'
 
 export interface WindowState {
   id: string

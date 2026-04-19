@@ -288,6 +288,42 @@ export const appDefinitions: Record<string, AppDefinition> = {
     minHeight: 560,
     dockOrder: -1,
     roles: ['SUPER_ADMIN']
+  },
+  cron: {
+    id: 'cron',
+    name: '定时任务',
+    icon: 'Clock',
+    gradient: 'linear-gradient(135deg, #30D158, #34C759)',
+    defaultWidth: 1100,
+    defaultHeight: 720,
+    minWidth: 800,
+    minHeight: 500,
+    dockOrder: 22,
+    roles: ['SUPER_ADMIN', 'ADMIN']
+  },
+  'desktop-manager': {
+    id: 'desktop-manager',
+    name: '桌面整理',
+    icon: 'LayoutGrid',
+    gradient: 'linear-gradient(135deg, #0A84FF, #5E5CE6)',
+    defaultWidth: 1000,
+    defaultHeight: 700,
+    minWidth: 800,
+    minHeight: 500,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
+  },
+  'agent-config': {
+    id: 'agent-config',
+    name: 'Agent运行时配置',
+    icon: 'Settings2',
+    gradient: 'linear-gradient(135deg, #30D158, #00C7BE)',
+    defaultWidth: 900,
+    defaultHeight: 650,
+    minWidth: 700,
+    minHeight: 500,
+    dockOrder: -1,
+    roles: ['SUPER_ADMIN']
   }
 }
 
