@@ -1,8 +1,9 @@
 package org.evolve.aiplatform.service.cron;
 
-import io.agentscope.agent.Tool;
-import io.agentscope.agent.ToolParam;
-import io.agentscope.common.annotations.Feedback;
+
+import io.agentscope.core.tool.Tool;
+import io.agentscope.core.tool.ToolParam;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.evolve.ai.api.CronTriggerApi;
 import org.evolve.domain.resource.infra.CronJobInfra;
@@ -16,14 +17,13 @@ import java.util.stream.Collectors;
 @Component
 public class CronTools {
 
-    @lombok.Resource
+    @Resource
     private CronJobInfra cronJobInfra;
 
-    @lombok.Resource
+    @Resource
     private CronTriggerApi cronTriggerApi;
 
     @Tool(name = "create_cron_job", description = "创建一个新的定时任务")
-    @Feedback("定时任务创建成功")
     public String createCronJob(
             @ToolParam(name = "name", description = "任务名称") String name,
             @ToolParam(name = "cron", description = "cron表达式，如 0 9 * * * 表示每天9点执行") String cron,
@@ -81,7 +81,6 @@ public class CronTools {
     }
 
     @Tool(name = "delete_cron_job", description = "删除指定的定时任务")
-    @Feedback("定时任务删除成功")
     public String deleteCronJob(
             @ToolParam(name = "job_id", description = "要删除的任务ID") Long jobId
     ) {
@@ -106,7 +105,6 @@ public class CronTools {
     }
 
     @Tool(name = "trigger_cron_now", description = "立即触发执行指定的定时任务")
-    @Feedback("任务已触发执行")
     public String triggerCronNow(
             @ToolParam(name = "job_id", description = "要触发的任务ID") Long jobId
     ) {

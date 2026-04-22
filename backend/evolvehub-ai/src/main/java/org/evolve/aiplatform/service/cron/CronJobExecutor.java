@@ -1,38 +1,31 @@
 package org.evolve.aiplatform.service.cron;
 
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.agent.Event;
 import io.agentscope.core.agent.StreamOptions;
+import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
-import io.agentscope.cron.scheduler.CronExpression;
+import io.agentscope.core.message.MsgRole;
+import io.agentscope.core.message.TextBlock;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.evolve.aiplatform.config.ChatModelFactory;
 import org.evolve.aiplatform.memory.application.service.MemoryApi;
 import org.evolve.aiplatform.service.agent.ChatAgentFactory;
 import org.evolve.aiplatform.service.agent.UserToolkitLoader;
 import org.evolve.common.base.CurrentUserHolder;
-import org.evolve.domain.resource.infra.ChatMessageInfra;
-import org.evolve.domain.resource.infra.ChatSessionInfra;
-import org.evolve.domain.resource.infra.ChatTokenUsageInfra;
-import org.evolve.domain.resource.infra.CronJobHistoryInfra;
-import org.evolve.domain.resource.infra.CronJobInfra;
-import org.evolve.domain.resource.infra.ModelConfigInfra;
-import org.evolve.domain.resource.infra.UsersInfra;
-import org.evolve.domain.resource.model.ChatMessageEntity;
-import org.evolve.domain.resource.model.ChatSessionEntity;
-import org.evolve.domain.resource.model.CronJobEntity;
-import org.evolve.domain.resource.model.CronJobHistoryEntity;
-import org.evolve.domain.resource.model.ModelConfigEntity;
+import org.evolve.domain.rbac.infra.UsersInfra;
+import org.evolve.domain.resource.infra.*;
+import org.evolve.domain.resource.model.*;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -40,34 +33,34 @@ public class CronJobExecutor {
 
     private final ConcurrentHashMap<Long, Semaphore> jobSemaphores = new ConcurrentHashMap<>();
 
-    @lombok.Resource
+    @Resource
     private CronJobInfra cronJobInfra;
 
-    @lombok.Resource
+    @Resource
     private CronJobHistoryInfra historyInfra;
 
-    @lombok.Resource
+    @Resource
     private ChatSessionInfra chatSessionInfra;
 
-    @lombok.Resource
+    @Resource
     private ChatMessageInfra chatMessageInfra;
 
-    @lombok.Resource
+    @Resource
     private ChatTokenUsageInfra tokenUsageInfra;
 
-    @lombok.Resource
+    @Resource
     private ModelConfigInfra modelConfigInfra;
 
-    @lombok.Resource
+    @Resource
     private UsersInfra usersInfra;
 
-    @lombok.Resource
+    @Resource
     private ChatAgentFactory chatAgentFactory;
 
-    @lombok.Resource
+    @Resource
     private UserToolkitLoader userToolkitLoader;
 
-    @lombok.Resource
+    @Resource
     private MemoryApi memoryApi;
 
     public void execute(Long jobId, boolean isManual) {
@@ -151,20 +144,26 @@ public class CronJobExecutor {
         chatMessageInfra.save(userMsg);
 
         List<Msg> messages = new ArrayList<>();
-        messages.add(Msg.ofUser(prompt));
+        messages.add(Msg.builder()
+                .role(MsgRole.USER)
+                .textContent(prompt)
+                .build());
 
         String sysPrompt = buildSysPrompt(job);
         ReActAgent agent = chatAgentFactory.createAgent(modelConfig, targetUserId, session.getId(), sysPrompt);
         StreamOptions streamOptions = chatAgentFactory.buildStreamOptions();
 
         StringBuilder fullResponse = new StringBuilder();
-        AtomicInteger promptTokens = new AtomicInteger(0);
-        AtomicInteger completionTokens = new AtomicInteger(0);
 
         agent.stream(messages, streamOptions)
                 .doOnNext(event -> {
-                    if (event.getContent() != null) {
-                        fullResponse.append(event.getContent().toString());
+                    Msg message = event.getMessage();
+                    if (message != null && message.getContent() != null) {
+                        for (ContentBlock block : message.getContent()) {
+                            if (block instanceof TextBlock textBlock) {
+                                fullResponse.append(textBlock.getText());
+                            }
+                        }
                     }
                 })
                 .blockLast();
@@ -193,13 +192,13 @@ public class CronJobExecutor {
 
     private ChatSessionEntity getOrCreateSession(Long userId, ModelConfigEntity modelConfig, String sessionId) {
         ChatSessionEntity session = chatSessionInfra.lambdaQuery()
-                .eq(ChatSessionEntity::getName, sessionId)
+                .eq(ChatSessionEntity::getTitle, sessionId)
                 .eq(ChatSessionEntity::getUserId, userId)
                 .one();
 
         if (session == null) {
             session = new ChatSessionEntity();
-            session.setName(sessionId);
+            session.setTitle(sessionId);
             session.setUserId(userId);
             session.setModelConfigId(modelConfig.getId());
             session.setDeptId(usersInfra.getUserById(userId).getDeptId());
@@ -214,7 +213,7 @@ public class CronJobExecutor {
 
     private ModelConfigEntity getDefaultModelConfig(Long userId) {
         return modelConfigInfra.lambdaQuery()
-                .eq(ModelConfigEntity::getUserId, userId)
+                .eq(ModelConfigEntity::getOwnerId, userId)
                 .eq(ModelConfigEntity::getEnabled, 1)
                 .one();
     }
@@ -241,15 +240,14 @@ public class CronJobExecutor {
     private void updateJobSuccess(Long jobId) {
         try {
             CronExpression cron = CronExpression.parse(cronJobInfra.getById(jobId).getCronExpression());
-            LocalDateTime nextRun = LocalDateTime.ofInstant(
-                    cron.next(LocalDateTime.now()), ZoneId.systemDefault());
+            LocalDateTime nextRun = cron.next(LocalDateTime.now());
 
             cronJobInfra.lambdaUpdate()
                     .eq(org.evolve.domain.resource.model.CronJobEntity::getId, jobId)
                     .set(org.evolve.domain.resource.model.CronJobEntity::getLastRunStatus, "SUCCESS")
                     .set(org.evolve.domain.resource.model.CronJobEntity::getLastRunTime, LocalDateTime.now())
                     .set(org.evolve.domain.resource.model.CronJobEntity::getNextRunTime, nextRun)
-                    .setNull(org.evolve.domain.resource.model.CronJobEntity::getLastRunError)
+//                    .setNull(org.evolve.domain.resource.model.CronJobEntity::getLastRunError)
                     .update();
         } catch (Exception e) {
             log.warn("Failed to update next run time for job: {}", jobId);
